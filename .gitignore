@@ -132,3 +132,5 @@ frontend/out/
 frontend/tsconfig.tsbuildinfo
 frontend/.env.local
 
+# Agent metadata
+.agent/
