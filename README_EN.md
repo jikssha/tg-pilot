@@ -22,17 +22,27 @@ TG-Pilot is a Telegram automation panel. It helps you manage multiple accounts, 
 - Stability improvements for timeout/429 scenarios and long-running memory behavior
 - Docker-first deployment (easy to start and migrate)
 
-## Beginner Deployment (3 Steps)
+## Quick Deployment (Docker Compose Recommended)
 
-1. Install Docker
-2. Run the container command below
-3. Open `http://YOUR_SERVER_IP:8080` in a browser and log in
+1. Install Docker and Docker Compose
+2. Create directory and download `docker-compose.yml`:
+   ```bash
+   mkdir -p tg-pilot/data && cd tg-pilot
+   wget https://raw.githubusercontent.com/jikssha/tg-pilot/main/docker-compose.yml
+   ```
+3. Start the container:
+   ```bash
+   docker compose up -d
+   ```
+4. Open `http://YOUR_SERVER_IP:8080` in a browser and log in.
 
 Default credentials:
 - Username: `admin`
 - Password: `admin123`
 
-### One-command Deploy
+### One-command Deploy (Optional)
+
+If you prefer not to use Docker Compose, you can run the container directly:
 
 ```bash
 docker run -d \
@@ -45,28 +55,7 @@ docker run -d \
   ghcr.io/jikssha/tg-pilot:latest
 ```
 
-If you use a reverse proxy, bind locally only:
-
-```bash
--p 127.0.0.1:8080:8080
-```
-
-### Docker Compose (Optional)
-
-```yaml
-services:
-  app:
-    image: ghcr.io/jikssha/tg-pilot:latest
-    container_name: TG-Pilot
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./data:/data
-    environment:
-      - TZ=Asia/Shanghai
-      - APP_SECRET_KEY=your_secret_key
-```
+If you use a reverse proxy like Nginx, bind locally only: `-p 127.0.0.1:8080:8080`
 
 ## Data Directory & Permissions
 
