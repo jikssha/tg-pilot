@@ -1,8 +1,8 @@
-# TG-SignPulse
+# TG-Pilot
 
 [English README](README_EN.md)
 
-TG-SignPulse 是一个 Telegram 自动化管理面板。你可以在网页里管理多个账号，配置自动签到任务，并让任务按固定规则每天自动执行。
+TG-Pilot 是一个 Telegram 自动化管理面板。你可以在网页里管理多个账号，配置自动签到任务，并让任务按固定规则每天自动执行。
 
 > AI 驱动：项目已集成 AI 能力（识图、计算题），可直接用于自动任务流程。
 
@@ -36,7 +36,7 @@ TG-SignPulse 是一个 Telegram 自动化管理面板。你可以在网页里管
 
 ```bash
 docker run -d \
-  --name tg-signpulse \
+  --name TG-Pilot \
   --restart unless-stopped \
   -p 8080:8080 \
   -v $(pwd)/data:/data \
@@ -57,7 +57,7 @@ docker run -d \
 services:
   app:
     image: ghcr.io/jikssha/tg-pilot:latest
-    container_name: tg-signpulse
+    container_name: TG-Pilot
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -71,7 +71,7 @@ services:
 ## 数据目录与权限说明
 
 - 默认数据目录：`/data`
-- 当 `/data` 不可写时，会自动降级到 `/tmp/tg-signpulse`（非持久化）
+- 当 `/data` 不可写时，会自动降级到 `/tmp/TG-Pilot`（非持久化）
 - 新镜像已支持根据 `/data` 挂载目录属主 UID/GID 自动适配运行身份，通常无需 `chmod 777`
 
 容器内排查命令：
@@ -142,10 +142,6 @@ frontend/     Next.js 管理面板
 - 长时运行稳定性与内存占用优化。
 - 新增自定义数据目录配置。
 
-## 致谢
+## 技术栈
 
-本项目基于原项目进行重构与扩展，感谢：
-
-- 原项目：[tg-signer](https://github.com/amchii/tg-signer) by [amchii](https://github.com/amchii)
-
-技术栈：FastAPI、Uvicorn、APScheduler、Pyrogram/Kurigram、Next.js、Tailwind CSS、OpenAI SDK。
+FastAPI、Uvicorn、APScheduler、Pyrogram/Kurigram、Next.js、Tailwind CSS、OpenAI SDK。
