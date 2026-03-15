@@ -6,11 +6,11 @@ services:
     image: ghcr.io/jikssha/tg-pilot:latest
     container_name: tg-pilot
     ports:
-      - "9987:8080"
+      - "9987:9987"
     volumes:
       - ./data:/data
     environment:
-      - PORT=8080
+      - PORT=9987
       - APP_DATA_DIR=/data
       - TZ=Asia/Shanghai
       - TG_GLOBAL_CONCURRENCY=2
