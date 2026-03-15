@@ -221,7 +221,7 @@ async def get_account_chats(
                 status_code=status.HTTP_409_CONFLICT,
                 content={"detail": detail, "code": "ACCOUNT_SESSION_INVALID"},
             )
-        raise HTTPException(status_code=404, detail=detail)
+        raise HTTPException(status_code=400, detail=detail)
     except Exception as e:
         import traceback
 
