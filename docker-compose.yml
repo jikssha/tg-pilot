@@ -3,8 +3,8 @@ version: '3.8'
 services:
   app:
     build: .
-    image: tg-signpulse:latest
-    container_name: tg-signpulse
+    image: ghcr.io/jikssha/tg-pilot:latest
+    container_name: tg-pilot
     ports:
       - "8080:8080"
     volumes:

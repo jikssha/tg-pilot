@@ -48,8 +48,8 @@ const EMPTY_LOGIN_DATA = {
   password: "",
   phone_code_hash: "",
 };
-const DASHBOARD_STATUS_CHECKED_KEY = "tg-signpulse:dashboard-status-checked";
-const DASHBOARD_STATUS_CACHE_KEY = "tg-signpulse:dashboard-status-cache";
+const DASHBOARD_STATUS_CHECKED_KEY = "tg-pilot:dashboard-status-checked";
+const DASHBOARD_STATUS_CACHE_KEY = "tg-pilot:dashboard-status-cache";
 
 export default function Dashboard() {
   const router = useRouter();

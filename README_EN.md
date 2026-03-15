@@ -22,19 +22,35 @@ TG-Pilot is a Telegram automation panel. It helps you manage multiple accounts, 
 - Stability improvements for timeout/429 scenarios and long-running memory behavior
 - Docker-first deployment (easy to start and migrate)
 
-## Quick Deployment (Docker Compose Recommended)
+## Quick Deployment (Recommended)
 
 1. Install Docker and Docker Compose
-2. Create directory and download `docker-compose.yml`:
+2. Create directory:
    ```bash
    mkdir -p tg-pilot/data && cd tg-pilot
-   wget https://raw.githubusercontent.com/jikssha/tg-pilot/main/docker-compose.yml
    ```
-3. Start the container:
+3. Run the following command to generate the `docker-compose.yml` config file directly:
+   ```yaml
+   cat << 'EOF' > docker-compose.yml
+   services:
+     app:
+       image: ghcr.io/jikssha/tg-pilot:latest
+       container_name: tg-pilot
+       restart: unless-stopped
+       ports:
+         - "8080:8080"
+       volumes:
+         - ./data:/data
+       environment:
+         - TZ=Asia/Shanghai
+         - APP_SECRET_KEY=your_secret_key # Strongly recommended to change this
+   EOF
+   ```
+4. Start the container:
    ```bash
    docker compose up -d
    ```
-4. Open `http://YOUR_SERVER_IP:8080` in a browser and log in.
+5. Open `http://YOUR_SERVER_IP:8080` in a browser and log in.
 
 Default credentials:
 - Username: `admin`

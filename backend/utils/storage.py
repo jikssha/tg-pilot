@@ -91,7 +91,7 @@ def get_writable_base_dir() -> Path:
         _BASE_DIR = preferred
         return _BASE_DIR
 
-    fallback = Path(tempfile.gettempdir()) / "tg-signpulse"
+    fallback = Path(tempfile.gettempdir()) / "tg-pilot"
     fallback.mkdir(parents=True, exist_ok=True)
     message = (
         f"WARNING: /data is not writable. Falling back to {fallback}; "
