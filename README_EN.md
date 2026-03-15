@@ -38,7 +38,7 @@ TG-Pilot is a Telegram automation panel. It helps you manage multiple accounts, 
        container_name: tg-pilot
        restart: unless-stopped
        ports:
-         - "8080:8080"
+         - "9987:8080"
        volumes:
          - ./data:/data
        environment:
@@ -50,11 +50,20 @@ TG-Pilot is a Telegram automation panel. It helps you manage multiple accounts, 
    ```bash
    docker compose up -d
    ```
-5. Open `http://YOUR_SERVER_IP:8080` in a browser and log in.
+5. Open `http://YOUR_SERVER_IP:9987` in a browser and log in.
 
 Default credentials:
 - Username: `admin`
 - Password: `admin123`
+
+## How To Update
+
+When a new version is built, simply run these two commands within your `tg-pilot` directory to update seamlessly:
+
+```bash
+docker compose pull
+docker compose up -d
+```
 
 ### One-command Deploy (Optional)
 
@@ -62,16 +71,16 @@ If you prefer not to use Docker Compose, you can run the container directly:
 
 ```bash
 docker run -d \
-  --name TG-Pilot \
+  --name tg-pilot \
   --restart unless-stopped \
-  -p 8080:8080 \
+  -p 9987:8080 \
   -v $(pwd)/data:/data \
   -e TZ=Asia/Shanghai \
   -e APP_SECRET_KEY=your_secret_key \
   ghcr.io/jikssha/tg-pilot:latest
 ```
 
-If you use a reverse proxy like Nginx, bind locally only: `-p 127.0.0.1:8080:8080`
+If you use a reverse proxy like Nginx, bind locally only: `-p 127.0.0.1:9987:8080`
 
 ## Data Directory & Permissions
 

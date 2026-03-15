@@ -6,7 +6,7 @@ services:
     image: ghcr.io/jikssha/tg-pilot:latest
     container_name: tg-pilot
     ports:
-      - "8080:8080"
+      - "9987:8080"
     volumes:
       - ./data:/data
     environment:
