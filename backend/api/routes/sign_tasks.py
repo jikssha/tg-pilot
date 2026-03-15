@@ -181,6 +181,8 @@ class TaskHistoryItem(BaseModel):
 
 
 # API 路由
+# 注意：具体路径路由（如 /chats/）必须定义在参数化路由（如 /{task_name}）之前，
+# 否则 FastAPI 会把 "chats" 当作 task_name 匹配，导致 404。
 
 
 @router.get("", response_model=List[SignTaskOut])
@@ -195,6 +197,53 @@ def list_sign_tasks(
     """
     tasks = get_sign_task_service().list_tasks(account_name=account_name)
     return tasks
+
+
+@router.get("/chats/{account_name}", response_model=List[ChatOut])
+async def get_account_chats(
+    account_name: str,
+    force_refresh: bool = False,
+    current_user=Depends(get_current_user),
+):
+    """获取账号的 Chat 列表"""
+    try:
+        return await get_sign_task_service().get_account_chats(
+            account_name, force_refresh=force_refresh
+        )
+    except ValueError as e:
+        detail = str(e)
+        if (
+            "登录已失效" in detail
+            or "session_string" in detail
+            or "Session 文件不存在" in detail
+        ):
+            return JSONResponse(
+                status_code=status.HTTP_409_CONFLICT,
+                content={"detail": detail, "code": "ACCOUNT_SESSION_INVALID"},
+            )
+        raise HTTPException(status_code=404, detail=detail)
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"获取对话列表失败: {str(e)}")
+
+
+@router.get("/chats/{account_name}/search", response_model=ChatSearchResponse)
+def search_account_chats(
+    account_name: str,
+    q: str = "",
+    limit: int = 50,
+    offset: int = 0,
+    current_user=Depends(get_current_user),
+):
+    """搜索账号的 Chat 列表（使用缓存）"""
+    try:
+        return get_sign_task_service().search_account_chats(
+            account_name, q, limit=limit, offset=offset
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"搜索对话列表失败: {str(e)}")
 
 
 @router.post("", response_model=SignTaskOut, status_code=status.HTTP_201_CREATED)
@@ -357,51 +406,7 @@ def get_sign_task_history(
     )
 
 
-@router.get("/chats/{account_name}", response_model=List[ChatOut])
-async def get_account_chats(
-    account_name: str,
-    force_refresh: bool = False,
-    current_user=Depends(get_current_user),
-):
-    """获取账号的 Chat 列表"""
-    try:
-        return await get_sign_task_service().get_account_chats(
-            account_name, force_refresh=force_refresh
-        )
-    except ValueError as e:
-        detail = str(e)
-        if (
-            "登录已失效" in detail
-            or "session_string" in detail
-            or "Session 文件不存在" in detail
-        ):
-            return JSONResponse(
-                status_code=status.HTTP_409_CONFLICT,
-                content={"detail": detail, "code": "ACCOUNT_SESSION_INVALID"},
-            )
-        raise HTTPException(status_code=404, detail=detail)
-    except Exception as e:
-        import traceback
-
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"获取对话列表失败: {str(e)}")
-
-
-@router.get("/chats/{account_name}/search", response_model=ChatSearchResponse)
-def search_account_chats(
-    account_name: str,
-    q: str = "",
-    limit: int = 50,
-    offset: int = 0,
-    current_user=Depends(get_current_user),
-):
-    """搜索账号的 Chat 列表（使用缓存）"""
-    try:
-        return get_sign_task_service().search_account_chats(
-            account_name, q, limit=limit, offset=offset
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"搜索对话列表失败: {str(e)}")
+# /chats/ 路由已移至文件顶部（/{task_name} 之前），避免路由遮蔽问题
 
 
 @router.websocket("/ws/{task_name}")
