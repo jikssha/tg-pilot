@@ -4,6 +4,7 @@
 
 **The Next-Generation Telegram Automation & Account Manager**
 
+[![Version](https://img.shields.io/badge/version-v3.2-purple.svg)](https://github.com/jikssha/tg-pilot)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 [![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
@@ -21,12 +22,14 @@ Built with **native AI integration (Vision & Computation)**, TG-Pilot handles co
 ## ✨ Key Features
 
 - **🎮 Multi-Account Fleet Management**: Consolidate and monitor unlimited Telegram sessions through a single dashboard.
-- **⚙️ Versatile Action Sequences**: Natively supports `Send Text`, `Click Inline Button`, `Send Dice Emoji`, `AI Vision Recognition`, and `AI Calculation`.
-- **📱 Hidden Device Fingerprinting**: Auto-spoofs official devices (MacBook, iOS, Windows) upon connect to minimize script detection risk.
-- **🧠 Native AI-Driven**: Encountering CAPTCHAs or math puzzles? Configure the LLM API to easily bypass these barriers entirely on autopilot.
-- **📊 Immersive Audit Logs**: Track execution pipelines step-by-step, capture final bot replies in real-time, and distinguish successes from failures instantly.
-- **🛡️ Rock-Solid Architecture**: Built with strict concurrency limits and built-in protections against `429 Too Many Requests` timeouts. Say goodbye to zombie processes and memory leaks.
-- **📦 Modern Containerization**: Deploy effortlessly with a highly customizable, ready-to-run Docker image. 
+- **💎 Minimalist Linear Aesthetic (v3.2)**: Completely refactored Pure Dark console with smooth interaction and execution feedback.
+- **⚙️ Versatile Action Sequences**: Natively supports `Text`, `Buttons`, `Dices`, `AI Vision`, and `Math Challenges`.
+- **📱 Hidden Device Fingerprinting**: Auto-spoofs official device fingerprints (MacBook/iPhone) to minimize detection.
+- **📈 Real-time Task Radar**: Integrated task cards with one-click run, history log filtering (failures only), and config cloning.
+- **🧠 Native AI-Driven**: Encountering puzzles? Configure the LLM API to bypass them entirely on autopilot.
+- **🛡️ Rock-Solid Architecture**: Built with strict concurrency limits and built-in protections against `429 Too Many Requests`.
+- **📦 Modern Containerization**: Deploy effortlessly with a highly customizable, ready-to-run Docker image.
+ 
 
 ## 🚀 Quick Start (Docker Compose)
 
@@ -106,8 +109,9 @@ To meet various operational demands, TG-Pilot offers extensive environment varia
 ## 📝 Recent Updates
 
 ### V0.3.x Linear Modern UI Overhaul
-- **Refactored 🎨 Sleek Dark Mode Interface**: The control panel has been entirely overhauled into a Linear-style modern developer tool aesthetic (Sidebar + Detail Area), featuring an immersive pure dark mode.
-- **Optimized 📊 Integrated Terminal Logs**: Removed clumsy modal popups for logs. Logs are now embedded directly into the detail area for buttery-smooth task tracking.
+- **Refactored 🎨 Sleek Dark Mode Interface**: The control panel has been entirely overhauled into a Linear-style modern developer tool aesthetic. Replaced the clunky account grid with a smooth scrollable sidebar list with animated status indicators, featuring an immersive pure dark mode.
+- **Refocused 🎯 Core Task Dashboard**: Demoted the massive settings section and introduced a unified layout prioritizing Sign Tasks. Tasks are now rendered as sleek independent Linear cards, with hover-triggered quick actions allowing you to perfectly oversee your whole fleet's workflow smoothly.
+- **Optimized 📊 Integrated Terminal Logs**: Removed clumsy modal popups for logs. Replaced with an embedded mini-terminal console highlighting successful/failed tasks execution right on the dashboard.
 
 ### V0.2.x Core Polish
 - **Added 👻 Native Device Spoofing**: Fully overhauled pyrogram instantiation process. Every running account now randomly (but consistently) poses as an official Apple/Microsoft client OS rather than `Pyrogram`. Massive boost for your fleet safety.

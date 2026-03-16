@@ -57,9 +57,10 @@ const DICE_OPTIONS = [
 ] as const;
 
 // Memoized Task Item Component
-const TaskItem = memo(({ task, loading, onEdit, onRun, onViewLogs, onCopy, onDelete, t, language }: {
+const TaskItem = memo(({ task, loading, isRunning, onEdit, onRun, onViewLogs, onCopy, onDelete, t, language }: {
     task: SignTask;
     loading: boolean;
+    isRunning: boolean;
     onEdit: (task: SignTask) => void;
     onRun: (name: string) => void;
     onViewLogs: (task: SignTask) => void;
@@ -71,9 +72,9 @@ const TaskItem = memo(({ task, loading, onEdit, onRun, onViewLogs, onCopy, onDel
     const copyTaskTitle = language === "zh" ? "\u590D\u5236\u4EFB\u52A1" : "Copy Task";
 
     return (
-        <div className="glass-panel p-4 md:p-5 group hover:border-[#8a3ffc]/30 transition-all">
+        <div className={`glass-panel p-4 md:p-5 group transition-all duration-300 ${isRunning ? 'ring-2 ring-emerald-500/20 border-emerald-500/30 animate-pulse-subtle' : 'hover:border-[var(--accent-glow)]/30'}`}>
             <div className="flex items-start gap-4 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-[#8a3ffc]/10 flex items-center justify-center text-[#b57dff] shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-[var(--accent-glow)]/10 flex items-center justify-center text-[#b57dff] shrink-0">
                     <ChatCircleText weight="bold" size={20} />
                 </div>
                 <div className="min-w-0 flex-1 flex flex-col gap-2">
@@ -93,105 +94,25 @@ const TaskItem = memo(({ task, loading, onEdit, onRun, onViewLogs, onCopy, onDel
                             </span>
                         </div>
                         {task.random_seconds > 0 && (
-                            <div className="flex items-center gap-1 text-[#8a3ffc]/60">
+                            <div className="flex items-center gap-1 text-[var(--accent-glow)]/60">
                                 <Hourglass weight="bold" size={12} />
                                 <span className="text-[10px] font-bold">~{Math.round(task.random_seconds / 60)}m</span>
                             </div>
                         )}
                     </div>
-                </div>
-            </div>
-
-            <div className="mt-3 md:hidden">
-                {task.last_run ? (
-                    <div className="text-[10px] font-mono text-main/40 flex items-center gap-2 pt-2 border-t border-white/5">
-                        <span className={task.last_run.success ? "text-emerald-400" : "text-rose-400"}>
-                            {task.last_run.success ? t("success") : t("failure")}
-                        </span>
-                        <span>
-                            {new Date(task.last_run.time).toLocaleString(language === "zh" ? 'zh-CN' : 'en-US', {
-                                month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
-                            })}
-                        </span>
-                    </div>
-                ) : (
-                    <div className="pt-2 border-t border-white/5 text-[10px] text-main/20 font-bold uppercase tracking-widest italic">{t("no_data")}</div>
-                )}
-            </div>
-
-            <div className="mt-3 grid grid-cols-5 gap-2 md:hidden">
-                <button
-                    onClick={() => onRun(task.name)}
-                    disabled={loading}
-                    className="action-btn !w-full !h-10 !text-emerald-400 hover:bg-emerald-500/10"
-                    title={t("run")}
-                >
-                    <Play weight="fill" size={14} />
-                </button>
-                <button
-                    onClick={() => onEdit(task)}
-                    disabled={loading}
-                    className="action-btn !w-full !h-10"
-                    title={t("edit")}
-                >
-                    <PencilSimple weight="bold" size={14} />
-                </button>
-                <button
-                    onClick={() => onViewLogs(task)}
-                    disabled={loading}
-                    className="action-btn !w-full !h-10 !text-[#8a3ffc] hover:bg-[#8a3ffc]/10"
-                    title={t("task_history_logs")}
-                >
-                    <ListDashes weight="bold" size={14} />
-                </button>
-                <button
-                    onClick={() => onCopy(task.name)}
-                    disabled={loading}
-                    className="action-btn !w-full !h-10 !text-sky-400 hover:bg-sky-500/10"
-                    title={copyTaskTitle}
-                >
-                    <Copy weight="bold" size={14} />
-                </button>
-                <button
-                    onClick={() => onDelete(task.name)}
-                    disabled={loading}
-                    className="action-btn !w-full !h-10 !text-rose-400 hover:bg-rose-500/10"
-                    title={t("delete")}
-                >
-                    <Trash weight="bold" size={14} />
-                </button>
-            </div>
-
-            <div className="hidden md:flex mt-4 items-center justify-between gap-4">
-                {task.last_run ? (
-                    <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest ${task.last_run.success ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        <div className="flex items-center gap-1.5">
-                            {task.last_run.success ? <CheckCircle weight="bold" /> : <XCircle weight="bold" />}
-                            {task.last_run.success ? t("success") : t("failure")}
-                        </div>
-                        <div className="text-[10px] text-main/30 font-mono normal-case tracking-normal">
-                            {new Date(task.last_run.time).toLocaleString(language === "zh" ? 'zh-CN' : 'en-US', {
-                                month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
-                            })}
-                        </div>
-                    </div>
-                ) : (
-                    <div className="text-[10px] text-main/20 font-bold uppercase tracking-widest italic">{t("no_data")}</div>
-                )}
-
-                <div className="flex items-center gap-1 bg-black/10 rounded-xl p-1 border border-white/5">
+                <div className="hidden md:flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                     <button
                         onClick={() => onRun(task.name)}
-                        disabled={loading}
-                        className="action-btn !w-8 !h-8 !text-emerald-400 hover:bg-emerald-500/10"
+                        disabled={loading || isRunning}
+                        className={`action-btn !w-8 !h-8 ${isRunning ? 'text-main/20' : '!text-emerald-400 hover:bg-emerald-500/10'}`}
                         title={t("run")}
                     >
-                        <Play weight="fill" size={14} />
+                        {isRunning ? <Spinner weight="bold" size={14} className="animate-spin" /> : <Play weight="fill" size={14} />}
                     </button>
                     <button
                         onClick={() => onEdit(task)}
                         disabled={loading}
-                        className="action-btn !w-8 !h-8"
+                        className="action-btn !w-8 !h-8 hover:text-white"
                         title={t("edit")}
                     >
                         <PencilSimple weight="bold" size={14} />
@@ -199,7 +120,7 @@ const TaskItem = memo(({ task, loading, onEdit, onRun, onViewLogs, onCopy, onDel
                     <button
                         onClick={() => onViewLogs(task)}
                         disabled={loading}
-                        className="action-btn !w-8 !h-8 !text-[#8a3ffc] hover:bg-[#8a3ffc]/10"
+                        className="action-btn !w-8 !h-8 !text-[var(--accent-glow)] hover:bg-[var(--accent-glow)]/10"
                         title={t("task_history_logs")}
                     >
                         <ListDashes weight="bold" size={14} />
@@ -222,17 +143,89 @@ const TaskItem = memo(({ task, loading, onEdit, onRun, onViewLogs, onCopy, onDel
                     </button>
                 </div>
             </div>
+
+            <div className="mt-3 md:mt-4 flex flex-col md:flex-row md:items-center justify-between gap-3 border-t border-white/5 pt-3">
+                <div className="flex items-center gap-4">
+                    {task.last_run ? (
+                        <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest ${task.last_run.success ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {task.last_run.success ? <CheckCircle weight="bold" /> : <XCircle weight="bold" />}
+                            <span className="text-main/60 font-mono normal-case tracking-normal">
+                                {new Date(task.last_run.time).toLocaleString(language === "zh" ? 'zh-CN' : 'en-US', {
+                                    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+                                })}
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="text-[10px] text-main/20 font-bold uppercase tracking-widest italic">{t("no_data")}</div>
+                    )}
+                </div>
+                
+                <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--accent-glow)]/60">
+                    <CirclesThree weight="fill" /> 
+                    {t("contains_actions").replace("{count}", String(task.chats[0]?.actions?.length || 0))}
+                </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-5 gap-2 md:hidden">
+                <button
+                    onClick={() => onRun(task.name)}
+                    disabled={loading}
+                    className="action-btn !w-full !h-10 !text-emerald-400 hover:bg-emerald-500/10"
+                    title={t("run")}
+                >
+                    <Play weight="fill" size={14} />
+                </button>
+                <button
+                    onClick={() => onEdit(task)}
+                    disabled={loading}
+                    className="action-btn !w-full !h-10"
+                    title={t("edit")}
+                >
+                    <PencilSimple weight="bold" size={14} />
+                </button>
+                <button
+                    onClick={() => onViewLogs(task)}
+                    disabled={loading}
+                    className="action-btn !w-full !h-10 !text-[var(--accent-glow)] hover:bg-[var(--accent-glow)]/10"
+                    title={t("task_history_logs")}
+                >
+                    <ListDashes weight="bold" size={14} />
+                </button>
+                <button
+                    onClick={() => onCopy(task.name)}
+                    disabled={loading}
+                    className="action-btn !w-full !h-10 !text-sky-400 hover:bg-sky-500/10"
+                    title={copyTaskTitle}
+                >
+                    <Copy weight="bold" size={14} />
+                </button>
+                <button
+                    onClick={() => onDelete(task.name)}
+                    disabled={loading}
+                    className="action-btn !w-full !h-10 !text-rose-400 hover:bg-rose-500/10"
+                    title={t("delete")}
+                >
+                    <Trash weight="bold" size={14} />
+                </button>
+            </div>
         </div>
     );
 });
 
 TaskItem.displayName = "TaskItem";
 
-export default function AccountTasksContent() {
+export default function AccountTasksContent({ 
+    embedded = false, 
+    initialAccountName = "" 
+}: { 
+    embedded?: boolean; 
+    initialAccountName?: string 
+}) {
     const router = useRouter();
     const { t, language } = useLanguage();
     const searchParams = useSearchParams();
-    const accountName = searchParams.get("name") || "";
+    const accountNameFromUrl = searchParams.get("name") || "";
+    const accountName = initialAccountName || accountNameFromUrl;
     const { toasts, addToast, removeToast } = useToast();
     const fieldLabelClass = "text-xs font-bold uppercase tracking-wider text-main/40 mb-1 block";
 
@@ -247,6 +240,8 @@ export default function AccountTasksContent() {
     const [historyTaskName, setHistoryTaskName] = useState<string | null>(null);
     const [historyLogs, setHistoryLogs] = useState<SignTaskHistoryItem[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [runningTasks, setRunningTasks] = useState<Set<string>>(new Set());
+    const [showFailedOnly, setShowFailedOnly] = useState(false);
 
     const addToastRef = useRef(addToast);
     const tRef = useRef(t);
@@ -275,7 +270,7 @@ export default function AccountTasksContent() {
         return true;
     }, [router]);
 
-    // 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾句粙鏌熼幆褜鍤熸い鈺冨厴閹綊宕堕妸銉хシ濡炪値鍋侀崐婵嬪箖濡ゅ懏鍋ㄦ繛鍫熷閺侇垶姊烘导娆戠暢婵☆偄瀚伴妴?
+    // 任务弹窗状态控制
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [newTask, setNewTask] = useState({
         name: "",
@@ -410,7 +405,7 @@ export default function AccountTasksContent() {
             return;
         }
         if (!accountName) {
-            window.location.replace("/dashboard");
+            if (!embedded) window.location.replace("/dashboard");
             return;
         }
         setLocalToken(tokenStr);
@@ -522,7 +517,7 @@ export default function AccountTasksContent() {
         try {
             setLoading(true);
             await deleteSignTask(token, taskName, accountName);
-            // addToast(language === "zh" ? `婵犵數鍋涢顓熸叏妤ｅ喚鏁嬬憸搴ㄥ箞?${taskName} 闂佽娴烽幊鎾诲箟闄囬妵鎰板礃椤旂厧鐎悷婊呭鐢鍩涢弮鈧妵?: `Task ${taskName} deleted`, "success"); // Removed toast as per user request to just refresh
+            // addToast(isZh ? `任务 ${taskName} 已删除` : `Task ${taskName} deleted`, "success"); // Removed toast as per user request to just refresh
             await loadData(token);
         } catch (err: any) {
             // Only show error if it's NOT a 404 (already deleted/doesn't exist)
@@ -538,9 +533,9 @@ export default function AccountTasksContent() {
 
     const handleRunTask = async (taskName: string) => {
         if (!token) return;
+        setRunningTasks(prev => new Set(prev).add(taskName));
 
         try {
-            setLoading(true);
             const result = await runSignTask(token, taskName, accountName);
 
             if (result.success) {
@@ -551,7 +546,11 @@ export default function AccountTasksContent() {
         } catch (err: any) {
             addToast(formatErrorMessage("task_run_failed", err), "error");
         } finally {
-            setLoading(false);
+            setRunningTasks(prev => {
+                const next = new Set(prev);
+                next.delete(taskName);
+                return next;
+            });
         }
     };
 
@@ -877,8 +876,9 @@ export default function AccountTasksContent() {
     }
 
     return (
-        <div id="account-tasks-view" className="w-full h-full flex flex-col">
-            <nav className="navbar">
+        <div id="account-tasks-view" className={`w-full h-full flex flex-col ${embedded ? 'pt-2' : ''}`}>
+            {!embedded && (
+                <nav className="navbar">
                 <div className="nav-brand">
                     <div className="flex items-center gap-4">
                         <Link href="/dashboard" className="action-btn !w-8 !h-8" title={t("sidebar_home")}>
@@ -904,13 +904,38 @@ export default function AccountTasksContent() {
                     >
                         <ClipboardText weight="bold" size={18} />
                     </button>
-                    <button onClick={() => setShowCreateDialog(true)} className="action-btn !w-8 !h-8 !text-[#8a3ffc] hover:bg-[#8a3ffc]/10" title={t("add_task")}>
+                    <button onClick={() => setShowCreateDialog(true)} className="action-btn !w-8 !h-8 !text-[var(--accent-glow)] hover:bg-[var(--accent-glow)]/10" title={t("add_task")}>
                         <Plus weight="bold" size={18} />
                     </button>
                 </div>
-            </nav>
+                </nav>
+            )}
 
-            <main className="main-content !pt-6">
+            {embedded && (
+                <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3 shrink-0">
+                    <h2 className="text-base font-bold flex items-center gap-2 text-[var(--text-main)]">
+                        <Lightning weight="fill" className="text-[var(--accent-glow)]" /> 
+                        {isZh ? "签到任务" : "Sign Tasks"} ({tasks.length})
+                    </h2>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={() => loadData(token)}
+                            className="p-2 text-[var(--text-sub)] hover:text-white hover:bg-white/5 rounded-md transition-all"
+                            title={t("refresh_list")}
+                        >
+                            <ArrowClockwise weight="bold" className={loading ? 'animate-spin' : ''} />
+                        </button>
+                        <button 
+                            className="bg-[#EDEDED] text-[#0A0A0A] px-3.5 py-2 rounded-md text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5"
+                            onClick={() => setShowCreateDialog(true)}
+                        >
+                            <Plus weight="bold" /> {t("add_task")}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <main className={`main-content ${embedded ? '!pt-0 !p-0' : '!pt-6'}`}>
 
                 {loading && tasks.length === 0 ? (
                     <div className="w-full py-20 flex flex-col items-center justify-center text-main/20">
@@ -918,8 +943,8 @@ export default function AccountTasksContent() {
                         <p className="text-xs uppercase tracking-widest font-bold font-mono">{t("loading")}</p>
                     </div>
                 ) : tasks.length === 0 ? (
-                    <div className="glass-panel p-20 flex flex-col items-center text-center justify-center border-dashed border-2 group hover:border-[#8a3ffc]/30 transition-all cursor-pointer" onClick={() => setShowCreateDialog(true)}>
-                        <div className="w-20 h-20 rounded-3xl bg-main/5 flex items-center justify-center text-main/20 mb-6 group-hover:scale-110 transition-transform group-hover:bg-[#8a3ffc]/10 group-hover:text-[#8a3ffc]">
+                    <div className="glass-panel p-20 flex flex-col items-center text-center justify-center border-dashed border-2 group hover:border-[var(--accent-glow)]/30 transition-all cursor-pointer" onClick={() => setShowCreateDialog(true)}>
+                        <div className="w-20 h-20 rounded-3xl bg-main/5 flex items-center justify-center text-main/20 mb-6 group-hover:scale-110 transition-transform group-hover:bg-[var(--accent-glow)]/10 group-hover:text-[var(--accent-glow)]">
                             <Plus size={40} weight="bold" />
                         </div>
                         <h3 className="text-xl font-bold mb-2">{t("no_tasks")}</h3>
@@ -932,6 +957,7 @@ export default function AccountTasksContent() {
                                 key={task.name}
                                 task={task}
                                 loading={loading}
+                                isRunning={runningTasks.has(task.name)}
                                 onEdit={handleEditTask}
                                 onRun={handleRunTask}
                                 onViewLogs={handleShowTaskHistory}
@@ -951,17 +977,17 @@ export default function AccountTasksContent() {
                     <div className="glass-panel modal-content !max-w-xl flex flex-col" onClick={e => e.stopPropagation()}>
                         <header className="modal-header border-b border-white/5 pb-3 mb-2">
                             <div className="modal-title flex items-center gap-2 !text-base">
-                                <div className="p-2 bg-[#8a3ffc]/10 rounded-lg text-[#b57dff]">
+                                <div className="p-2 bg-[var(--accent-glow)]/10 rounded-lg text-[#b57dff]">
                                     <Lightning weight="fill" size={20} />
                                 </div>
                                 {showCreateDialog ? t("create_task") : `${t("edit_task")}: ${editingTaskName}`}
                             </div>
-                            <div
+                            <button
                                 onClick={() => { setShowCreateDialog(false); setShowEditDialog(false); }}
                                 className="modal-close"
                             >
                                 <X weight="bold" />
-                            </div>
+                            </button>
                         </header>
 
                         <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
@@ -1121,11 +1147,11 @@ export default function AccountTasksContent() {
                                             <button
                                                 onClick={handleRefreshChats}
                                                 disabled={refreshingChats}
-                                                className="text-[10px] text-[#8a3ffc] hover:text-[#8a3ffc]/80 transition-colors uppercase font-bold tracking-tighter flex items-center gap-1"
+                                                className="text-[10px] text-[var(--accent-glow)] hover:text-[var(--accent-glow)]/80 transition-colors uppercase font-bold tracking-tighter flex items-center gap-1"
                                                 title={t("refresh_chat_title")}
                                             >
                                                 {refreshingChats ? (
-                                                    <div className="w-3 h-3 border-2 border-[#8a3ffc] border-t-transparent rounded-full animate-spin"></div>
+                                                    <div className="w-3 h-3 border-2 border-[var(--accent-glow)] border-t-transparent rounded-full animate-spin"></div>
                                                 ) : <ArrowClockwise weight="bold" size={12} />}
                                                 {t("refresh_list")}
                                             </button>
@@ -1255,7 +1281,7 @@ export default function AccountTasksContent() {
                                                             <button
                                                                 key={d}
                                                                 type="button"
-                                                                className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-lg transition-all ${((action as any).dice === d) ? 'bg-[#8a3ffc]/20 border border-[#8a3ffc]/40' : 'bg-white/5 border border-white/5 hover:bg-white/10'}`}
+                                                                className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-lg transition-all ${((action as any).dice === d) ? 'bg-[var(--accent-glow)]/20 border border-[var(--accent-glow)]/40' : 'bg-white/5 border border-white/5 hover:bg-white/10'}`}
                                                                 onClick={() => {
                                                                     updateCurrentDialogAction(index, (currentAction) => ({
                                                                         ...currentAction,
@@ -1426,31 +1452,49 @@ export default function AccountTasksContent() {
                     <div className="glass-panel w-full max-w-4xl h-[78vh] flex flex-col shadow-2xl border border-white/10 overflow-hidden animate-zoom-in">
                         <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/2">
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-[#8a3ffc]/20 flex items-center justify-center text-[#b57dff]">
+                                <div className="w-8 h-8 rounded-lg bg-[var(--accent-glow)]/20 flex items-center justify-center text-[#b57dff]">
                                     <ListDashes weight="bold" size={18} />
                                 </div>
                                 <h3 className="font-bold tracking-tight">
                                     {t("task_history_logs_title").replace("{name}", historyTaskName)}
                                 </h3>
                             </div>
-                            <button
-                                onClick={() => setHistoryTaskName(null)}
-                                className="action-btn !w-8 !h-8 hover:bg-white/10"
-                            >
-                                <X weight="bold" />
-                            </button>
+                            <div className="flex items-center gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <div 
+                                        onClick={() => setShowFailedOnly(!showFailedOnly)}
+                                        className={`w-8 h-4 rounded-full transition-all relative border ${showFailedOnly ? 'bg-rose-500/20 border-rose-500/50' : 'bg-white/5 border-white/10'}`}
+                                    >
+                                        <div className={`absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full transition-all ${showFailedOnly ? 'right-1 bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.4)]' : 'left-1 bg-white/20'}`}></div>
+                                    </div>
+                                    <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${showFailedOnly ? 'text-rose-400' : 'text-main/40 group-hover:text-main/60'}`}>
+                                        {language === "zh" ? "仅看失败" : "Failures Only"}
+                                    </span>
+                                </label>
+                                <div className="w-px h-4 bg-white/10 mx-1"></div>
+                                <button
+                                    onClick={() => setHistoryTaskName(null)}
+                                    className="action-btn !w-8 !h-8 hover:bg-white/10"
+                                >
+                                    <X weight="bold" />
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-4 font-mono text-[11px] leading-relaxed bg-black/20">
+                        <div className="flex-1 overflow-y-auto p-4 font-mono text-[11px] leading-relaxed bg-black/20 custom-scrollbar">
                             {historyLoading ? (
-                                <div className="flex items-center gap-2 text-main/30 italic">
-                                    <Spinner className="animate-spin" size={12} />
-                                    {t("loading")}
+                                <div className="h-full flex flex-col items-center justify-center gap-3 text-main/10">
+                                    <Spinner className="animate-spin" size={24} />
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{t("loading")}</span>
                                 </div>
-                            ) : historyLogs.length === 0 ? (
-                                <div className="text-main/30 italic">{t("task_history_empty")}</div>
+                            ) : historyLogs.filter(log => !showFailedOnly || !log.success).length === 0 ? (
+                                <div className="h-full flex items-center justify-center text-main/20 italic">
+                                    {t("task_history_empty")}
+                                </div>
                             ) : (
-                                <div className="space-y-4">
-                                    {historyLogs.map((log, i) => (
+                                <div className="space-y-4 max-w-4xl mx-auto">
+                                    {historyLogs
+                                        .filter(log => !showFailedOnly || !log.success)
+                                        .map((log, i) => (
                                         <div key={`${log.time}-${i}`} className="rounded-xl border border-white/5 bg-white/5 overflow-hidden">
                                             <div className="flex justify-between items-center px-3 py-2 border-b border-white/5 text-[10px]">
                                                 <span className="text-main/30">
@@ -1500,7 +1544,7 @@ export default function AccountTasksContent() {
                 </div>
             )}
 
-            <ToastContainer toasts={toasts} removeToast={removeToast} />
+            {!embedded && <ToastContainer toasts={toasts} removeToast={removeToast} />}
         </div >
     );
 }

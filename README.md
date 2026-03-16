@@ -4,6 +4,7 @@
 
 ** Telegram 多账号自动化批量签到任务管理面板**
 
+[![Version](https://img.shields.io/badge/version-v3.2-purple.svg)](https://github.com/jikssha/tg-pilot)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 [![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
@@ -21,11 +22,12 @@
 ## ✨ 核心特性
 
 - **🎮 多账号矩阵管理**：支持单面板统一管理无限个 Telegram 会话账号，随时查看状态。
+- **💎 极简 Linear 审美 (v3.2)**：全新重构的 Pure Dark 风格控制台，不仅好看，更有呼吸感执行反馈与高效交互。
 - **⚙️ 全能动作序列**：原生支持「发送文本 / 点击按钮 / 发送特定骰子表情 / AI 智能识图 / AI 计算解密」。
-- **📱 隐匿设备伪装**：底层通信自带官方设备指纹伪装（如 MacBook / iPhone），抹除脚本执行痕迹，极大降低矩阵号风控风险。
+- **📱 隐匿设备伪装**：底层通信自带官方设备指纹伪装（如 MacBook / iPhone），抹除脚本执行痕迹。
+- **📈 实时任务雷达**：集成化任务卡片，支持一键执行、历史日志筛选（仅看失败）、快捷配置复制。
 - **🧠 原生 AI 驱动**：遇到验证码、计算题？配置好 API 即可让大模型在任务流中全自动帮你解决。
-- **📊 沉浸式日志追踪**：任务执行流水线追踪，实时截取机器人最后回复，失败与成功一目了然。
-- **🛡️ 极致维稳架构**：严格的并发控制、原生应对 `429 Too Many Requests` 与超时熔断，告别内存泄漏与僵尸进程。
+- **🛡️ 极致维稳架构**：严格的并发控制、原生应对 `429 Too Many Requests`，告别内存泄漏与进程僵死。
 - **📦 现代化容器部署**：提供高定制化的 Docker 镜像，只需一行命令即可跨平台开箱即用。
 
 ## 🚀 一键部署 (Docker Compose)
@@ -107,8 +109,9 @@ docker compose up -d
 ## 📝 近期更新
 
 ### V0.3.x 全新 Linear 风格 UI 重构
-- **重构 🎨 极简暗黑界面**：主控制面板完全重构为 Linear 现代开发工具风格（ Sidebar + Detail Area ），全面启用纯暗黑模式。
-- **优化 📊 内联终端日志**：移除了繁杂的弹窗日志，日志现已无缝嵌入账户详情区域，追踪任务如丝般顺滑。
+- **重构 🎨 极简暗黑界面**：主控制面板完全重构为 Linear 现代开发工具风格（ Sidebar + Detail Area ）。侧边栏支持多账号滚动列表管理兼呼吸灯状态，全面启用纯暗黑模式。
+- **重置 🎯 核心焦点面板**：取消了主页冗杂的杂项设置大面积平铺，调整界面工作区优先级。大幅凸显了卡片化的签到任务独立看板系统，Hover 可唤出快捷操作，方便直观掌控矩阵号动态。
+- **优化 📊 极客内联终端**：移除了繁杂的弹窗日志，新控制台底部引入自带高亮的极客风格 Terminal 独立日志输出区，追踪任务如丝般顺滑。
 
 ### V0.2.x 核心重构与优化
 - **新增 👻 官方设备隐匿伪装**：彻底重构底层 Pyrogram 连接，对每个登入账号全自动固定伪装为随机的苹果/微软官方设备，消灭脚本特征指纹，保护小号矩阵安全。

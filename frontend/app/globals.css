@@ -14,7 +14,8 @@
   --text-main: #EDEDED;
   --text-sub: #8A8F98;
   
-  --accent-glow: #5E6AD2;
+  --accent-glow: #8a3ffc;
+  --accent-bg: rgba(138, 63, 252, 0.1);
   --success: #34D399;
   --danger: #EF4444;
 
@@ -390,3 +391,13 @@ textarea::placeholder {
 .toast-container {
   z-index: 1000 !important;
 }
+
+@keyframes pulse-subtle { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.85; transform: scale(0.995); } }
+.animate-pulse-subtle { animation: pulse-subtle 2s infinite ease-in-out; }
+@keyframes float-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.animate-float-up { animation: float-up 0.4s ease-out forwards; }
+
+.sidebar-scrollbar::-webkit-scrollbar { width: 3px; }
+.sidebar-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.sidebar-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.1); }
