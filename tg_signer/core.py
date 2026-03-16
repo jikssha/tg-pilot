@@ -330,6 +330,22 @@ def get_client(
     key = str(pathlib.Path(workdir).joinpath(name).resolve())
     if key in _CLIENT_INSTANCES:
         return _CLIENT_INSTANCES[key]
+    device_models = [
+        ("MacBook Pro", "macOS 14.3.1", "10.10.1"),
+        ("PC 64bit", "Windows 11", "4.15.2 x64"),
+        ("iPhone 15 Pro", "iOS 17.4.1", "10.11.1"),
+        ("PC 64bit", "Windows 10", "4.15.2 x64"),
+        ("Mac mini", "macOS 13.5.2", "10.10.1"),
+        ("iPad Pro", "iPadOS 17.4.1", "10.11.1"),
+    ]
+    # 使用账号名称作为随机数种子，确保某个确切的账号每次生成的虚假设备固定，防止频繁跳换设备被封
+    rnd = random.Random(name)
+    model, sys_ver, app_ver = rnd.choice(device_models)
+    
+    kwargs.setdefault("device_model", model)
+    kwargs.setdefault("system_version", sys_ver)
+    kwargs.setdefault("app_version", app_ver)
+
     client = Client(
         name,
         api_id=api_id,

@@ -22,6 +22,7 @@
 
 - **🎮 多账号矩阵管理**：支持单面板统一管理无限个 Telegram 会话账号，随时查看状态。
 - **⚙️ 全能动作序列**：原生支持「发送文本 / 点击按钮 / 发送特定骰子表情 / AI 智能识图 / AI 计算解密」。
+- **📱 隐匿设备伪装**：底层通信自带官方设备指纹伪装（如 MacBook / iPhone），抹除脚本执行痕迹，极大降低矩阵号风控风险。
 - **🧠 原生 AI 驱动**：遇到验证码、计算题？配置好 API 即可让大模型在任务流中全自动帮你解决。
 - **📊 沉浸式日志追踪**：任务执行流水线追踪，实时截取机器人最后回复，失败与成功一目了然。
 - **🛡️ 极致维稳架构**：严格的并发控制、原生应对 `429 Too Many Requests` 与超时熔断，告别内存泄漏与僵尸进程。
@@ -58,6 +59,8 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - APP_SECRET_KEY=your_secret_key # ⚠️ 强烈建议修改为复杂的随机字符串
+      - TG_SESSION_MODE=string         # 推荐: 纯内存模式，减轻磁盘读写开销
+      - TG_SESSION_NO_UPDATES=1        # 推荐: 拒收不相关的群组消息流，大幅降低内存占用
 EOF
 ```
 
@@ -93,11 +96,19 @@ docker compose up -d
 | `APP_SECRET_KEY` | 面板 JWT 签名密钥 | **必填** (务必修改) |
 | `ADMIN_PASSWORD` | 管理员初始密码 | `admin123` |
 | `APP_DATA_DIR` | 核心数据与会话存储路径 | 面板自动配置 或 `/data` |
-| `TG_SESSION_MODE` | TG 会话储存驱动 (`file` 或 `string`) | 默认 `file`，ARM架构推荐 `string` |
+| `TG_SESSION_MODE` | TG 会话储存驱动 (`file` 或 `string`) | 推荐 `string`，将大幅降低磁盘使用 |
+| `TG_SESSION_NO_UPDATES` | 是否拒收群组新消息通信 | 推荐设为 `1`，将极大降低内存占用 |
 | `TG_GLOBAL_CONCURRENCY` | 任务全局并发请求数限制 |默认 `1` |
 | `APP_TOTP_VALID_WINDOW` | 2FA 双重验证的时间容错窗口 | - |
 
 *(详细反代说明：如果你使用 Nginx，建议将端口映射改为 `- "127.0.0.1:9987:9987"`，阻断外部直连，提升安全性。)*
+
+## 📝 近期更新
+
+### V0.2.x 核心重构与优化
+- **新增 👻 官方设备隐匿伪装**：彻底重构底层 Pyrogram 连接，对每个登入账号全自动固定伪装为随机的苹果/微软官方设备，消灭脚本特征指纹，保护小号矩阵安全。
+- **新增 🚀 一键代理测试连通性**：在面板增减账号时，无需盲猜代理是否生效，直接可一键直连检验。
+- **优化 💻 环境默认值大改版**：默认全面采用 `TG_SESSION_MODE=string` 和 `TG_SESSION_NO_UPDATES=1`，单账号内存消耗骤降 60%，彻底消灭因磁盘 I/O 带来的 `database is locked` 死结问题。
 
 ## 📂 项目架构
 

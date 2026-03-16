@@ -14,6 +14,8 @@ services:
       - APP_DATA_DIR=/data
       - TZ=Asia/Shanghai
       - TG_GLOBAL_CONCURRENCY=2
+      - TG_SESSION_MODE=string
+      - TG_SESSION_NO_UPDATES=1
     init: true
     tmpfs:
       - /tmp
