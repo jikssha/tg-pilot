@@ -161,6 +161,16 @@ class AccountUpdateResponse(BaseModel):
     account: Optional[AccountInfo] = None
 
 
+class ProxyTestRequest(BaseModel):
+    """测试代理连通性请求"""
+    proxy: str
+
+class ProxyTestResponse(BaseModel):
+    """测试代理连通性响应"""
+    success: bool
+    message: str
+
+
 class AccountStatusCheckRequest(BaseModel):
     """批量账号状态检测请求"""
 
@@ -255,6 +265,41 @@ async def verify_account_login(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"登录验证失败: {str(e)}",
         )
+
+
+@router.post("/proxy/test", response_model=ProxyTestResponse)
+async def test_proxy_connection(
+    request: ProxyTestRequest, current_user: User = Depends(get_current_user)
+):
+    """
+    测试 SOCKS5 代理连通性
+    """
+    try:
+        from backend.utils.proxy import build_proxy_dict
+        import asyncio
+        import socks
+        
+        # 为了不阻塞异步事件循环，将 socket 测试放入线程池
+        def _test_connection():
+            try:
+                proxy_dict = build_proxy_dict(request.proxy)
+                if not proxy_dict:
+                    return False, "代理格式解析失败"
+                
+                s = socks.socksocket()
+                s.set_proxy(socks.SOCKS5, proxy_dict["hostname"], proxy_dict["port"], True, proxy_dict.get("username"), proxy_dict.get("password"))
+                s.settimeout(10)
+                # 测试连接 telegram API 服务器
+                s.connect(("api.telegram.org", 443))
+                s.close()
+                return True, "连接 Telegram 服务器成功"
+            except Exception as e:
+                return False, f"代理连接失败: {str(e)}"
+                
+        success, message = await asyncio.to_thread(_test_connection)
+        return ProxyTestResponse(success=success, message=message)
+    except Exception as e:
+        return ProxyTestResponse(success=False, message=f"代理连接异常: {str(e)}")
 
 
 @router.post("/qr/start", response_model=QrLoginStartResponse)

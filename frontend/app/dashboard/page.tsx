@@ -19,6 +19,7 @@ import {
   getAccountLogs,
   clearAccountLogs,
   listSignTasks,
+  testProxyConnection,
   AccountInfo,
   AccountStatusItem,
   AccountLog,
@@ -87,6 +88,7 @@ export default function Dashboard() {
   const [qrLoading, setQrLoading] = useState(false);
   const [qrPassword, setQrPassword] = useState("");
   const [qrPasswordLoading, setQrPasswordLoading] = useState(false);
+  const [proxyTesting, setProxyTesting] = useState(false);
   const qrPasswordRef = useRef("");
   const qrPasswordLoadingRef = useRef(false);
 
@@ -115,6 +117,32 @@ export default function Dashboard() {
     remark: "",
     proxy: "",
   });
+
+  const handleCloseEditDialog = useCallback(() => {
+    setShowEditDialog(false);
+    setEditData({ account_name: "", remark: "", proxy: "" });
+  }, []);
+
+  const handleTestProxy = useCallback(async (proxyValue: string) => {
+    if (!token) return;
+    if (!proxyValue.trim()) {
+      addToast(t("form_incomplete"), "error");
+      return;
+    }
+    setProxyTesting(true);
+    try {
+      const res = await testProxyConnection(token, { proxy: proxyValue });
+      if (res.success) {
+        addToast(t("proxy_test_success"), "success");
+      } else {
+        addToast(res.message || t("proxy_test_failed"), "error");
+      }
+    } catch (err: any) {
+      addToast(t("proxy_test_failed"), "error");
+    } finally {
+      setProxyTesting(false);
+    }
+  }, [token, t, addToast]);
 
   const normalizeAccountName = useCallback((name: string) => name.trim(), []);
 
@@ -676,7 +704,7 @@ export default function Dashboard() {
       const fallback = formatErrorMessage("qr_login_failed", err);
       let message = errMsg || fallback;
       const lowerMsg = errMsg.toLowerCase();
-      if (errMsg.includes("瀵嗙爜閿欒") || errMsg.includes("涓ゆ楠岃瘉") || lowerMsg.includes("2fa")) {
+      if (errMsg.includes("瀵嗙爜閿欒") || errMsg.includes("涓两楠岃瘉") || lowerMsg.includes("2fa")) {
         message = t("qr_password_invalid");
       }
       addToast(message, "error");
@@ -1176,14 +1204,32 @@ export default function Dashboard() {
                     />
 
                     <label className="text-[11px] mb-1">{t("proxy")}</label>
-                    <input
-                      type="text"
-                      className="!py-2.5 !px-4"
-                      placeholder={t("proxy_placeholder")}
-                      style={{ marginBottom: 0 }}
-                      value={loginData.proxy}
-                      onChange={(e) => setLoginData({ ...loginData, proxy: e.target.value })}
-                    />
+                    <div className="flex gap-2 !mb-4 items-center relative">
+                      <input
+                        type="text"
+                        className="!py-2.5 !px-4 flex-1"
+                        placeholder={t("proxy_placeholder")}
+                        style={{ marginBottom: 0 }}
+                        value={loginData.proxy}
+                        onChange={(e) => setLoginData({ ...loginData, proxy: e.target.value })}
+                      />
+                      {loginData.proxy && (
+                        <button
+                          className="absolute right-16 text-xs text-rose-400 opacity-60 hover:opacity-100"
+                          onClick={() => setLoginData({ ...loginData, proxy: "" })}
+                          title={t("clear_proxy")}
+                        >
+                          <X weight="bold" />
+                        </button>
+                      )}
+                      <button
+                        className="btn-secondary !h-[42px] px-3 text-xs flex-shrink-0"
+                        onClick={() => handleTestProxy(loginData.proxy)}
+                        disabled={proxyTesting || !loginData.proxy}
+                      >
+                        {proxyTesting ? <Spinner className="animate-spin" size={16} /> : t("proxy_test")}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex gap-3 mt-6">
@@ -1228,13 +1274,32 @@ export default function Dashboard() {
                       }}
                     />
                     <label className="text-[11px] mb-1">{t("proxy")}</label>
-                    <input
-                      type="text"
-                      className="!py-2.5 !px-4 !mb-4"
-                      placeholder={t("proxy_placeholder")}
-                      value={loginData.proxy}
-                      onChange={(e) => setLoginData({ ...loginData, proxy: e.target.value })}
-                    />
+                    <div className="flex gap-2 !mb-4 items-center relative">
+                      <input
+                        type="text"
+                        className="!py-2.5 !px-4 flex-1"
+                        placeholder={t("proxy_placeholder")}
+                        style={{ marginBottom: 0 }}
+                        value={loginData.proxy}
+                        onChange={(e) => setLoginData({ ...loginData, proxy: e.target.value })}
+                      />
+                      {loginData.proxy && (
+                        <button
+                          className="absolute right-16 text-xs text-rose-400 opacity-60 hover:opacity-100"
+                          onClick={() => setLoginData({ ...loginData, proxy: "" })}
+                          title={t("clear_proxy")}
+                        >
+                          <X weight="bold" />
+                        </button>
+                      )}
+                      <button
+                        className="btn-secondary !h-[42px] px-3 text-xs flex-shrink-0"
+                        onClick={() => handleTestProxy(loginData.proxy)}
+                        disabled={proxyTesting || !loginData.proxy}
+                      >
+                        {proxyTesting ? <Spinner className="animate-spin" size={16} /> : t("proxy_test")}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="glass-panel !bg-black/5 p-4 rounded-xl space-y-3">
@@ -1325,14 +1390,32 @@ export default function Dashboard() {
                 />
 
                 <label className="text-[11px] mb-1">{t("proxy")}</label>
-                <input
-                  type="text"
-                  className="!py-2.5 !px-4"
-                  placeholder={t("proxy_placeholder")}
-                  style={{ marginBottom: 0 }}
-                  value={editData.proxy}
-                  onChange={(e) => setEditData({ ...editData, proxy: e.target.value })}
-                />
+                <div className="flex gap-2 !mb-4 items-center relative">
+                  <input
+                    type="text"
+                    className="!py-2.5 !px-4 flex-1"
+                    placeholder={t("proxy_placeholder")}
+                    style={{ marginBottom: 0 }}
+                    value={editData.proxy}
+                    onChange={(e) => setEditData({ ...editData, proxy: e.target.value })}
+                  />
+                  {editData.proxy && (
+                    <button
+                      className="absolute right-16 text-xs text-rose-400 opacity-60 hover:opacity-100"
+                      onClick={() => setEditData({ ...editData, proxy: "" })}
+                      title={t("clear_proxy")}
+                    >
+                      <X weight="bold" />
+                    </button>
+                  )}
+                  <button
+                    className="btn-secondary !h-[42px] px-3 text-xs flex-shrink-0"
+                    onClick={() => handleTestProxy(editData.proxy)}
+                    disabled={proxyTesting || !editData.proxy}
+                  >
+                    {proxyTesting ? <Spinner className="animate-spin" size={16} /> : t("proxy_test")}
+                  </button>
+                </div>
               </div>
 
               <div className="flex gap-3 mt-6">

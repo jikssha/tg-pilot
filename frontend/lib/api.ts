@@ -195,8 +195,6 @@ export interface AccountStatusItem {
 
 export interface AccountStatusCheckResponse {
   results: AccountStatusItem[];
-}
-
 export const startAccountLogin = (token: string, data: LoginStartRequest) =>
   request<LoginStartResponse>("/accounts/login/start", {
     method: "POST",
@@ -554,6 +552,21 @@ export interface AccountLog {
   success: boolean;
   created_at: string;
 }
+
+export interface ProxyTestRequest {
+  proxy: string;
+}
+
+export interface ProxyTestResponse {
+  success: boolean;
+  message: string;
+}
+
+export const testProxyConnection = (token: string, data: ProxyTestRequest) =>
+  request<ProxyTestResponse>("/accounts/proxy/test", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }, token);
 
 export const getAccountLogs = (token: string, accountName: string, limit: number = 100) =>
   request<AccountLog[]>(`/accounts/${accountName}/logs?limit=${limit}`, {}, token);
