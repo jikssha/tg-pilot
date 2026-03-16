@@ -1,161 +1,122 @@
-# TG-Pilot
+<div align="center">
 
-[English README](README_EN.md)
+# 🚀 TG-Pilot
 
-TG-Pilot 是一个 Telegram 自动化管理面板。你可以在网页里管理多个账号，配置自动签到任务，并让任务按固定规则每天自动执行。
+**次世代的 Telegram 自动化多账号管理面板**
 
-> AI 驱动：项目已集成 AI 能力（识图、计算题），可直接用于自动任务流程。
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
+[![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 
-## 这个项目是做什么的？
+[English Documentation](README_EN.md) · [反馈问题](https://github.com/jikssha/tg-pilot/issues)
 
-- 统一管理多个 Telegram 账号
-- 自动签到、定时发送消息、点击按钮
-- 支持 AI 识图和 AI 计算题动作
-- 在网页中查看任务执行日志和历史结果
-- 适合 VPS 长期运行
+</div>
 
-## 项目特点
+---
 
-- 多账号管理：一个面板管理多个账号
-- 动作序列：支持「发送文本 / 点击文字按钮 / 发送骰子 / AI识图 / AI计算」
-- 日志可视化：可查看任务执行流程和最后机器人回复
-- 稳定性优化：并发控制、429/超时场景优化、长期运行内存优化
-- 容器化部署：Docker / Docker Compose 开箱即用
+**TG-Pilot** 是一款专为高效与稳定性打造的 Telegram 自动化管理面板。通过极简现代的 Web 界面，你可以轻松管理多个 Telegram 账号，配置自动化签到任务，并让所有繁杂的交互操作在后台 24 小时全自动运行。
 
-## 快速部署（推荐）
+项目深度集成了 **AI 视觉与运算模型**，使得在复杂的阻断或验证场景下依旧如履平地。非常适合部署在 VPS 上作为自动化引擎。
 
-1. 安装 Docker 和 Docker Compose
-2. 创建配置目录：
-   ```bash
-   mkdir -p tg-pilot/data && cd tg-pilot
-   ```
-3. 在服务器终端执行以下命令，直接生成 `docker-compose.yml` 配置文件：
-   ```yaml
-   cat << 'EOF' > docker-compose.yml
-   services:
-     app:
-       image: ghcr.io/jikssha/tg-pilot:latest
-       container_name: tg-pilot
-       restart: unless-stopped
-       ports:
-         - "9987:9987"
-       volumes:
-         - ./data:/data
-       environment:
-         - TZ=Asia/Shanghai
-         - APP_SECRET_KEY=your_secret_key # 强烈建议修改为随机字符串
-   EOF
-   ```
-4. 执行启动命令：
-   ```bash
-   docker compose up -d
-   ```
-5. 浏览器打开 `http://服务器IP:9987` 进行登录。
+## ✨ 核心特性
 
-默认凭据：
-- 账号：`admin`
-- 密码：`admin123`
+- **🎮 多账号矩阵管理**：支持单面板统一管理无限个 Telegram 会话账号，随时查看状态。
+- **⚙️ 全能动作序列**：原生支持「发送文本 / 点击按钮 / 发送特定骰子表情 / AI 智能识图 / AI 计算解密」。
+- **🧠 原生 AI 驱动**：遇到验证码、计算题？配置好 API 即可让大模型在任务流中全自动帮你解决。
+- **📊 沉浸式日志追踪**：任务执行流水线追踪，实时截取机器人最后回复，失败与成功一目了然。
+- **🛡️ 极致维稳架构**：严格的并发控制、原生应对 `429 Too Many Requests` 与超时熔断，告别内存泄漏与僵尸进程。
+- **📦 现代化容器部署**：提供高定制化的 Docker 镜像，只需一行命令即可跨平台开箱即用。
 
-## 更新版本
+## 🚀 极速部署 (Docker Compose)
 
-当有新版本发布时（你推送了新的代码），只需要在服务器上的 `tg-pilot` 目录下运行这两条命令即可无损升级：
+我们强烈建议使用 Docker Compose 进行一键部署，只需 3 分钟即可拥有属于你的自动化控制台。
+
+### 1. 准备环境
+
+请确保你的服务器已安装 [Docker](https://docs.docker.com/engine/install/) 和 [Docker Compose](https://docs.docker.com/compose/install/)。
+
+```bash
+# 创建并进入项目目录
+mkdir -p tg-pilot/data && cd tg-pilot
+```
+
+### 2. 生成配置文件
+
+直接在终端执行以下命令生成标准配置文件：
+
+```yaml
+cat << 'EOF' > docker-compose.yml
+services:
+  app:
+    image: ghcr.io/jikssha/tg-pilot:latest
+    container_name: tg-pilot
+    restart: unless-stopped
+    ports:
+      - "9987:9987"
+    volumes:
+      - ./data:/data
+    environment:
+      - TZ=Asia/Shanghai
+      - APP_SECRET_KEY=your_secret_key # ⚠️ 强烈建议修改为复杂的随机字符串
+EOF
+```
+
+### 3. 一键启动
+
+```bash
+docker compose up -d
+```
+
+启动完成后，打开浏览器访问：`http://服务器IP:9987`
+
+🎉 **默认初始凭据**：
+- 默认账号：`admin`
+- 默认密码：`admin123` *(请在登录后或通过环境变量及时修改)*
+
+---
+
+## 🔄 如何升级到最新版？
+
+当你需要更新到最新内核时，只需进入配置目录，拉取最新镜像并重启即可**无损光速升级**：
 
 ```bash
 docker compose pull
 docker compose up -d
 ```
 
-### 附：单行命令启动（可选）
+## 🛠️ 进阶配置与环境变量
 
-如果你不想使用 docker-compose，也可以直接通过以下命令启动：
+为了满足不同场景的极致需求，TG-Pilot 开放了丰富的环境变量设置。你可以在 `docker-compose.yml` 的 `environment` 节点下进行补充：
 
-```bash
-docker run -d \
-  --name tg-pilot \
-  --restart unless-stopped \
-  -p 9987:9987 \
-  -v $(pwd)/data:/data \
-  -e TZ=Asia/Shanghai \
-  -e APP_SECRET_KEY=your_secret_key \
-  ghcr.io/jikssha/tg-pilot:latest
-```
+| 变量名 | 描述 | 默认值 / 建议 |
+|---|---|---|
+| `APP_SECRET_KEY` | 面板 JWT 签名密钥 | **必填** (务必修改) |
+| `ADMIN_PASSWORD` | 管理员初始密码 | `admin123` |
+| `APP_DATA_DIR` | 核心数据与会话存储路径 | 面板自动配置 或 `/data` |
+| `TG_SESSION_MODE` | TG 会话储存驱动 (`file` 或 `string`) | 默认 `file`，ARM架构推荐 `string` |
+| `TG_GLOBAL_CONCURRENCY` | 任务全局并发请求数限制 |默认 `1` |
+| `APP_TOTP_VALID_WINDOW` | 2FA 双重验证的时间容错窗口 | - |
 
-如果你走反代（如 Nginx），可改成仅本机监听：`-p 127.0.0.1:9987:9987`
+*(详细反代说明：如果你使用 Nginx，建议将端口映射改为 `- "127.0.0.1:9987:9987"`，阻断外部直连，提升安全性。)*
 
-## 数据目录与权限说明
+## 📂 项目架构
 
-- 默认数据目录：`/data`
-- 当 `/data` 不可写时，会自动降级到 `/tmp/TG-Pilot`（非持久化）
-- 新镜像已支持根据 `/data` 挂载目录属主 UID/GID 自动适配运行身份，通常无需 `chmod 777`
+项目采用前后端分离的主流现代技术栈：
 
-容器内排查命令：
+- **Frontend**: Next.js 14, React, Tailwind CSS, Phosphor Icons
+- **Backend**: FastAPI, Uvicorn, SQLite
+- **Core Engine**: Pyrogram / Kurigram (Telegram 协议), APScheduler, OpenAI SDK
 
-```bash
-id
-ls -ld /data
-touch /data/.probe && rm /data/.probe
-```
+## 🛡️ 数据与安全申明
 
-## 常用环境变量（简版）
+默认情况下，所有的 Telegram 账号信息、登录会话 (`.session`)、定时任务以及私密配置均储存在你挂载的 `./data` 本地目录中。TG-Pilot 不会向任何未授权的第三方外部服务器回传敏感数据。
 
-- `APP_SECRET_KEY`: 面板密钥，强烈建议设置
-- `ADMIN_PASSWORD`: 初次安装时 admin 账户的默认密码（安全起见强烈建议设置，未设置则默认 admin123）
-- `APP_HOST`: FastAPI 容器监听 IP，防暴露默认 `127.0.0.1`（如需用公网直连或宿主机反代端口请设为 `0.0.0.0`）
-- `APP_DATA_DIR`: 自定义数据目录（优先级高于面板配置）
-- `TG_SESSION_MODE`: `file`（默认）或 `string`（arm64 推荐）
-- `TG_SESSION_NO_UPDATES`: `1` 启用 `no_updates`（仅 `string` 模式）
-- `TG_GLOBAL_CONCURRENCY`: 全局并发（默认 `1`）
-- `APP_TOTP_VALID_WINDOW`: 面板 2FA 容错窗口
+---
 
-## 自定义数据目录
+<div align="center">
 
-你可以通过两种方式设置数据目录：
+**由 [jikssha](https://github.com/jikssha) 精心打造**
 
-1. 面板设置：`系统设置 -> 全局签到设置 -> 数据目录`
-2. 环境变量：`APP_DATA_DIR=/your/path`
+[提交 Issue](https://github.com/jikssha/tg-pilot/issues) · [Pull Requests](https://github.com/jikssha/tg-pilot/pulls)
 
-说明：
-- 修改后建议重启后端服务生效
-- 该目录请务必可写，并挂载持久化卷
-
-## 健康检查
-
-- `GET /healthz`：快速健康检查
-- `GET /readyz`：服务就绪检查
-
-## 项目结构
-
-```text
-backend/      FastAPI 后端与调度器
-tg_signer/    Telegram 自动化核心
-frontend/     Next.js 管理面板
-```
-
-## 更新日志
-
-### 2026-03-12
-- 修复核心底层问题：修复因 Pyrogram 请求超时及 `FloodWait` 重试引发的并发锁饥饿、`Task exception` 未正确回收导致容器内存泄漏及网络高 I/O 问题。
-
-### 2026-03-06
-
-- 任务动作序列优化：排序调整为「发送文本消息 -> 点击文字按钮 -> 发送骰子 -> AI识图 -> AI计算」。
-- AI 动作优化：`AI识图`、`AI计算`支持在右侧子模式切换（发文本 / 点按钮）。
-- 任务复制粘贴优化：
-  - 复制任务改为弹窗展示配置，支持一键复制。
-  - 右上角粘贴导入优先自动读剪贴板，失败时自动弹出手动粘贴导入框。
-- 日志展示优化：任务日志弹窗支持显示“任务：XXX执行成功/失败”及最后机器人消息。
-- 主页状态检测优化：刷新/打开页面时账号状态检测更稳，减少误报“检测失败”。
-- 移动端与弹窗 UI 优化：任务卡片操作区布局更紧凑，动作序列控件高度更统一。
-- 导出编码修复：修复含 emoji 配置导出时的编码问题（UTF-8）。
-- 容器权限兼容增强：按 `/data` 挂载目录属主 UID/GID 自动适配运行身份，降低 VPS 写入失败概率。
-
-### 2026-03-01
-
-- AI 动作升级、AI 配置保存修复、手机号验证码登录改为手动确认。
-- `TimeoutError` 与 `429 transport flood` 高频日志优化。
-- 长时运行稳定性与内存占用优化。
-- 新增自定义数据目录配置。
-
-## 技术栈
-
-FastAPI、Uvicorn、APScheduler、Pyrogram/Kurigram、Next.js、Tailwind CSS、OpenAI SDK。
+</div>
