@@ -35,7 +35,12 @@ import {
   X,
   PencilSimple,
   PaperPlaneRight,
-  Trash
+  Trash,
+  Warning,
+  ShieldCheck,
+  Play,
+  CirclesThree,
+  TerminalWindow
 } from "@phosphor-icons/react";
 import { ToastContainer, useToast } from "../../components/ui/toast";
 import { ThemeLanguageToggle } from "../../components/ThemeLanguageToggle";
@@ -1031,7 +1036,7 @@ export default function Dashboard() {
         </div>
 
         <div className="px-4 pt-4 pb-2 flex justify-between items-center text-[11px] font-semibold text-[#555962] uppercase tracking-wider">
-          {t("sidebar_tasks")}
+          账号列表
           <button 
             onClick={openAddDialog}
             className="text-[var(--text-sub)] hover:text-[var(--text-main)] p-1 hover:bg-white/5 rounded transition-colors"
@@ -1070,7 +1075,7 @@ export default function Dashboard() {
                   }`}></div>
                   <div className="flex-1 truncate">{acc.name}</div>
                   <div className="text-[10px] text-[#555962] font-mono shrink-0">{getAccountTaskCount(acc.name)}</div>
-                  {isInvalid && <div className="text-xl text-rose-500 shrink-0 select-none animate-pulse">!</div>}
+                  {isInvalid && <div className="text-rose-500 shrink-0 text-xs"><Warning weight="bold" /></div>}
                 </div>
               );
             })
@@ -1082,7 +1087,7 @@ export default function Dashboard() {
       <main className="flex-1 flex flex-col bg-[#0E0E0E] overflow-hidden relative">
         <header className="h-[52px] px-6 flex items-center justify-between border-b border-[var(--border-color)] bg-[#0E0E0E]/90 backdrop-blur-md z-10 shrink-0">
             <div className="flex items-center gap-3 text-sm font-medium text-[var(--text-sub)]">
-                <span>{t("sidebar_accounts")}</span>
+                <span>账号管理</span>
                 {selectedAccount && (
                   <>
                     <span className="text-[#333]">/</span>
@@ -1137,8 +1142,11 @@ export default function Dashboard() {
 
                       
                       <span className="bg-white/5 border border-[var(--border-color)] px-2.5 py-1 rounded-md text-xs text-[var(--text-sub)] inline-flex items-center gap-1.5 font-mono">
-                        <i className="ph ph-clock"></i> 
-                        {selectedStatus?.checked_at ? new Date(selectedStatus.checked_at).toLocaleTimeString() : t("account_status_checking")}
+                        <Clock weight="bold" /> 
+                        {selectedStatus?.checked_at ? new Date(selectedStatus.checked_at).toLocaleTimeString() : t("account_status_checking")} (在线)
+                      </span>
+                      <span className="bg-white/5 border border-[var(--border-color)] px-2.5 py-1 rounded-md text-xs text-[var(--text-sub)] inline-flex items-center gap-1.5">
+                        <ShieldCheck weight="bold" /> 安全监控中
                       </span>
                   </div>
               </div>
@@ -1157,42 +1165,86 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Status Section */}
-              <div className="border border-[var(--border-color)] rounded-lg bg-[rgba(255,255,255,0.01)] mb-8 overflow-hidden">
-                <div className="px-4 py-3 border-b border-[var(--border-color)] text-[13px] font-medium flex items-center gap-2 bg-[rgba(255,255,255,0.02)] text-[var(--text-main)]">
-                  <Gear weight="bold" /> {t("settings")}
+              {/* Task Panel Section */}
+              <div className="mb-10 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+                    <h2 className="text-base font-bold flex items-center gap-2 text-[var(--text-main)]">
+                        <Lightning weight="fill" className="text-[#5E6AD2]" /> 签到任务 ({getAccountTaskCount(selectedAccount.name)})
+                    </h2>
+                    <button 
+                      className="bg-[#EDEDED] text-[#0A0A0A] px-3.5 py-2 rounded-md text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5"
+                      onClick={() => router.push(`/dashboard/sign-tasks/create?account=${selectedAccount.name}`)}
+                    >
+                        <Plus weight="bold" /> 添加任务
+                    </button>
                 </div>
-                <div className="flex px-4 py-3 border-b border-white/5 text-[13px]">
-                    <div className="w-[140px] text-[var(--text-sub)]">{t("proxy")}</div>
-                    <div className="flex-1 text-[var(--text-main)] font-mono">{selectedAccount.proxy || t("not_set")}</div>
-                    <div className="text-[var(--accent-glow)] cursor-pointer hover:underline text-xs font-mono select-none" onClick={() => handleEditAccount(selectedAccount)}>
-                      Edit
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {tasks.filter(t => t.account_name === selectedAccount.name).map((task) => (
+                    <div key={task.name} className="bg-white/[0.02] border border-[#ffffff14] rounded-xl p-4 hover:border-[#ffffff2a] transition-colors relative group">
+                        <div className="flex justify-between items-start mb-3">
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2 text-[14px] font-semibold text-white">
+                                    <span className="truncate max-w-[120px]" title={task.name}>{task.name}</span>
+                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono ${task.enabled !== false ? 'bg-[#5E6AD2]/20 text-[#8C99F7] border border-[#5E6AD2]/30' : 'bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30'}`}>
+                                      {task.enabled !== false ? 'Active' : 'Disabled'}
+                                    </span>
+                                </div>
+                                <div className="text-[11px] text-[#555962] font-mono">Chat ID: <span className="text-[#8A8F98]">{task.chats?.[0]?.chat_id || "-"}</span></div>
+                            </div>
+                            <div className="flex gap-1 text-[#555962] opacity-50 group-hover:opacity-100 transition-opacity">
+                                <button className="p-1.5 hover:text-emerald-400 hover:bg-emerald-400/10 rounded transition-colors" title="进入任务详情去执行" onClick={() => router.push(`/dashboard/account-tasks?name=${selectedAccount.name}`)}><Play weight="bold" /></button>
+                                <button className="p-1.5 hover:text-white hover:bg-white/10 rounded transition-colors" title="管理编辑" onClick={() => router.push(`/dashboard/account-tasks?name=${selectedAccount.name}`)}><PencilSimple weight="bold" /></button>
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-2.5 mt-4 text-xs text-[#8A8F98]">
+                            <div className="flex items-center gap-2 font-mono bg-black/30 w-fit px-2 py-1 rounded">
+                                <Clock className="text-[#555962]" weight="bold" /> 
+                                <span className="text-white/80 uppercase">{task.execution_mode === "range" && task.range_start ? `${task.range_start} - ${task.range_end}` : task.sign_at}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] font-medium text-[#5E6AD2]">
+                                <CirclesThree weight="fill" /> 包含 {task.chats?.[0]?.actions?.length || 0} 个动作指令
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div className="flex px-4 py-3 border-b border-white/5 text-[13px]">
-                    <div className="w-[140px] text-[var(--text-sub)]">{t("remark")}</div>
-                    <div className="flex-1 text-[var(--text-main)] truncate">{selectedAccount.remark || t("not_set")}</div>
-                </div>
-                <div className="flex px-4 py-3 text-[13px]">
-                    <div className="w-[140px] text-[var(--text-sub)]">Active Tasks</div>
-                    <div className="flex-1 text-[var(--text-main)] font-mono">{getAccountTaskCount(selectedAccount.name)} scheduled</div>
-                    <div className="text-[var(--accent-glow)] cursor-pointer hover:underline text-xs font-mono select-none" onClick={() => router.push(`/dashboard/account-tasks?name=${selectedAccount.name}`)}>
-                      Manage
+                  ))}
+                  {tasks.filter(t => t.account_name === selectedAccount.name).length === 0 && (
+                    <div className="col-span-full py-8 text-center border border-dashed border-white/5 rounded-xl text-[#555962] text-sm hover:border-white/20 transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/sign-tasks/create?account=${selectedAccount.name}`)}>
+                      当前账号暂无任何任务，点击开始规划
                     </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Account Settings Section (Minimized) */}
+              <div className="border border-[var(--border-color)] rounded-lg bg-[rgba(255,255,255,0.01)] mb-8 overflow-hidden animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                <div className="px-4 py-3 border-b border-[var(--border-color)] text-[12px] font-semibold flex items-center justify-between bg-[rgba(255,255,255,0.02)] text-[var(--text-main)]">
+                    <div className="flex items-center gap-2"><Gear weight="bold" /> 代理与杂项设置</div>
+                    <button className="text-[var(--accent-glow)] hover:underline text-xs font-mono" onClick={() => handleEditAccount(selectedAccount)}>Edit</button>
+                </div>
+                <div className="flex px-4 py-3 border-b border-white/5 text-[12px]">
+                    <div className="w-[120px] text-[var(--text-sub)]">SOCKS5 代理</div>
+                    <div className="flex-1 text-[var(--text-main)] font-mono">{selectedAccount.proxy || "not_set"}</div>
+                </div>
+                <div className="flex px-4 py-3 text-[12px]">
+                    <div className="w-[120px] text-[var(--text-sub)]">备注说明</div>
+                    <div className="flex-1 text-[var(--text-sub)] italic">{selectedAccount.remark || "not_set"}</div>
                 </div>
               </div>
 
               {/* Console Section */}
-              <div className="rounded-lg shadow-lg mb-8 bg-[#000] border-0 overflow-hidden">
-                  <div className="px-4 py-3 bg-[#111] flex items-center gap-2 text-[var(--text-main)] text-[13px] font-medium">
-                      <ListDashes weight="bold" /> {t("logs")}
-                      <div className="ml-auto flex gap-2">
-                          <button className="text-[var(--text-sub)] hover:text-white p-1 rounded hover:bg-white/10 transition-colors" title={t("clear_logs")} onClick={handleClearLogs}>
-                            <X weight="bold" size={14} />
+              <div className="rounded-xl shadow-lg mb-8 bg-[#000] border border-[#1a1a1a] overflow-hidden animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                  <div className="px-4 py-3 bg-[#111] flex items-center justify-between border-b border-[#222]">
+                      <div className="flex items-center gap-2 text-[var(--text-main)] text-[12px] font-semibold font-mono tracking-wider">
+                          <TerminalWindow weight="bold" className="text-[#5E6AD2]" /> EXECUTION LOGS
+                      </div>
+                      <div className="flex gap-2">
+                          <button className="text-[#555] hover:text-white p-1 rounded hover:bg-white/10 transition-colors" title="Clear Logs" onClick={handleClearLogs}>
+                            <Trash weight="bold" className="text-[14px]" />
                           </button>
                       </div>
                   </div>
-                  <div className="p-4 font-mono text-[12px] text-[#A0A0A0] h-[280px] overflow-y-auto leading-relaxed custom-scrollbar">
+                  <div className="p-4 font-mono text-[12px] text-[#A0A0A0] h-[240px] overflow-y-auto leading-relaxed custom-scrollbar bg-[#050505] shadow-inner">
                     {logsLoading ? (
                        <div className="h-full flex items-center justify-center text-[#555]"><Spinner className="animate-spin" size={24} /></div>
                     ) : accountLogs.length === 0 ? (
@@ -1200,7 +1252,7 @@ export default function Dashboard() {
                     ) : (
                       <div className="space-y-1">
                         {accountLogs.slice().reverse().map((log, i) => (
-                           <div key={i} className="flex">
+                           <div key={i} className="flex hover:bg-white/5 px-2 py-0.5 rounded -mx-2 transition-colors">
                              <span className="text-[#555] mr-3 whitespace-nowrap">[{new Date(log.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}]</span>
                              {log.success ? (
                                <span className="text-[#34D399] mr-2 shrink-0">SUCCESS:</span>
@@ -1213,7 +1265,7 @@ export default function Dashboard() {
                              </span>
                            </div>
                         ))}
-                        <div className="mt-2 text-[#5E6AD2]">_</div>
+                        <div className="mt-4 text-[#5E6AD2] animate-pulse">_</div>
                       </div>
                     )}
                   </div>

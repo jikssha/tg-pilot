@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TG-Pilot Dashboard V2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #0A0A0A;
+            --surface-color: #121212;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.15);
+            --text-main: #EDEDED;
+            --text-sub: #8A8F98;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Inter', system-ui, sans-serif;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .font-mono { font-family: 'Fira Code', monospace !important; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+    
+    <!-- 左侧 账号列表 Sidebar -->
+    <aside class="w-[260px] bg-[#070707] border-r border-[#ffffff14] flex flex-col shrink-0 relative z-20">
+        <!-- Brand -->
+        <div class="h-[52px] px-4 flex items-center justify-between">
+            <div class="flex items-center gap-2 font-medium text-sm text-[var(--text-main)] cursor-pointer px-2 py-1 rounded-md hover:bg-white/5 -ml-2 transition-colors">
+                <div class="w-5 h-5 bg-[#EDEDED] rounded text-[#0A0A0A] flex items-center justify-center">
+                   <i class="ph-fill ph-paper-plane-right text-xs"></i>
+                </div>
+                TG-Pilot
+            </div>
+            <div class="text-[var(--text-sub)] hover:text-white p-1 rounded transition-colors cursor-pointer">
+                <i class="ph-bold ph-gear"></i>
+            </div>
+        </div>
+
+        <!-- Section Title -->
+        <div class="px-4 pt-4 pb-2 flex justify-between items-center text-[11px] font-semibold text-[#555962] tracking-wider">
+            账号列表
+            <button class="text-[var(--text-sub)] hover:text-white p-1 hover:bg-white/5 rounded transition-colors" title="添加账号">
+                <i class="ph-bold ph-plus"></i>
+            </button>
+        </div>
+
+        <!-- Scrollable Account List -->
+        <div class="flex-1 overflow-y-auto px-2 pb-4 custom-scrollbar">
+            <!-- Active Account -->
+            <div class="flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer text-[13px] transition-colors mb-0.5 bg-white/10 text-white font-medium">
+                <div class="w-2 h-2 rounded-full shrink-0 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.3)]"></div>
+                <div class="flex-1 truncate">v5</div>
+                <div class="text-[10px] text-[#555962] font-mono shrink-0">2</div>
+            </div>
+            <!-- Inactive/Error Account -->
+            <div class="flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer text-[13px] transition-colors mb-0.5 hover:bg-white/5 text-[#8A8F98] opacity-60">
+                <div class="w-2 h-2 rounded-full shrink-0 border border-rose-500/50 bg-transparent"></div>
+                <div class="flex-1 truncate">tg_bot_1</div>
+                <div class="text-[10px] text-[#555962] font-mono shrink-0">0</div>
+                <div class="text-rose-500 shrink-0 text-xs"><i class="ph-bold ph-warning"></i></div>
+            </div>
+            <!-- Checking Account -->
+            <div class="flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer text-[13px] transition-colors mb-0.5 hover:bg-white/5 text-[#8A8F98]">
+                <div class="w-2 h-2 rounded-full shrink-0 bg-amber-400/50"></div>
+                <div class="flex-1 truncate">test_account</div>
+                <div class="text-[10px] text-[#555962] font-mono shrink-0">5</div>
+            </div>
+            
+            <!-- Generate a long list to show scrolling -->
+            <script>
+                for(let i=0; i<20; i++) {
+                    document.write(`
+                    <div class="flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer text-[13px] transition-colors mb-0.5 hover:bg-white/5 text-[#8A8F98]">
+                        <div class="w-2 h-2 rounded-full shrink-0 bg-emerald-400 opacity-50"></div>
+                        <div class="flex-1 truncate">account_00${i}</div>
+                        <div class="text-[10px] text-[#555962] font-mono shrink-0">1</div>
+                    </div>
+                    `);
+                }
+            </script>
+        </div>
+    </aside>
+
+    <!-- 工作区 (Detail Area) -->
+    <main class="flex-1 flex flex-col bg-[#0E0E0E] overflow-hidden relative">
+        <!-- Header -->
+        <header class="h-[52px] px-6 flex items-center justify-between border-b border-[var(--border-color)] bg-[#0E0E0E]/90 backdrop-blur-md z-10 shrink-0">
+            <div class="flex items-center gap-3 text-sm font-medium text-[var(--text-sub)]">
+                <span>账号管理</span>
+                <span class="text-[#333]">/</span>
+                <span class="text-[var(--text-main)]">v5</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button class="px-2.5 py-1.5 rounded-md text-xs font-medium inline-flex items-center gap-1.5 text-rose-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors">
+                    <i class="ph-bold ph-trash"></i> 移除账号
+                </button>
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto p-8 lg:p-12 w-full max-w-5xl mx-auto custom-scrollbar">
+            
+            <!-- Account Header -->
+            <div class="mb-8">
+                <h1 class="text-2xl font-semibold mb-1 flex items-center gap-3 text-[var(--text-main)]">
+                    v5
+                    <span class="w-2.5 h-2.5 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.3)] inline-block"></span>
+                </h1>
+                <div class="flex flex-wrap items-center gap-3 mt-4">
+                    <span class="bg-white/5 border border-[var(--border-color)] px-2.5 py-1 rounded-md text-xs text-[var(--text-sub)] inline-flex items-center gap-1.5 font-mono">
+                        <i class="ph ph-clock"></i> 20:36:43 (在线)
+                    </span>
+                    <span class="bg-white/5 border border-[var(--border-color)] px-2.5 py-1 rounded-md text-xs text-[var(--text-sub)] inline-flex items-center gap-1.5">
+                        <i class="ph ph-shield-check"></i> 安全监控中
+                    </span>
+                </div>
+            </div>
+
+            <!-- ================= 核心焦点：签到任务面板 (Task Panel) ================= -->
+            <div class="mb-10 animate-fade-in" style="animation-delay: 0.1s">
+                <div class="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+                    <h2 class="text-base font-bold flex items-center gap-2 text-[var(--text-main)]">
+                        <i class="ph-fill ph-lightning text-[#5E6AD2]"></i> 签到任务 (2)
+                    </h2>
+                    <button class="bg-[#EDEDED] text-[#0A0A0A] px-3.5 py-2 rounded-md text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5">
+                        <i class="ph-bold ph-plus"></i> 添加任务
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    <!-- Task Card 1 -->
+                    <div class="bg-white/[0.02] border border-[#ffffff14] rounded-xl p-4 hover:border-[#ffffff2a] transition-colors relative group">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex flex-col gap-1">
+                                <div class="flex items-center gap-2 text-[14px] font-semibold text-white">
+                                    <span>_Auto_SheerID</span>
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-mono bg-[#5E6AD2]/20 text-[#8C99F7] border border-[#5E6AD2]/30">Active</span>
+                                </div>
+                                <div class="text-[11px] text-[#555962] font-mono">Chat ID: <span class="text-[#8A8F98]">7983923812</span></div>
+                            </div>
+                            
+                            <!-- Actions hover reveal -->
+                            <div class="flex gap-1 text-[#555962] opacity-50 group-hover:opacity-100 transition-opacity">
+                                <button class="p-1.5 hover:text-emerald-400 hover:bg-emerald-400/10 rounded transition-colors" title="立即执行"><i class="ph-bold ph-play"></i></button>
+                                <button class="p-1.5 hover:text-white hover:bg-white/10 rounded transition-colors" title="编辑"><i class="ph-bold ph-pencil-simple"></i></button>
+                                <button class="p-1.5 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors" title="删除"><i class="ph-bold ph-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2.5 mt-4 text-xs text-[#8A8F98]">
+                            <div class="flex items-center gap-2 font-mono bg-black/30 w-fit px-2 py-1 rounded">
+                                <i class="ph ph-clock text-[#555962]"></i> 
+                                <span class="text-white/80">09:00 - 18:00</span>
+                                <span class="text-[#555962] text-[10px]">/ 每日</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-[11px] font-medium text-[#5E6AD2]">
+                                <i class="ph-fill ph-circles-three font-bold"></i> 包含 2 个动作指令
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Task Card 2 -->
+                    <div class="bg-white/[0.02] border border-[#ffffff14] rounded-xl p-4 hover:border-[#ffffff2a] transition-colors relative group">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex flex-col gap-1">
+                                <div class="flex items-center gap-2 text-[14px] font-semibold text-white">
+                                    <span>_GGS_Group</span>
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-mono bg-[#5E6AD2]/20 text-[#8C99F7] border border-[#5E6AD2]/30">Active</span>
+                                </div>
+                                <div class="text-[11px] text-[#555962] font-mono">Chat ID: <span class="text-[#8A8F98]">8298122012</span></div>
+                            </div>
+                            
+                            <div class="flex gap-1 text-[#555962] opacity-50 group-hover:opacity-100 transition-opacity">
+                                <button class="p-1.5 hover:text-emerald-400 hover:bg-emerald-400/10 rounded transition-colors" title="立即执行"><i class="ph-bold ph-play"></i></button>
+                                <button class="p-1.5 hover:text-white hover:bg-white/10 rounded transition-colors" title="编辑"><i class="ph-bold ph-pencil-simple"></i></button>
+                                <button class="p-1.5 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors" title="删除"><i class="ph-bold ph-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2.5 mt-4 text-xs text-[#8A8F98]">
+                            <div class="flex items-center gap-2 font-mono bg-black/30 w-fit px-2 py-1 rounded">
+                                <i class="ph ph-clock text-[#555962]"></i> 
+                                <span class="text-white/80">09:00 - 18:00</span>
+                                <span class="text-[#555962] text-[10px]">/ 每日</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-[11px] font-medium text-[#5E6AD2]">
+                                <i class="ph-fill ph-circles-three font-bold"></i> 包含 1 个动作指令
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <!-- ================= / 核心焦点 ================= -->
+
+            <!-- Account Settings Section (Minimized) -->
+            <div class="border border-[var(--border-color)] rounded-lg bg-[rgba(255,255,255,0.01)] mb-8 overflow-hidden animate-fade-in" style="animation-delay: 0.2s">
+                <div class="px-4 py-3 border-b border-[var(--border-color)] text-[12px] font-semibold flex items-center justify-between bg-[rgba(255,255,255,0.02)] text-[var(--text-main)]">
+                    <div class="flex items-center gap-2"><i class="ph-bold ph-gear"></i> 代理与杂项设置</div>
+                    <button class="text-[var(--accent-glow)] hover:underline text-xs font-mono">Edit</button>
+                </div>
+                <div class="flex px-4 py-3 border-b border-white/5 text-[12px]">
+                    <div class="w-[120px] text-[var(--text-sub)]">SOCKS5 代理</div>
+                    <div class="flex-1 text-[var(--text-main)] font-mono">socks5://35.209.179.73:45001</div>
+                </div>
+                <div class="flex px-4 py-3 text-[12px]">
+                    <div class="w-[120px] text-[var(--text-sub)]">备注说明</div>
+                    <div class="flex-1 text-[var(--text-sub)] italic">not_set</div>
+                </div>
+            </div>
+
+            <!-- Console Section -->
+            <div class="rounded-xl shadow-lg mb-8 bg-[#000] border border-[#1a1a1a] overflow-hidden animate-fade-in" style="animation-delay: 0.3s">
+                <div class="px-4 py-3 bg-[#111] flex items-center justify-between border-b border-[#222]">
+                    <div class="flex items-center gap-2 text-[var(--text-main)] text-[12px] font-semibold font-mono tracking-wider">
+                        <i class="ph-bold ph-terminal-window text-[#5E6AD2]"></i> EXECUTION LOGS
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="text-[#555] hover:text-white p-1 rounded hover:bg-white/10 transition-colors" title="Clear Logs">
+                            <i class="ph-bold ph-trash text-[14px]"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4 font-mono text-[12px] text-[#A0A0A0] h-[240px] overflow-y-auto leading-relaxed custom-scrollbar bg-[#050505] shadow-inner">
+                    <div class="space-y-1">
+                        <div class="flex hover:bg-white/5 px-2 py-0.5 rounded -mx-2 transition-colors">
+                            <span class="text-[#555] mr-3 whitespace-nowrap">[20:15:02]</span>
+                            <span class="text-[#34D399] mr-2 shrink-0">SUCCESS:</span>
+                            <span class="text-[#D4D4D4]">Task "_Auto_SheerID". Execute actions completed.</span>
+                        </div>
+                        <div class="flex hover:bg-white/5 px-2 py-0.5 rounded -mx-2 transition-colors">
+                            <span class="text-[#555] mr-3 whitespace-nowrap">[20:15:04]</span>
+                            <span class="text-[#5E6AD2] mr-2 shrink-0">BOT INFO:</span>
+                            <span class="text-[#8A8F98]">> @Auto_SheerID_Bot: Checking in successful, wait for next day</span>
+                        </div>
+                        <div class="flex hover:bg-white/5 px-2 py-0.5 rounded -mx-2 transition-colors">
+                            <span class="text-[#555] mr-3 whitespace-nowrap">[14:32:10]</span>
+                            <span class="text-[#EF4444] mr-2 shrink-0">ERROR:</span>
+                            <span class="text-[#D4D4D4]">Task "_GGS_Group". Network latency timeout over 15s.</span>
+                        </div>
+                        <div class="mt-4 text-[#5E6AD2] animate-pulse">_</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</body>
+</html>
