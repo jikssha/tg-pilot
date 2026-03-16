@@ -38,7 +38,7 @@ TG-Pilot is a Telegram automation panel. It helps you manage multiple accounts, 
        container_name: tg-pilot
        restart: unless-stopped
        ports:
-         - "9987:8080"
+         - "9987:9987"
        volumes:
          - ./data:/data
        environment:
@@ -73,14 +73,14 @@ If you prefer not to use Docker Compose, you can run the container directly:
 docker run -d \
   --name tg-pilot \
   --restart unless-stopped \
-  -p 9987:8080 \
+  -p 9987:9987 \
   -v $(pwd)/data:/data \
   -e TZ=Asia/Shanghai \
   -e APP_SECRET_KEY=your_secret_key \
   ghcr.io/jikssha/tg-pilot:latest
 ```
 
-If you use a reverse proxy like Nginx, bind locally only: `-p 127.0.0.1:9987:8080`
+If you use a reverse proxy like Nginx, bind locally only: `-p 127.0.0.1:9987:9987`
 
 ## Data Directory & Permissions
 

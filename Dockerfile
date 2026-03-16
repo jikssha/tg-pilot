@@ -1,4 +1,4 @@
-﻿FROM node:20-slim AS frontend-builder
+FROM node:20-slim AS frontend-builder
 
 WORKDIR /frontend
 
@@ -16,7 +16,7 @@ ENV PYTHONUNBUFFERED=1 \
   PYTHONDONTWRITEBYTECODE=1 \
   PIP_DISABLE_PIP_VERSION_CHECK=1 \
   PIP_NO_CACHE_DIR=1 \
-  PORT=8080 \
+  PORT=9987 \
   TZ=Asia/Shanghai
 
 WORKDIR /app
@@ -73,11 +73,11 @@ RUN groupadd -r -g ${APP_GID} app && \
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 8080
+EXPOSE 9987
 
 # Healthcheck uses the PORT env var.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.getenv(\"PORT\", \"8080\")}/healthz').read()"
+  CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.getenv(\"PORT\", \"9987\")}/healthz').read()"
 
 # Start with env-driven PORT (Zeabur sets this automatically).
 ENTRYPOINT ["/entrypoint.sh"]

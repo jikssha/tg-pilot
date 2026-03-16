@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-PORT_VALUE="${PORT:-8080}"
+PORT_VALUE="${PORT:-9987}"
 AUTO_FIX_PERMS="${APP_AUTO_FIX_DATA_PERMS:-1}"
 
 # Default runtime identity (kept for compatibility with existing images).
