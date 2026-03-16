@@ -3,11 +3,11 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tg-signer"
+name = "TG-Pilot"
 dynamic = ["version"]
 description = "Automated Telegram tasks (check-ins, sending messages, keyboard clicks, AI replies, etc.); monitoring, forwarding, and auto-replying to private, group, and channel messages."
 authors = [
-    { name = "Amchii", email = "finethankuandyou@gmail.com" }
+    { name = "jikssha" }
 ]
 license = "BSD-3-Clause"
 readme = "README.md"
@@ -54,8 +54,8 @@ gui = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/amchii/tg-signer"
-Repository = "https://github.com/amchii/tg-signer"
+Homepage = "https://github.com/jikssha/tg-pilot"
+Repository = "https://github.com/jikssha/tg-pilot"
 
 [project.scripts]
 tg-signer = "tg_signer.__main__:signer"

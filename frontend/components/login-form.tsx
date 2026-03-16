@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { login } from "../lib/api";
 import { setToken } from "../lib/auth";
 import {
-  Lightning,
+  PaperPlaneTilt,
   Spinner,
   GithubLogo
 } from "@phosphor-icons/react";
@@ -49,87 +49,88 @@ export default function LoginForm() {
   };
 
   return (
-    <div id="login-view" className="w-full min-h-screen flex flex-col justify-center items-center relative p-4 overflow-x-hidden bg-black/5 dark:bg-black/20">
-      <div className="glass-panel w-full max-w-[420px] p-6 md:p-8 text-center animate-float-up border border-black/5 dark:border-white/5 shadow-2xl">
-        <div className="mb-4">
-          <Lightning
-            weight="fill"
-            className="inline-block"
-            style={{ fontSize: '48px', color: '#fcd34d', filter: 'drop-shadow(0 0 12px rgba(252, 211, 77, 0.4))' }}
-          />
-          <div className="brand-text-grad mt-1 text-xl">TG SignPulse</div>
-          <p className="text-[#9496a1] text-[11px] mt-1 leading-relaxed px-4 font-medium">{t("settings_desc")}</p>
+    <div id="login-view" className="w-full min-h-screen flex flex-col justify-center items-center relative p-4">
+      <div className="linear-card w-full max-w-[380px] p-10 flex flex-col items-center">
+        
+        <div className="w-10 h-10 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center mb-6 text-[#EDEDED] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <PaperPlaneTilt weight="fill" className="text-xl" />
         </div>
+        
+        <h2 className="text-xl font-medium text-center mb-1 text-[var(--text-main)]">登录 TG-Pilot</h2>
+        <p className="text-xs text-[var(--text-sub)] text-center mb-8">{t("settings_desc")}</p>
 
-        <form onSubmit={handleSubmit} className="text-left" autoComplete="off">
-          <div className="mb-4">
-            <label className="text-[11px] mb-1.5 block font-bold text-main/60 uppercase tracking-widest">{t("username")}</label>
+        <form onSubmit={handleSubmit} className="w-full text-left" autoComplete="off">
+          <div className="mb-5">
+            <label className="block text-xs font-medium text-[var(--text-sub)] mb-1.5">{t("username")}</label>
             <input
               type="text"
               name="username"
-              className="!py-3 !px-4 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl"
+              className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-[var(--text-main)] transition-all outline-none focus:border-white/20 focus:bg-white/10 focus:ring-2 focus:ring-white/5"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder={t("username")}
               autoComplete="off"
             />
           </div>
-          <div className="mb-4">
-            <label className="text-[11px] mb-1.5 block font-bold text-main/60 uppercase tracking-widest">{t("password")}</label>
+          
+          <div className="mb-5">
+            <label className="block text-xs font-medium text-[var(--text-sub)] mb-1.5">{t("password")}</label>
             <input
               type="password"
               name="password"
-              className="!py-3 !px-4 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl"
+              className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-[var(--text-main)] transition-all outline-none focus:border-white/20 focus:bg-white/10 focus:ring-2 focus:ring-white/5"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={t("password")}
               autoComplete="new-password"
             />
           </div>
-          <div className="mb-5">
-            <label className="text-[11px] mb-1.5 block font-bold text-main/60 uppercase tracking-widest">{t("totp")}</label>
+          
+          <div className="mb-8">
+            <label className="block text-xs font-medium text-[var(--text-sub)] mb-1.5">{t("totp")} <span className="opacity-50 font-normal">(可选)</span></label>
             <input
               type="text"
               name="totp"
-              className="!py-3 !px-4 text-center tracking-[4px] bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl font-bold"
+              className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-[var(--text-main)] text-center font-mono tracking-widest transition-all outline-none focus:border-white/20 focus:bg-white/10 focus:ring-2 focus:ring-white/5"
               value={totp}
               onChange={(e) => setTotp(e.target.value)}
-              placeholder={t("totp_placeholder")}
+              placeholder="留空即跳过"
               autoComplete="off"
             />
           </div>
 
           {errorMsg && (
-            <div className="text-[#ff4757] text-[11px] mb-5 text-center bg-[#ff4757]/10 p-2.5 rounded-xl font-medium border border-[#ff4757]/20">
+            <div className="text-[var(--danger)] text-xs mb-5 text-center bg-red-500/10 p-2.5 rounded-md font-medium border border-red-500/20">
               {errorMsg}
             </div>
           )}
 
-          <button className="btn-gradient w-full !py-3.5 font-bold shadow-xl rounded-xl transition-all" type="submit" disabled={loading}>
+          <button className="linear-btn-primary w-full !py-2.5 !text-sm" type="submit" disabled={loading}>
             {loading ? (
               <div className="flex items-center justify-center gap-2">
                 <Spinner className="animate-spin" size={18} />
                 <span>{t("login_loading")}</span>
               </div>
             ) : (
-              <span className="text-sm">{t("login")}</span>
+              <span>{t("login")}</span>
             )}
           </button>
         </form>
 
-        <div className="login-footer-icons !mt-6 !pt-4 border-t border-black/5 dark:border-white/5 flex items-center justify-center gap-6">
+        <div className="w-full mt-8 flex items-center justify-center gap-6 text-[20px] text-[var(--text-sub)]">
           <ThemeLanguageToggle />
           <a
             href="https://github.com/jikssha/tg-pilot"
             target="_blank"
             rel="noreferrer"
-            className="action-btn !w-9 !h-9 !text-xl"
+            className="hover:text-[var(--text-main)] transition-colors"
             title={t("github_repo")}
           >
-            <GithubLogo weight="bold" />
+            <GithubLogo />
           </a>
         </div>
       </div>
     </div>
   );
 }
+

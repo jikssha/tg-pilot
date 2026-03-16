@@ -14,7 +14,7 @@
 
 ---
 
-**TG-Pilot** is a robust and beautifully designed automation control panel for Telegram. It allows you to manage multiple Telegram accounts, effortlessly schedule automated daily tasks, and monitor active workflows through an elegant Next.js web interface.
+**TG-Pilot** is a robust and beautifully designed automation control panel for Telegram. It allows you to manage multiple Telegram accounts, effortlessly schedule automated daily tasks, and monitor active workflows through a newly refactored, Linear-style pure dark mode web interface.
 
 Built with **native AI integration (Vision & Computation)**, TG-Pilot handles complex interactions like captcha-solving and dynamic calculation challenges with ease, making it the perfect engine for your 24/7 VPS deployments.
 
@@ -104,6 +104,10 @@ To meet various operational demands, TG-Pilot offers extensive environment varia
 *(Reverse Proxy Tip: If you are protecting your panel behind Nginx, it is highly recommended to change the port binding to `- "127.0.0.1:9987:9987"` to prevent direct public access.)*
 
 ## 📝 Recent Updates
+
+### V0.3.x Linear Modern UI Overhaul
+- **Refactored 🎨 Sleek Dark Mode Interface**: The control panel has been entirely overhauled into a Linear-style modern developer tool aesthetic (Sidebar + Detail Area), featuring an immersive pure dark mode.
+- **Optimized 📊 Integrated Terminal Logs**: Removed clumsy modal popups for logs. Logs are now embedded directly into the detail area for buttery-smooth task tracking.
 
 ### V0.2.x Core Polish
 - **Added 👻 Native Device Spoofing**: Fully overhauled pyrogram instantiation process. Every running account now randomly (but consistently) poses as an official Apple/Microsoft client OS rather than `Pyrogram`. Massive boost for your fleet safety.

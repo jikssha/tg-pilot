@@ -2,7 +2,7 @@
 
 # 🚀 TG-Pilot
 
-**次世代的 Telegram 自动化多账号管理面板**
+** Telegram 多账号自动化批量签到任务管理面板**
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
@@ -14,7 +14,7 @@
 
 ---
 
-**TG-Pilot** 是一款专为高效与稳定性打造的 Telegram 自动化管理面板。通过极简现代的 Web 界面，你可以轻松管理多个 Telegram 账号，配置自动化签到任务，并让所有繁杂的交互操作在后台 24 小时全自动运行。
+**TG-Pilot** 是一款专为高效与稳定性打造的 Telegram 多账号自动化批量签到任务管理面板。通过全新重构的 Linear 风格极简暗黑 Web 界面，你可以轻松管理多个 Telegram 账号，配置自动化签到任务，并让所有繁杂的交互操作在后台 24 小时全自动运行。
 
 项目深度集成了 **AI 视觉与运算模型**，使得在复杂的阻断或验证场景下依旧如履平地。非常适合部署在 VPS 上作为自动化引擎。
 
@@ -28,7 +28,7 @@
 - **🛡️ 极致维稳架构**：严格的并发控制、原生应对 `429 Too Many Requests` 与超时熔断，告别内存泄漏与僵尸进程。
 - **📦 现代化容器部署**：提供高定制化的 Docker 镜像，只需一行命令即可跨平台开箱即用。
 
-## 🚀 极速部署 (Docker Compose)
+## 🚀 一键部署 (Docker Compose)
 
 我们强烈建议使用 Docker Compose 进行一键部署，只需 3 分钟即可拥有属于你的自动化控制台。
 
@@ -80,9 +80,10 @@ docker compose up -d
 
 ## 🔄 如何升级到最新版？
 
-当你需要更新到最新内核时，只需进入配置目录，拉取最新镜像并重启即可**无损光速升级**：
+当你需要更新到最新内核时，只需进入配置目录，拉取最新镜像并重启即可：
 
 ```bash
+cd tg-pilot
 docker compose pull
 docker compose up -d
 ```
@@ -104,6 +105,10 @@ docker compose up -d
 *(详细反代说明：如果你使用 Nginx，建议将端口映射改为 `- "127.0.0.1:9987:9987"`，阻断外部直连，提升安全性。)*
 
 ## 📝 近期更新
+
+### V0.3.x 全新 Linear 风格 UI 重构
+- **重构 🎨 极简暗黑界面**：主控制面板完全重构为 Linear 现代开发工具风格（ Sidebar + Detail Area ），全面启用纯暗黑模式。
+- **优化 📊 内联终端日志**：移除了繁杂的弹窗日志，日志现已无缝嵌入账户详情区域，追踪任务如丝般顺滑。
 
 ### V0.2.x 核心重构与优化
 - **新增 👻 官方设备隐匿伪装**：彻底重构底层 Pyrogram 连接，对每个登入账号全自动固定伪装为随机的苹果/微软官方设备，消灭脚本特征指纹，保护小号矩阵安全。

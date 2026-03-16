@@ -60,12 +60,12 @@ export default function Dashboard() {
   const [accounts, setAccounts] = useState<AccountInfo[]>([]);
   const [tasks, setTasks] = useState<SignTask[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedAccountName, setSelectedAccountName] = useState<string | null>(null);
 
-  // 日志弹窗
-  const [showLogsDialog, setShowLogsDialog] = useState(false);
-  const [logsAccountName, setLogsAccountName] = useState("");
+  // 日志原生显示 (替代弹窗)
   const [accountLogs, setAccountLogs] = useState<AccountLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [logsAccountName, setLogsAccountName] = useState("");
 
   // 添加账号对话框
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -352,6 +352,25 @@ export default function Dashboard() {
     // restoreCachedStatus();
     loadData(tokenStr);
   }, [loadData, restoreCachedStatus]);
+  useEffect(() => {
+    if (!token || !dataLoaded || accounts.length === 0) {
+      if (dataLoaded && accounts.length === 0) setAccountStatusMap({});
+      return;
+    }
+    if (statusCheckedRef.current) return;
+    
+    if (shouldRunStatusCheck()) {
+      statusCheckedRef.current = true;
+      try {
+        sessionStorage.setItem(DASHBOARD_STATUS_CHECKED_KEY, "1");
+      } catch {
+        // ignore
+      }
+      checkAccountStatusOnce(token, accounts);
+    } else {
+      statusCheckedRef.current = true;
+    }
+  }, [token, dataLoaded, accounts, checkAccountStatusOnce, shouldRunStatusCheck]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -924,38 +943,7 @@ export default function Dashboard() {
     setShowAddDialog(false);
   };
 
-  const handleShowLogs = async (name: string) => {
-    if (!token) return;
-    setLogsAccountName(name);
-    setShowLogsDialog(true);
-    setLogsLoading(true);
-    try {
-      const logs = await getAccountLogs(token, name, 100);
-      setAccountLogs(logs);
-    } catch (err: any) {
-      addToast(formatErrorMessage("logs_fetch_failed", err), "error");
-    } finally {
-      setLogsLoading(false);
-    }
-  };
 
-  const handleClearLogs = async () => {
-    if (!token || !logsAccountName) return;
-    if (!confirm(t("clear_logs_confirm").replace("{name}", logsAccountName))) return;
-    try {
-      setLoading(true);
-      await clearAccountLogs(token, logsAccountName);
-      addToast(t("clear_logs_success"), "success");
-      setLogsLoading(true);
-      const logs = await getAccountLogs(token, logsAccountName, 100);
-      setAccountLogs(logs);
-    } catch (err: any) {
-      addToast(formatErrorMessage("clear_logs_failed", err), "error");
-    } finally {
-      setLogsLoading(false);
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     if (!qrLogin?.expires_at || !qrActiveLoginIdRef.current) {
@@ -999,130 +987,241 @@ export default function Dashboard() {
     };
   }, [token, qrLogin?.login_id, loginMode, showAddDialog, qrPhase, startQrPolling]);
 
-  if (!token || checking) {
-    return null;
-  }
+  // 如果初次加载没有选定账号且有账号存在，自动选定第一个
+  useEffect(() => {
+    if (!selectedAccountName && accounts.length > 0) {
+      setSelectedAccountName(accounts[0].name);
+    } else if (accounts.length === 0 && selectedAccountName) {
+      setSelectedAccountName(null);
+    }
+  }, [accounts, selectedAccountName]);
+
+  const handleClearLogs = async () => {
+    if (!token || !selectedAccountName) return;
+    try {
+      setLoading(true);
+      await clearAccountLogs(token, selectedAccountName);
+      setAccountLogs([]);
+      addToast(t("logs_cleared"), "success");
+    } catch (err: any) {
+      addToast(formatErrorMessage("clear_failed", err), "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectedAccount = accounts.find((a) => a.name === selectedAccountName);
+  const selectedStatus = selectedAccountName ? accountStatusMap[selectedAccountName] : null;
 
   return (
-    <div id="dashboard-view" className="w-full h-full flex flex-col">
-      <nav className="navbar">
-        <div className="nav-brand" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Lightning weight="fill" style={{ fontSize: '28px', color: '#fcd34d' }} />
-          <span className="nav-title font-bold tracking-tight text-lg">TG SignPulse</span>
-        </div>
-        <div className="top-right-actions">
-          <ThemeLanguageToggle />
-          <Link href="/dashboard/settings" title={t("sidebar_settings")} className="action-btn">
+    <div id="dashboard-view" className="w-full h-full flex overflow-hidden bg-[var(--bg-body)]">
+      
+      {/* 侧边栏 (Sidebar) */}
+      <aside className="w-[260px] bg-[#070707] border-r border-[var(--border-color)] flex flex-col shrink-0 flex-shrink-0">
+        <div className="h-[52px] px-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-medium text-sm text-[var(--text-main)] cursor-pointer px-2 py-1 rounded-md hover:bg-white/5 -ml-2 transition-colors">
+            <div className="w-5 h-5 bg-[#EDEDED] rounded text-[#0A0A0A] flex items-center justify-center">
+               <PaperPlaneRight weight="fill" className="text-xs" />
+            </div>
+            TG-Pilot
+          </div>
+          <Link href="/dashboard/settings" title={t("sidebar_settings")} className="text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-white/5 p-1 rounded transition-colors">
             <Gear weight="bold" />
           </Link>
         </div>
-      </nav>
 
-      <main className="main-content">
-        {loading && accounts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-main/30">
-            <Spinner className="animate-spin mb-4" size={32} />
-            <p>{t("loading")}</p>
-          </div>
-        ) : (
-          <div className="card-grid">
-            {accounts.map((acc) => {
-              const initial = acc.name.charAt(0).toUpperCase();
+        <div className="px-4 pt-4 pb-2 flex justify-between items-center text-[11px] font-semibold text-[#555962] uppercase tracking-wider">
+          {t("sidebar_tasks")}
+          <button 
+            onClick={openAddDialog}
+            className="text-[var(--text-sub)] hover:text-[var(--text-main)] p-1 hover:bg-white/5 rounded transition-colors"
+            title={t("add_account")}
+          >
+            <Plus weight="bold" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-2 pb-4 custom-scrollbar">
+          {loading && accounts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-main/30">
+              <Spinner className="animate-spin mb-2" size={24} />
+            </div>
+          ) : (
+            accounts.map((acc) => {
               const statusInfo = accountStatusMap[acc.name];
-              const status = statusInfo?.status || "checking";
-              const isInvalid = status === "invalid" || Boolean(statusInfo?.needs_relogin);
-              const isCheckingLike = status === "checking" || (status === "error" && !statusInfo?.needs_relogin);
-              const statusKey = (() => {
-                const currentStatus = statusInfo?.status || "valid"; // Default to "valid" if statusInfo is undefined
-                const isCheckingOrError = currentStatus === "checking" || (currentStatus === "error" && !statusInfo?.needs_relogin);
-                return currentStatus === "valid"
-                  ? "connected"
-                  : isCheckingOrError
-                    ? "account_status_checking"
-                    : "account_status_invalid";
-              })();
-              const statusIconClass = (() => {
-                const currentStatus = statusInfo?.status || "valid"; // Default to "valid" if statusInfo is undefined
-                const isCheckingOrError = currentStatus === "checking" || (currentStatus === "error" && !statusInfo?.needs_relogin);
-                // Since proactive status testing was removed, default "checking" to valid UI unless error.
-                return isCheckingOrError || currentStatus === "valid"
-                  ? "text-emerald-400"
-                  : "text-rose-400";
-              })();
+              const isChecking = statusInfo?.status === "checking";
+              const isInvalid = statusInfo?.status === "error" && statusInfo?.needs_relogin;
+              const isOnline = statusInfo?.status === "valid";
+              
+              const isActive = selectedAccountName === acc.name;
+
               return (
-                <div
+                <div 
                   key={acc.name}
-                  className="glass-panel card !h-44 group cursor-pointer"
-                  onClick={() => handleAccountCardClick(acc)}
+                  onClick={() => setSelectedAccountName(acc.name)}
+                  className={`flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer text-[13px] transition-colors mb-[2px] ${
+                    isActive ? "bg-white/10 text-[var(--text-main)] font-medium" : "text-[var(--text-sub)] hover:bg-white/5 hover:text-[var(--text-main)]"
+                  } ${isInvalid ? "opacity-60" : ""}`}
                 >
-                  <div className="card-top">
-                    <div className="account-name">
-                      <div className="account-avatar">{initial}</div>
-                      <div className="min-w-0">
-                        <div className="font-bold leading-tight truncate">{acc.name}</div>
-                        {acc.remark ? (
-                          <div className="text-xs text-main/40 leading-tight truncate">
-                            {acc.remark}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="task-badge">
-                      {getAccountTaskCount(acc.name)} {t("sidebar_tasks")}
-                    </div>
-                  </div>
-
-                  <div className="flex-1"></div>
-
-                  <div className="card-bottom !pt-3">
-                    <div className="create-time" title={statusInfo?.message || ""}>
-                      {statusKey === "account_status_checking" ? (
-                        <Spinner className="animate-spin text-main/40" size={12} />
-                      ) : (
-                        <Clock weight="fill" className={statusIconClass} />
-                      )}
-                      <span className="text-[11px] font-medium">{t(statusKey)}</span>
-                    </div>
-                    <div className="card-actions">
-                      <div
-                        className="action-icon !w-8 !h-8"
-                        title={t("logs")}
-                        onClick={(e) => { e.stopPropagation(); handleShowLogs(acc.name); }}
-                      >
-                        <ListDashes weight="bold" size={16} />
-                      </div>
-                      <div
-                        className="action-icon !w-8 !h-8"
-                        title={t("edit_account")}
-                        onClick={(e) => { e.stopPropagation(); handleEditAccount(acc); }}
-                      >
-                        <PencilSimple weight="bold" size={16} />
-                      </div>
-                      <div
-                        className="action-icon delete !w-8 !h-8"
-                        title={t("remove")}
-                        onClick={(e) => { e.stopPropagation(); handleDeleteAccount(acc.name); }}
-                      >
-                        <Trash weight="bold" size={16} />
-                      </div>
-                    </div>
-                  </div>
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${
+                    isChecking ? "bg-amber-400/50 animate-pulse" :
+                    isOnline ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.3)]" : 
+                    "border border-rose-500/50 bg-transparent"
+                  }`}></div>
+                  <div className="flex-1 truncate">{acc.name}</div>
+                  <div className="text-[10px] text-[#555962] font-mono shrink-0">{getAccountTaskCount(acc.name)}</div>
+                  {isInvalid && <div className="text-xl text-rose-500 shrink-0 select-none animate-pulse">!</div>}
                 </div>
               );
-            })}
+            })
+          )}
+        </div>
+      </aside>
 
-            {/* 添加新账号卡片 */}
-            <div
-              className="card card-add !h-44"
-              onClick={openAddDialog}
-            >
-              <div className="add-icon-circle !w-10 !h-10">
-                <Plus weight="bold" size={20} />
-              </div>
-              <span className="text-xs font-bold" style={{ color: 'var(--text-sub)' }}>{t("add_account")}</span>
+      {/* 工作区 (Detail Area) */}
+      <main className="flex-1 flex flex-col bg-[#0E0E0E] overflow-hidden relative">
+        <header className="h-[52px] px-6 flex items-center justify-between border-b border-[var(--border-color)] bg-[#0E0E0E]/90 backdrop-blur-md z-10 shrink-0">
+            <div className="flex items-center gap-3 text-sm font-medium text-[var(--text-sub)]">
+                <span>{t("sidebar_accounts")}</span>
+                {selectedAccount && (
+                  <>
+                    <span className="text-[#333]">/</span>
+                    <span className="text-[var(--text-main)]">{selectedAccount.name}</span>
+                  </>
+                )}
             </div>
-          </div>
-        )}
+            <div className="flex items-center gap-2">
+                <ThemeLanguageToggle />
+                {selectedAccount && (
+                  <>
+                    <button 
+                      className="px-2.5 py-1.5 rounded-md text-xs font-medium inline-flex items-center gap-1.5 text-rose-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                      onClick={() => handleDeleteAccount(selectedAccount.name)}
+                    >
+                      <Trash weight="bold" /> {t("remove")}
+                    </button>
+                  </>
+                )}
+            </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-8 lg:p-12 w-full max-w-5xl mx-auto custom-scrollbar">
+          {!selectedAccount ? (
+            <div className="h-full flex flex-col items-center justify-center text-[var(--text-sub)] mt-20">
+              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/5">
+                <ListDashes size={24} />
+              </div>
+              <p className="text-sm">Select an account from the sidebar or add a new one.</p>
+              <button 
+                onClick={openAddDialog}
+                className="mt-6 linear-btn-secondary"
+              >
+                <Plus weight="bold" /> {t("add_account")}
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Account Header */}
+              <div className="mb-8">
+                  <h1 className="text-2xl font-semibold mb-1 flex items-center gap-3 text-[var(--text-main)]">
+                      {selectedAccount.name}
+                      {selectedStatus?.status === "valid" ? (
+                        <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.3)] inline-block"></span>
+                      ) : selectedStatus?.status === "checking" ? (
+                        <span className="w-2.5 h-2.5 bg-amber-400/50 rounded-full animate-pulse inline-block"></span>
+                      ) : (
+                        <span className="w-2.5 h-2.5 border border-rose-500 rounded-full inline-block"></span>
+                      )}
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-3 mt-4">
+
+                      
+                      <span className="bg-white/5 border border-[var(--border-color)] px-2.5 py-1 rounded-md text-xs text-[var(--text-sub)] inline-flex items-center gap-1.5 font-mono">
+                        <i className="ph ph-clock"></i> 
+                        {selectedStatus?.checked_at ? new Date(selectedStatus.checked_at).toLocaleTimeString() : t("account_status_checking")}
+                      </span>
+                  </div>
+              </div>
+
+              {selectedStatus?.needs_relogin && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6 flex items-center justify-between">
+                  <div className="text-sm text-red-400 font-medium flex items-center gap-2">
+                    <span className="text-lg">!</span> {t("account_relogin_required")}
+                  </div>
+                  <button 
+                    className="bg-red-500/20 hover:bg-red-500/30 text-red-400 px-3 py-1.5 rounded text-xs font-medium transition-colors"
+                    onClick={() => openReloginDialog(selectedAccount)}
+                  >
+                    重新登录
+                  </button>
+                </div>
+              )}
+
+              {/* Status Section */}
+              <div className="border border-[var(--border-color)] rounded-lg bg-[rgba(255,255,255,0.01)] mb-8 overflow-hidden">
+                <div className="px-4 py-3 border-b border-[var(--border-color)] text-[13px] font-medium flex items-center gap-2 bg-[rgba(255,255,255,0.02)] text-[var(--text-main)]">
+                  <Gear weight="bold" /> {t("settings")}
+                </div>
+                <div className="flex px-4 py-3 border-b border-white/5 text-[13px]">
+                    <div className="w-[140px] text-[var(--text-sub)]">{t("proxy")}</div>
+                    <div className="flex-1 text-[var(--text-main)] font-mono">{selectedAccount.proxy || t("not_set")}</div>
+                    <div className="text-[var(--accent-glow)] cursor-pointer hover:underline text-xs font-mono select-none" onClick={() => handleEditAccount(selectedAccount)}>
+                      Edit
+                    </div>
+                </div>
+                <div className="flex px-4 py-3 border-b border-white/5 text-[13px]">
+                    <div className="w-[140px] text-[var(--text-sub)]">{t("remark")}</div>
+                    <div className="flex-1 text-[var(--text-main)] truncate">{selectedAccount.remark || t("not_set")}</div>
+                </div>
+                <div className="flex px-4 py-3 text-[13px]">
+                    <div className="w-[140px] text-[var(--text-sub)]">Active Tasks</div>
+                    <div className="flex-1 text-[var(--text-main)] font-mono">{getAccountTaskCount(selectedAccount.name)} scheduled</div>
+                    <div className="text-[var(--accent-glow)] cursor-pointer hover:underline text-xs font-mono select-none" onClick={() => router.push(`/dashboard/account-tasks?name=${selectedAccount.name}`)}>
+                      Manage
+                    </div>
+                </div>
+              </div>
+
+              {/* Console Section */}
+              <div className="rounded-lg shadow-lg mb-8 bg-[#000] border-0 overflow-hidden">
+                  <div className="px-4 py-3 bg-[#111] flex items-center gap-2 text-[var(--text-main)] text-[13px] font-medium">
+                      <ListDashes weight="bold" /> {t("logs")}
+                      <div className="ml-auto flex gap-2">
+                          <button className="text-[var(--text-sub)] hover:text-white p-1 rounded hover:bg-white/10 transition-colors" title={t("clear_logs")} onClick={handleClearLogs}>
+                            <X weight="bold" size={14} />
+                          </button>
+                      </div>
+                  </div>
+                  <div className="p-4 font-mono text-[12px] text-[#A0A0A0] h-[280px] overflow-y-auto leading-relaxed custom-scrollbar">
+                    {logsLoading ? (
+                       <div className="h-full flex items-center justify-center text-[#555]"><Spinner className="animate-spin" size={24} /></div>
+                    ) : accountLogs.length === 0 ? (
+                       <div className="text-[#555] h-full flex items-center justify-center">No recent activity detected.</div>
+                    ) : (
+                      <div className="space-y-1">
+                        {accountLogs.slice().reverse().map((log, i) => (
+                           <div key={i} className="flex">
+                             <span className="text-[#555] mr-3 whitespace-nowrap">[{new Date(log.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}]</span>
+                             {log.success ? (
+                               <span className="text-[#34D399] mr-2 shrink-0">SUCCESS:</span>
+                             ) : (
+                               <span className="text-[#EF4444] mr-2 shrink-0">ERROR:</span>
+                             )}
+                             <span className="text-[#D4D4D4]">
+                               Task &quot;{log.task_name}&quot;. {log.message && !["Success", "Failed", "执行成功", "执行失败"].includes(log.message.trim()) ? log.message : ""} 
+                               {log.bot_message ? <span className="text-[#8A8F98] ml-2">&gt; {log.bot_message.replace(/\n/g, " ")}</span> : ""}
+                             </span>
+                           </div>
+                        ))}
+                        <div className="mt-2 text-[#5E6AD2]">_</div>
+                      </div>
+                    )}
+                  </div>
+              </div>
+              
+            </>
+          )}
+        </div>
       </main>
 
       {showAddDialog && (
@@ -1424,84 +1523,6 @@ export default function Dashboard() {
                   {loading ? <Spinner className="animate-spin" /> : t("save")}
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showLogsDialog && (
-        <div className="modal-overlay active">
-          <div className="glass-panel modal-content !max-w-4xl max-h-[90vh] flex flex-col overflow-hidden !p-0" onClick={e => e.stopPropagation()}>
-            <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/2">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-[#8a3ffc]/10 rounded-lg text-[#8a3ffc]">
-                  <ListDashes weight="bold" size={18} />
-                </div>
-                <div className="font-bold text-lg">{logsAccountName} {t("running_logs")}</div>
-              </div>
-              <div className="modal-close" onClick={() => setShowLogsDialog(false)}><X weight="bold" /></div>
-            </div>
-
-            <div className="px-5 py-3 border-b border-white/5 flex justify-between items-center bg-white/2">
-              <div className="text-[10px] text-main/30 font-bold uppercase tracking-wider">
-                {t("logs_summary")
-                  .replace("{count}", accountLogs.length.toString())
-                  .replace("{days}", "3")}
-              </div>
-              {accountLogs.length > 0 && (
-                <button
-                  onClick={handleClearLogs}
-                  disabled={loading}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 text-[10px] font-bold hover:bg-rose-500/20 transition-all disabled:opacity-50"
-                >
-                  <Trash weight="bold" size={14} />
-                  {t("clear_logs")}
-                </button>
-              )}
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-5 font-mono text-[13px] bg-black/10 custom-scrollbar">
-              {logsLoading ? (
-                <div className="flex flex-col items-center justify-center py-20 text-main/30">
-                  <Spinner className="animate-spin mb-4" size={32} />
-                  {t("loading")}
-                </div>
-              ) : accountLogs.length === 0 ? (
-                <div className="text-center py-20 text-main/20 font-sans">{t("no_logs")}</div>
-              ) : (
-                <div className="space-y-3">
-                  {accountLogs.map((log, i) => (
-                    <div key={i} className="p-4 rounded-xl bg-white/2 border border-white/5 group hover:border-white/10 transition-colors">
-                      <div className="flex justify-between items-center mb-2.5 text-[10px] uppercase tracking-wider font-bold">
-                        <span className="text-main/20 group-hover:text-main/40 transition-colors">{new Date(log.created_at).toLocaleString()}</span>
-                        <span className={`px-2 py-0.5 rounded-md ${log.success ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                          {log.success ? t("success") : t("failure")}
-                        </span>
-                      </div>
-                      <div className="text-main/70 font-semibold mb-2">
-                        {`${t("task_label")}：${log.task_name}${log.success ? t("task_exec_success") : t("task_exec_failed")}`}
-                      </div>
-                      {log.bot_message ? (
-                        <div className="text-main/60 leading-relaxed whitespace-pre-wrap break-words mb-2">
-                          <span className="text-main/35">{t("bot_reply")}：</span>
-                          {log.bot_message}
-                        </div>
-                      ) : null}
-                      {log.message && !["Success", "Failed", "执行成功", "执行失败"].includes(log.message.trim()) ? (
-                        <pre className="whitespace-pre-wrap text-main/45 leading-relaxed overflow-x-auto max-h-[120px] scrollbar-none font-medium">
-                          {log.message}
-                        </pre>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 border-t border-white/5 text-center bg-white/2">
-              <button className="btn-secondary px-8 h-9 !py-0 mx-auto !text-xs" onClick={() => setShowLogsDialog(false)}>
-                {t("close")}
-              </button>
             </div>
           </div>
         </div>

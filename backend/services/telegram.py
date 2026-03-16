@@ -9,6 +9,7 @@ import asyncio
 import base64
 import logging
 import os
+import random
 import secrets
 import time
 from datetime import datetime
@@ -37,6 +38,27 @@ logger = logging.getLogger("backend.qr_login")
 # 全局存储临时的登录 session
 _login_sessions = {}
 _qr_login_sessions = {}
+
+# 与 tg_signer/core.py 保持一致的设备指纹列表
+_DEVICE_PROFILES = [
+    ("MacBook Pro", "macOS 14.3.1", "10.10.1"),
+    ("PC 64bit", "Windows 11", "4.15.2 x64"),
+    ("iPhone 15 Pro", "iOS 17.4.1", "10.11.1"),
+    ("PC 64bit", "Windows 10", "4.15.2 x64"),
+    ("Mac mini", "macOS 13.5.2", "10.10.1"),
+    ("iPad Pro", "iPadOS 17.4.1", "10.11.1"),
+]
+
+
+def _get_device_fingerprint(account_name: str) -> dict:
+    """根据账号名确定性生成设备指纹，保证同一账号每次使用相同的虚假设备信息"""
+    rnd = random.Random(account_name)
+    model, sys_ver, app_ver = rnd.choice(_DEVICE_PROFILES)
+    return {
+        "device_model": model,
+        "system_version": sys_ver,
+        "app_version": app_ver,
+    }
 
 
 class TelegramService:
@@ -597,6 +619,8 @@ class TelegramService:
                     pass
 
         session_path = str(self.session_dir / account_name)
+        # 设备指纹伪装：与 tg_signer/core.py 保持一致的确定性设备分配
+        device_fp = _get_device_fingerprint(account_name)
         client_kwargs = {
             "name": session_path,
             "api_id": api_id,
@@ -605,6 +629,7 @@ class TelegramService:
             "in_memory": session_mode == "string",
             # 手机号验证码登录不依赖 updates，关闭可减少 flood/timeout 噪音
             "no_updates": True,
+            **device_fp,
         }
         client = Client(**client_kwargs)
 
@@ -1051,12 +1076,15 @@ class TelegramService:
                     pass
 
         session_path = str(self.session_dir / account_name)
+        # 设备指纹伪装：与 tg_signer/core.py 保持一致的确定性设备分配
+        device_fp = _get_device_fingerprint(account_name)
         client_kwargs = {
             "name": session_path,
             "api_id": api_id,
             "api_hash": api_hash,
             "proxy": proxy_dict,
             "in_memory": session_mode == "string",
+            **device_fp,
         }
         # QR 登录依赖 UpdateLoginToken，必须启用 updates（无论 session 模式）
         client_kwargs["no_updates"] = False
