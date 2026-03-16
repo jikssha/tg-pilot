@@ -195,6 +195,8 @@ export interface AccountStatusItem {
 
 export interface AccountStatusCheckResponse {
   results: AccountStatusItem[];
+}
+
 export const startAccountLogin = (token: string, data: LoginStartRequest) =>
   request<LoginStartResponse>("/accounts/login/start", {
     method: "POST",
