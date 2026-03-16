@@ -414,7 +414,7 @@ export default function AccountTasksContent({
         setLocalToken(tokenStr);
         setChecking(false);
         loadData(tokenStr);
-    }, [accountName, loadData]);
+    }, [accountName, embedded, loadData]);
 
     useEffect(() => {
         if (!token || !accountName) return;

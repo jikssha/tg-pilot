@@ -4,7 +4,7 @@
 
 **The Next-Generation Telegram Automation & Account Manager**
 
-[![Version](https://img.shields.io/badge/version-v3.2-purple.svg)](https://github.com/jikssha/tg-pilot)
+[![Version](https://img.shields.io/badge/version-v3.3-purple.svg)](https://github.com/jikssha/tg-pilot)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 [![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
@@ -22,7 +22,7 @@ Built with **native AI integration (Vision & Computation)**, TG-Pilot handles co
 ## ✨ Key Features
 
 - **🎮 Multi-Account Fleet Management**: Consolidate and monitor unlimited Telegram sessions through a single dashboard.
-- **💎 Minimalist Linear Aesthetic (v3.2)**: Completely refactored Pure Dark console with smooth interaction and execution feedback.
+- **💎 Minimalist Linear Aesthetic (v3.3)**: Completely refactored Pure Dark console with smooth interaction and execution feedback.
 - **⚙️ Versatile Action Sequences**: Natively supports `Text`, `Buttons`, `Dices`, `AI Vision`, and `Math Challenges`.
 - **📱 Hidden Device Fingerprinting**: Auto-spoofs official device fingerprints (MacBook/iPhone) to minimize detection.
 - **📈 Real-time Task Radar**: Integrated task cards with one-click run, history log filtering (failures only), and config cloning.
@@ -106,9 +106,15 @@ To meet various operational demands, TG-Pilot offers extensive environment varia
 
 *(Reverse Proxy Tip: If you are protecting your panel behind Nginx, it is highly recommended to change the port binding to `- "127.0.0.1:9987:9987"` to prevent direct public access.)*
 
-## 📝 Recent Updates
+## 📝 Changelog
 
-### V0.3.x Linear Modern UI Overhaul
+### V3.3 Deep Frontend & Visual Optimization
+- **Enhanced 🎇 Execution Immersion**: One-click play buttons now transform into real-time spinners. Active task cards feature a **subtle green pulse border**, providing clear visual feedback for automated flows.
+- **New 👁️ 2FA Password Toggle**: Support for toggling password visibility (Eye/EyeClosed) during Phone or QR login, making manual authentication much more reliable.
+- **Improved 🔍 Intelligent Log Filter**: Added a "Failed Only" switch in history modals with smooth transitions and new Phosphorus icon integration.
+- **Cleanup 🎨 Global Design Tokens**: Refactored the frontend styling system using CSS variables (`--accent-glow`), ensuring consistent branding throughout the app.
+
+### V3.2 Linear-UI Refactor & Performance
 - **Refactored 🎨 Sleek Dark Mode Interface**: The control panel has been entirely overhauled into a Linear-style modern developer tool aesthetic. Replaced the clunky account grid with a smooth scrollable sidebar list with animated status indicators, featuring an immersive pure dark mode.
 - **Refocused 🎯 Core Task Dashboard**: Demoted the massive settings section and introduced a unified layout prioritizing Sign Tasks. Tasks are now rendered as sleek independent Linear cards, with hover-triggered quick actions allowing you to perfectly oversee your whole fleet's workflow smoothly.
 - **Optimized 📊 Integrated Terminal Logs**: Removed clumsy modal popups for logs. Replaced with an embedded mini-terminal console highlighting successful/failed tasks execution right on the dashboard.
