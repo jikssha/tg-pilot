@@ -40,7 +40,8 @@ import {
     MathOperations,
     Lightning,
     Copy,
-    ClipboardText
+    ClipboardText,
+    CirclesThree
 } from "@phosphor-icons/react";
 import { ToastContainer, useToast } from "../../../components/ui/toast";
 import { useLanguage } from "../../../context/LanguageContext";
@@ -100,6 +101,8 @@ const TaskItem = memo(({ task, loading, isRunning, onEdit, onRun, onViewLogs, on
                             </div>
                         )}
                     </div>
+                </div>
+
                 <div className="hidden md:flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                     <button
                         onClick={() => onRun(task.name)}
