@@ -7,8 +7,8 @@ import { LanguageProvider } from "../context/LanguageContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TG SignPulse",
-  description: "TG SignPulse",
+  title: "TG-Pilot",
+  description: "TG-Pilot",
 };
 
 export const viewport: Viewport = {
