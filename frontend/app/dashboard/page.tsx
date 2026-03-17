@@ -50,7 +50,8 @@ import {
   CheckSquareOffset,
   Square,
   CheckSquare,
-  ClipboardText
+  ClipboardText,
+  Info
 } from "@phosphor-icons/react";
 import { ToastContainer, useToast } from "../../components/ui/toast";
 import { ThemeLanguageToggle } from "../../components/ThemeLanguageToggle";
@@ -1900,7 +1901,8 @@ export default function Dashboard() {
             </footer>
           </div>
         </div>
-        {showLogsDialog && (
+      )}
+      {showLogsDialog && (
           <div className="modal-overlay active" onClick={() => setShowLogsDialog(false)}>
             <div 
               className="glass-panel modal-content !max-w-5xl !h-[85vh] !p-0 overflow-hidden flex flex-col animate-zoom-in border-white/5" 

@@ -94,7 +94,7 @@ export default function BackupMigration({ token, globalSettings, loadGlobalSetti
         try {
             setImporting(true);
             await importSessionsZip(token, pendingFile);
-            addToast(isZh ? "会话导入成功客正在重载..." : "Import successful, reloading...", "success");
+            addToast(isZh ? "会话导入成功，正在重载..." : "Import successful, reloading...", "success");
             setShowImportConfirm(false);
             setTimeout(() => window.location.reload(), 1500);
         } catch (err: any) {

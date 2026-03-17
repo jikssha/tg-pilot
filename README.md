@@ -1,9 +1,9 @@
 <div align="center">
-  <img src="C:/Users/zzz/.gemini/antigravity/brain/52f166f2-22c1-440c-b753-3911411030f1/tg_pilot_banner_linear_1773759662317.png" width="800" alt="TG-Pilot Banner">
+  <img src="https://imphub.pepeth.qzz.io/file/1773760231905_tg_pilot_banner_linear_1773759662317.png" width="800" alt="TG-Pilot Banner">
 
 # 🚀 TG-Pilot
 
-** Telegram 多账号自动化批量签到任务管理面板**
+**Telegram 多账号自动化批量签到任务管理面板**
 
 [![Version](https://img.shields.io/badge/version-v3.5-purple.svg)](https://github.com/jikssha/tg-pilot)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -22,13 +22,13 @@
 ## ✨ 核心特性
 
 - **🎮 多账号矩阵管理**：支持单面板统一管理无限个 Telegram 会话账号，随时查看状态。
-- **💎 极简 Linear 审美 (v3.5)**：全新重构的 Pure Dark 风格控制台，引入 **Linear 自定义确认模态框** 替换系统原生弹窗，具备极佳的呼吸感执行反馈与交互高级感。
+- **💎 极简 Linear 审美 (v3.5)**：全新重构的 Pure Dark 风格控制台，引入 **Linear 自定义确认模态框** ，具备极佳的呼吸感执行反馈与交互高级感。
 - **⚙️ 全能动作序列**：原生支持「发送文本 / 点击按钮 / 发送特定骰子表情 / AI 智能识图 / AI 计算解密」。
 - **📱 隐匿设备伪装**：底层通信自带官方设备指纹伪装（如 MacBook / iPhone），抹除脚本执行痕迹。
 - **📈 实时任务雷达**：集成化任务卡片，支持一键执行、历史日志筛选（仅看失败）、快捷配置复制。
 - **🧠 原生 AI 驱动**：遇到验证码、计算题？配置好 API 即可让大模型在任务流中全自动帮你解决。
-- **⚡ 会话物理同步 (v3.5)**：新增高能“会话迁移终端”，一键导出全量 ZIP 凭证。换机部署只需秒级导入，物理级克隆复活。
-- **🚀 矩阵批量分发 (v3.5)**：支持多账号勾选与“任务包”批量一键下发。无论十个还是百个账号，同步拉齐任务序列只需一次点击。
+- **⚡ 会话物理同步 (v3.5)**：新增高能“会话迁移终端”，一键导出全量 ZIP 凭证。
+- **🚀 矩阵批量分发 (v3.5)**：支持多账号一键同步拉齐任务序列。
 - **📦 现代化容器部署**：提供高定制化的 Docker 镜像，只需一行命令即可跨平台开箱即用。
 
 
@@ -72,8 +72,8 @@ EOF
 
 ```bash
 启动完成后，打开浏览器访问：`http://服务器IP:9987`
-
-### 方法二：Docker Run 
+```
+### 方法二：Docker Run
 
 运行以下命令（请根据需要修改 `APP_SECRET_KEY`）：
 
@@ -96,9 +96,7 @@ docker run -d \
 
 ---
 
-## 🔄 如何升级到最新版？
-
-当你需要更新到最新内核时，只需进入配置目录，拉取最新镜像并重启即可：
+## 🔄 如何更新？
 
 ```bash
 cd tg-pilot

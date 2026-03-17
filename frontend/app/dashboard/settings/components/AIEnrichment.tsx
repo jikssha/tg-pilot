@@ -9,7 +9,8 @@ import {
     ArrowSquareOut,
     CheckCircle,
     Warning,
-    Robot
+    Robot,
+    X
 } from "@phosphor-icons/react";
 import { useLanguage } from "../../../../context/LanguageContext";
 import { useToast } from "../../../../components/ui/toast";

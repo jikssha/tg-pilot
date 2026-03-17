@@ -35,13 +35,21 @@ import {
     ArrowClockwise,
     ListDashes,
     X,
+    CaretDown,
     DotsThreeVertical,
     Robot,
     MathOperations,
     Lightning,
     Copy,
     ClipboardText,
-    CirclesThree
+    Files,
+    Info,
+    CirclesThree,
+    MagnifyingGlass,
+    UsersThree,
+    Hash,
+    Timer,
+    Warning
 } from "@phosphor-icons/react";
 import { ToastContainer, useToast } from "../../../components/ui/toast";
 import { useLanguage } from "../../../context/LanguageContext";
@@ -316,7 +324,6 @@ export default function AccountTasksContent({
     const [importingPastedConfig, setImportingPastedConfig] = useState(false);
 
     const [checking, setChecking] = useState(true);
-    const isZh = language === "zh";
     const taskNamePlaceholder = isZh ? "\u7559\u7A7A\u4F7F\u7528\u9ED8\u8BA4\u540D\u79F0" : "Leave empty to use default name";
     const sendTextLabel = isZh ? "\u53D1\u9001\u6587\u672C\u6D88\u606F" : "Send Text Message";
     const clickTextButtonLabel = isZh ? "\u70B9\u51FB\u6587\u5B57\u6309\u94AE" : "Click Text Button";

@@ -25,7 +25,7 @@ import {
     SignOut,
     GithubLogo,
 } from "@phosphor-icons/react";
-import { ToastContainer } from "../../../components/ui/toast";
+import { ToastContainer, useToast } from "../../../components/ui/toast";
 import { ThemeLanguageToggle } from "../../../components/ThemeLanguageToggle";
 import { useLanguage } from "../../../context/LanguageContext";
 
@@ -42,6 +42,7 @@ export default function SettingsPage() {
     const isZh = language === "zh";
     const [token, setLocalToken] = useState<string | null>(null);
     const [checking, setChecking] = useState(true);
+    const { toasts, removeToast } = useToast();
 
     // Tab State
     const [currentTab, setCurrentTab] = useState<"account" | "telegram" | "notification" | "ai" | "backup">("account");
@@ -95,7 +96,7 @@ export default function SettingsPage() {
 
     return (
         <div className="flex flex-col h-screen overflow-hidden bg-[var(--bg-body)] text-white">
-            <ToastContainer />
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
             
             {/* Premium Header */}
             <header className="h-[60px] px-8 flex items-center justify-between border-b border-white/[0.05] bg-black/40 backdrop-blur-xl z-50 shrink-0">

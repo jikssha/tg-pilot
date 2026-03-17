@@ -8,7 +8,8 @@ import {
     FloppyDisk, 
     PaperPlaneTilt,
     CheckCircle,
-    Warning
+    Warning,
+    X
 } from "@phosphor-icons/react";
 import { useLanguage } from "../../../../context/LanguageContext";
 import { useToast } from "../../../../components/ui/toast";
