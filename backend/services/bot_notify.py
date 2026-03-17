@@ -218,12 +218,12 @@ class BotNotifyService:
                     continue
 
                 # 获取最近一次执行记录
-                last_run = service._get_last_run_info(task_name, account_name)
+                last_run = task.get("last_run")
                 if not last_run:
                     continue
 
                 run_time = last_run.get("time", "")
-                if not run_time.startswith(today):
+                if not run_time or not run_time.startswith(today):
                     continue
 
                 run_success = last_run.get("success", False)
@@ -246,7 +246,7 @@ class BotNotifyService:
             total = total_success + total_failure
 
             if total == 0:
-                # 今天没有任务执行，不发送
+                logger.info("今日没有任务执行结果，跳过发送汇总报告")
                 return
 
             # 构建汇总消息

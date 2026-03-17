@@ -91,6 +91,7 @@ export default function Dashboard() {
   // 日志原生显示 (替代弹窗)
   const [accountLogs, setAccountLogs] = useState<AccountLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [showLogsDialog, setShowLogsDialog] = useState(false);
   const [logsAccountName, setLogsAccountName] = useState("");
 
   // 添加账号对话框
@@ -130,6 +131,8 @@ export default function Dashboard() {
   const qrPollingActiveRef = useRef(false);
   const qrRestartingRef = useRef(false);
   const qrAutoRefreshRef = useRef(0);
+
+  const [showClearLogsConfirm, setShowClearLogsConfirm] = useState(false);
 
   useEffect(() => {
     qrPasswordRef.current = qrPassword;
@@ -1026,17 +1029,38 @@ export default function Dashboard() {
     }
   }, [accounts, selectedAccountName]);
 
-  const handleClearLogs = async () => {
-    if (!token || !selectedAccountName) return;
+  const handleShowLogs = async (accountName: string) => {
+    if (!token) return;
+    setLogsAccountName(accountName);
+    setShowLogsDialog(true);
+    setLogsLoading(true);
     try {
-      setLoading(true);
-      await clearAccountLogs(token, selectedAccountName);
+      const logs = await getAccountLogs(token, accountName);
+      setAccountLogs(logs || []);
+    } catch (err: any) {
+      addToast(formatErrorMessage("fetch_logs_failed", err), "error");
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  const handleClearLogs = () => {
+    if (!token || !logsAccountName) return;
+    setShowClearLogsConfirm(true);
+  };
+
+  const confirmClearLogs = async () => {
+    if (!token || !logsAccountName) return;
+    try {
+      setLogsLoading(true);
+      await clearAccountLogs(token, logsAccountName);
       setAccountLogs([]);
-      addToast(t("logs_cleared"), "success");
+      addToast(isZh ? "日志已清空" : "Logs cleared", "success");
+      setShowClearLogsConfirm(false);
     } catch (err: any) {
       addToast(formatErrorMessage("clear_failed", err), "error");
     } finally {
-      setLoading(false);
+      setLogsLoading(false);
     }
   };
 
@@ -1148,7 +1172,7 @@ export default function Dashboard() {
                <PaperPlaneRight weight="fill" className="text-xs" />
             </div>
             TG-Pilot
-            <span className="text-[10px] font-mono bg-white/5 border border-white/10 px-1 rounded-sm text-main/30 ml-0.5">v3.4</span>
+            <span className="text-[10px] font-mono bg-white/5 border border-white/10 px-1 rounded-sm text-main/30 ml-0.5">v3.5</span>
           </div>
           <Link href="/dashboard/settings" title={t("sidebar_settings")} className="text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-white/5 p-1 rounded transition-colors">
             <Gear weight="bold" />
@@ -1277,16 +1301,26 @@ export default function Dashboard() {
                         <span className="w-2.5 h-2.5 border border-rose-500 rounded-full inline-block"></span>
                       )}
                       
-                      <button 
-                        className="ml-2 p-1.5 rounded-md text-rose-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                        onClick={() => {
-                          setAccountToDelete(selectedAccount.name);
-                          setShowDeleteConfirm(true);
-                        }}
-                        title={t("remove")}
-                      >
-                        <Trash weight="bold" size={18} />
-                      </button>
+                      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                           onClick={(e) => { e.stopPropagation(); handleShowLogs(selectedAccount.name); }}
+                           className="p-1.5 rounded-md text-sky-400 hover:text-sky-500 hover:bg-sky-500/10 transition-colors"
+                           title={isZh ? "运行日志" : "Running Logs"}
+                        >
+                           <TerminalWindow weight="bold" size={18} />
+                        </button>
+                        <button 
+                          className="p-1.5 rounded-md text-rose-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAccountToDelete(selectedAccount.name);
+                            setShowDeleteConfirm(true);
+                          }}
+                          title={t("remove")}
+                        >
+                          <Trash weight="bold" size={18} />
+                        </button>
+                      </div>
                   </h1>
                   <div className="flex flex-wrap items-center gap-3 mt-4">
                       <div className="flex items-center gap-1.5 bg-white/5 py-1.5 px-3 rounded-md border border-white/5">
@@ -1340,19 +1374,29 @@ export default function Dashboard() {
       </main>
 
       {showAddDialog && (
-        <div className="modal-overlay active">
-          <div className="glass-panel modal-content modal-content-fit !max-w-[420px] !p-6" onClick={e => e.stopPropagation()}>
-            <div className="modal-header !mb-5">
-              <div className="modal-title !text-lg">
-                {reloginAccountName ? t("relogin_account") : t("add_account")}
+        <div className="modal-overlay active" onClick={handleCloseAddDialog}>
+          <div className="glass-panel modal-content modal-content-fit !max-w-[440px] !p-0 overflow-hidden animate-zoom-in border-white/5" onClick={e => e.stopPropagation()}>
+            <header className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                  <Plus weight="bold" size={20} />
+                </div>
+                <div>
+                    <h3 className="text-sm font-bold tracking-tight">
+                        {reloginAccountName ? t("relogin_account") : t("add_account")}
+                    </h3>
+                    <p className="text-[10px] text-white/30 uppercase tracking-widest mt-0.5 font-bold">New Account Session</p>
+                </div>
               </div>
-              <div className="modal-close" onClick={handleCloseAddDialog}><X weight="bold" /></div>
-            </div>
+              <button className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]" onClick={handleCloseAddDialog}>
+                  <X weight="bold" size={18} />
+              </button>
+            </header>
 
-            <div className="animate-float-up space-y-4">
-              <div className="flex gap-2">
+            <div className="p-6 space-y-6">
+              <div className="flex p-1 bg-white/[0.03] border border-white/5 rounded-xl gap-1">
                 <button
-                  className={`flex-1 h-9 text-xs font-bold rounded-lg ${loginMode === "phone" ? "btn-gradient" : "btn-secondary"}`}
+                  className={`flex-1 h-9 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-all ${loginMode === "phone" ? "bg-white text-black shadow-lg" : "text-white/40 hover:text-white/60 hover:bg-white/5"}`}
                   onClick={() => {
                     if (loginMode !== "phone" && qrLogin?.login_id) {
                       handleCancelQrLogin();
@@ -1363,7 +1407,7 @@ export default function Dashboard() {
                   {t("login_method_phone")}
                 </button>
                 <button
-                  className={`flex-1 h-9 text-xs font-bold rounded-lg ${loginMode === "qr" ? "btn-gradient" : "btn-secondary"}`}
+                  className={`flex-1 h-9 text-[11px] font-bold uppercase tracking-widest rounded-lg transition-all ${loginMode === "qr" ? "bg-white text-black shadow-lg" : "text-white/40 hover:text-white/60 hover:bg-white/5"}`}
                   onClick={() => setLoginMode("qr")}
                 >
                   {t("login_method_qr")}
@@ -1451,10 +1495,10 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="flex gap-3 mt-6">
-                    <button className="btn-secondary flex-1 h-10 !py-0 !text-xs" onClick={handleCloseAddDialog}>{t("cancel")}</button>
+                  <div className="flex gap-3 pt-4">
+                    <button className="linear-btn-secondary flex-1 h-11" onClick={handleCloseAddDialog}>{t("cancel")}</button>
                     <button
-                      className="btn-gradient flex-1 h-10 !py-0 !text-xs"
+                      className="linear-btn-primary flex-1 h-11 !font-bold"
                       onClick={handleVerifyLogin}
                       disabled={loading || !loginData.phone_code.trim()}
                     >
@@ -1521,7 +1565,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="glass-panel !bg-black/5 p-4 rounded-xl space-y-3">
+                  <div className="bg-white/[0.02] border border-white/5 p-6 rounded-2xl space-y-4 shadow-inner">
                     <div className="flex items-center justify-between gap-3">
                       <div className="text-xs text-main/60">{t("qr_tip")}</div>
                       <button
@@ -1600,14 +1644,24 @@ export default function Dashboard() {
       )}
 
       {showEditDialog && (
-        <div className="modal-overlay active">
-          <div className="glass-panel modal-content !max-w-[420px] !p-6" onClick={e => e.stopPropagation()}>
-            <div className="modal-header !mb-5">
-              <div className="modal-title !text-lg">{t("edit_account")}</div>
-              <div className="modal-close" onClick={() => setShowEditDialog(false)}><X weight="bold" /></div>
-            </div>
+        <div className="modal-overlay active" onClick={() => setShowEditDialog(false)}>
+          <div className="glass-panel modal-content !max-w-[440px] !p-0 overflow-hidden animate-zoom-in border-white/5" onClick={e => e.stopPropagation()}>
+            <header className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
+                  <PencilSimple weight="bold" size={20} />
+                </div>
+                <div>
+                    <h3 className="text-sm font-bold tracking-tight">{t("edit_account")}</h3>
+                    <p className="text-[10px] text-white/30 uppercase tracking-widest mt-0.5 font-bold">Account Preferences</p>
+                </div>
+              </div>
+              <button className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]" onClick={() => setShowEditDialog(false)}>
+                  <X weight="bold" size={18} />
+              </button>
+            </header>
 
-            <div className="animate-float-up space-y-4">
+            <div className="p-6 space-y-6">
               <div>
                 <label className="text-[11px] mb-1">{t("session_name")}</label>
                 <input
@@ -1655,9 +1709,9 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-6">
-                <button className="btn-secondary flex-1 h-10 !py-0 !text-xs" onClick={() => setShowEditDialog(false)}>{t("cancel")}</button>
-                <button className="btn-gradient flex-1 h-10 !py-0 !text-xs" onClick={handleSaveEdit} disabled={loading}>
+              <div className="flex gap-3 pt-4">
+                <button className="linear-btn-secondary flex-1 h-11" onClick={() => setShowEditDialog(false)}>{t("cancel")}</button>
+                <button className="linear-btn-primary flex-1 h-11 !font-bold" onClick={handleSaveEdit} disabled={loading}>
                   {loading ? <Spinner className="animate-spin" /> : t("save")}
                 </button>
               </div>
@@ -1667,24 +1721,24 @@ export default function Dashboard() {
       )}
 
       {showDeleteConfirm && (
-        <div className="modal-overlay active">
-          <div className="glass-panel modal-content !max-w-[420px] !p-8 animate-scale-in" onClick={e => e.stopPropagation()}>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-14 h-14 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 mb-5 border border-rose-500/20">
-                <Trash weight="fill" size={28} />
+        <div className="modal-overlay active" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="glass-panel modal-content !max-w-[400px] !p-0 overflow-hidden animate-zoom-in border-white/5" onClick={e => e.stopPropagation()}>
+            <div className="p-8 flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 mb-6 border border-rose-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]">
+                <Trash weight="bold" size={32} />
               </div>
-              <h3 className="text-xl font-semibold text-[var(--text-main)] mb-3">
+              <h3 className="text-lg font-bold text-white mb-3">
                 {t("confirm_delete")}
               </h3>
-              <p className="text-sm text-[var(--text-sub)] mb-8 leading-relaxed">
+              <p className="text-[13px] text-white/40 mb-8 leading-relaxed max-w-[280px]">
                 {t("confirm_delete_account").replace("{name}", accountToDelete || "")}
                 <br />
-                这将会删除该账号所有的任务配置、登录会话和历史日志。此操作不可撤销。
+                <span className="text-rose-400/80 font-bold block mt-2 text-[11px] uppercase tracking-wider">{isZh ? "此操作不可撤销" : "This action is permanent"}</span>
               </p>
               
               <div className="flex gap-3 w-full">
                 <button 
-                  className="linear-btn-secondary flex-1 h-11 !text-sm" 
+                  className="linear-btn-secondary flex-1 h-11" 
                   onClick={() => {
                     setShowDeleteConfirm(false);
                     setAccountToDelete(null);
@@ -1694,14 +1748,61 @@ export default function Dashboard() {
                   {t("cancel")}
                 </button>
                 <button 
-                  className="bg-rose-500 hover:bg-rose-600 text-white flex-1 h-11 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                  className="bg-rose-500 hover:bg-rose-600 active:scale-95 text-white flex-1 h-11 rounded-lg font-bold text-[13px] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   onClick={handleDeleteAccount}
                   disabled={loading}
                 >
-                  {loading ? <Spinner className="animate-spin" /> : <><Trash weight="bold" /> {t("delete")}</>}
+                  {loading ? <Spinner className="animate-spin" /> : <Trash weight="bold" size={16} />}
+                  {t("delete")}
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showClearLogsConfirm && (
+        <div className="modal-overlay active" onClick={() => setShowClearLogsConfirm(false)}>
+          <div className="glass-panel modal-content !max-w-md !p-0 overflow-hidden animate-zoom-in border-white/5 bg-[#050505]" onClick={e => e.stopPropagation()}>
+            <header className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-inner">
+                  <TerminalWindow weight="bold" size={20} />
+                </div>
+                <h3 className="text-sm font-bold tracking-tight">
+                  {isZh ? "确认清空日志" : "Purge Command Logs"}
+                </h3>
+              </div>
+              <button onClick={() => setShowClearLogsConfirm(false)} className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]">
+                <X weight="bold" size={18} />
+              </button>
+            </header>
+            <div className="p-8 space-y-4 text-center">
+              <p className="text-[13px] text-white/80 leading-relaxed font-medium">
+                {isZh ? "确定要清空该账户的所有运行日志吗？该操作不可撤销。" : "Are you sure you want to clear all logs for this account? This action cannot be undone."}
+              </p>
+              <div className="flex items-center justify-center gap-2 text-[9px] text-white/20 uppercase tracking-[0.2em] font-black italic">
+                <Info size={12} weight="bold" />
+                Permanent cleanup sequence initiated
+              </div>
+            </div>
+            <footer className="p-6 border-t border-white/5 flex gap-3 bg-white/[0.01]">
+              <button
+                className="linear-btn-secondary flex-1 h-11 text-[11px] font-black uppercase tracking-widest"
+                onClick={() => setShowClearLogsConfirm(false)}
+                disabled={logsLoading}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                className="flex-1 h-11 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-xl font-black uppercase tracking-widest text-[11px] shadow-[0_4px_20px_rgba(245,158,11,0.2)] transition-all flex items-center justify-center gap-2"
+                onClick={confirmClearLogs}
+                disabled={logsLoading}
+              >
+                {logsLoading ? <Spinner className="animate-spin text-white" /> : <Trash weight="bold" size={16} />}
+                {isZh ? "立即清空" : "Purge Now"}
+              </button>
+            </footer>
           </div>
         </div>
       )}
@@ -1745,49 +1846,152 @@ export default function Dashboard() {
 
       {/* 批量导入弹窗 */}
       {showBulkImport && (
-        <div className="modal-overlay active">
-          <div className="glass-panel modal-content !max-w-3xl flex flex-col animate-scale-in" onClick={(e) => e.stopPropagation()}>
-            <header className="modal-header border-b border-white/5 pb-3 mb-0">
-              <div className="modal-title flex items-center gap-2 !text-base">
-                <ClipboardText weight="bold" size={18} className="text-sky-400" />
-                {isZh ? "批量导入任务配置" : "Bulk Import Config"}
+        <div className="modal-overlay active" onClick={() => setShowBulkImport(false)}>
+          <div className="glass-panel modal-content !max-w-3xl !p-0 overflow-hidden animate-zoom-in border-white/5 flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <header className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                  <ClipboardText weight="bold" size={20} />
+                </div>
+                <div>
+                    <h3 className="text-sm font-bold tracking-tight">{isZh ? "批量导入任务配置" : "Bulk Import Config"}</h3>
+                    <p className="text-[10px] text-white/30 uppercase tracking-widest mt-0.5 font-bold">Fast Configuration Migration</p>
+                </div>
               </div>
-              <button onClick={() => setShowBulkImport(false)} className="modal-close" disabled={bulkImportLoading}>
-                <X weight="bold" />
+              <button 
+                className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]"
+                onClick={() => setShowBulkImport(false)} 
+                disabled={bulkImportLoading}
+              >
+                <X weight="bold" size={18} />
               </button>
             </header>
-            <div className="p-6 space-y-4">
-              <p className="text-xs text-main/60 leading-relaxed">
+
+            <div className="p-8 space-y-6">
+              <div className="p-4 rounded-xl bg-sky-500/5 border border-sky-500/10 text-[11px] text-sky-400/80 leading-relaxed font-bold">
                 {isZh 
-                  ? "支持粘贴单个任务对象 或 多个任务组成的数组 [{}, {}]。系统将自动为每个选中账号分发包内所有任务。" 
-                  : "Paste a single task object or an array of tasks [{}, {}]. All tasks will be distributed to each selected account."}
-              </p>
+                  ? "💡 支持粘贴单个任务对象 或 多个任务组成的数组 [{}, {}]。系统将自动为每个选中账号分发包内所有任务。" 
+                  : "💡 Paste a single task object or an array of tasks [{}, {}]. All tasks will be distributed to each selected account."}
+              </div>
               <textarea
-                className="w-full h-80 !mb-0 font-mono text-[11px] bg-black/20 border-white/5 focus:border-sky-500/30 transition-all rounded-xl p-4"
+                className="w-full h-80 !mb-0 font-mono text-[11px] bg-black/40 border-white/5 focus:border-sky-500/30 transition-all rounded-xl p-5 custom-scrollbar"
                 placeholder={isZh ? "[ {\"task_name\": \"任务1\", ...}, {\"task_name\": \"任务2\", ...} ]" : "[ {\"task_name\": \"Task 1\", ...}, ... ]"}
                 value={bulkImportConfig}
                 onChange={(e) => setBulkImportConfig(e.target.value)}
               />
             </div>
-            <footer className="p-5 border-t border-white/5 flex gap-3">
+
+            <footer className="p-5 border-t border-white/5 flex gap-3 bg-white/[0.01]">
               <button
-                className="btn-secondary flex-1"
+                className="linear-btn-secondary flex-1 h-11"
                 onClick={() => setShowBulkImport(false)}
                 disabled={bulkImportLoading}
               >
                 {t("cancel")}
               </button>
               <button
-                className="bg-sky-500 hover:bg-sky-600 text-white flex-[2] rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                className="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white flex-[2] rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_20px_rgba(14,165,233,0.15)]"
                 onClick={handleBulkImportSubmit}
                 disabled={bulkImportLoading || !bulkImportConfig.trim()}
               >
-                {bulkImportLoading ? <Spinner className="animate-spin" /> : <><ClipboardText weight="bold" /> {isZh ? `立即分发至 ${selectedAccounts.size} 个账号` : `Distribute to ${selectedAccounts.size} accounts`}</>}
+                {bulkImportLoading ? <Spinner className="animate-spin" /> : <ClipboardText weight="bold" size={18} />}
+                {isZh ? `立即分发至 ${selectedAccounts.size} 个账号` : `Distribute to ${selectedAccounts.size} accounts`}
               </button>
             </footer>
           </div>
         </div>
-      )}
-    </div>
+        {showLogsDialog && (
+          <div className="modal-overlay active" onClick={() => setShowLogsDialog(false)}>
+            <div 
+              className="glass-panel modal-content !max-w-5xl !h-[85vh] !p-0 overflow-hidden flex flex-col animate-zoom-in border-white/5" 
+              onClick={e => e.stopPropagation()}
+            >
+              <header className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01] shrink-0">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 shadow-inner">
+                    <TerminalWindow weight="bold" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold tracking-tight">
+                      {isZh ? "运行日志控制台" : "Running Logs Console"}
+                    </h3>
+                    <p className="text-[10px] text-white/20 uppercase tracking-widest font-black mt-0.5">
+                      {logsAccountName} / System Event Stream
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    className="h-9 px-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-black uppercase tracking-widest hover:bg-rose-500/20 transition-all flex items-center gap-2"
+                    onClick={handleClearLogs}
+                    disabled={logsLoading}
+                  >
+                    <Trash weight="bold" size={14} />
+                    {isZh ? "清空日志" : "Clear Logs"}
+                  </button>
+                  <button 
+                    className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]" 
+                    onClick={() => setShowLogsDialog(false)}
+                  >
+                    <X weight="bold" size={16} />
+                  </button>
+                </div>
+              </header>
+
+              <div className="flex-1 overflow-y-auto p-8 bg-black/40 custom-scrollbar relative">
+                {logsLoading ? (
+                  <div className="h-full flex flex-col items-center justify-center gap-4">
+                    <Spinner className="animate-spin text-sky-400" size={32} weight="bold" />
+                    <span className="text-[10px] font-black translation-all text-white/20 uppercase tracking-[0.2em]">{t("loading")}</span>
+                  </div>
+                ) : accountLogs.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center gap-3">
+                    <ListDashes size={48} weight="thin" className="opacity-10" />
+                    <span className="text-[10px] font-black tracking-widest uppercase opacity-20 italic">{isZh ? "暂无运行数据" : "No Execution Logs"}</span>
+                  </div>
+                ) : (
+                  <div className="space-y-4 font-mono">
+                    {accountLogs.map((log) => (
+                      <div 
+                        key={log.id} 
+                        className={`group p-5 rounded-2xl border transition-all hover:translate-x-1 ${
+                          log.success 
+                            ? 'bg-emerald-500/[0.02] border-emerald-500/5 hover:border-emerald-500/20' 
+                            : 'bg-rose-500/[0.02] border-rose-500/5 hover:border-rose-500/20'
+                        }`}
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-2 h-2 rounded-full ${log.success ? 'bg-emerald-500' : 'bg-rose-500'} shadow-[0_0_10px_currentColor]`}></div>
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{log.task_name || "System"}</span>
+                          </div>
+                          <span className="text-[10px] text-white/20 font-bold whitespace-nowrap bg-black/40 px-3 py-1 rounded-full border border-white/5">
+                            {new Date(log.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className={`text-xs leading-relaxed font-medium break-words ${log.success ? 'text-white/80' : 'text-rose-200/90'}`}>
+                          {log.message}
+                        </div>
+                        {log.bot_message && (
+                          <div className="mt-4 p-4 rounded-xl bg-black/40 border border-white/5 text-[10px] text-sky-400/60 break-all border-dashed">
+                             <span className="text-white/20 mr-2 uppercase font-black tracking-tighter">Bot Notification:</span>
+                             {log.bot_message}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <footer className="px-8 py-4 border-t border-white/5 bg-white/[0.01] flex justify-center shrink-0">
+                <p className="text-[9px] text-white/10 uppercase tracking-[0.3em] font-black italic">
+                   System Event Stream Protocol v1.0
+                </p>
+              </footer>
+            </div>
+          </div>
+        )}
+      </div>
   );
 }

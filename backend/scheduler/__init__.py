@@ -213,9 +213,12 @@ async def sync_jobs() -> None:
             
             try:
                 # 每天指定时分运行
-                trigger = CronTrigger.from_crontab(f"{minute} {hour} * * *")
+                from apscheduler.triggers.cron import CronTrigger
+                trigger = CronTrigger(hour=hour, minute=minute, second=0)
+                
                 if summary_job_id in existing_ids:
                     scheduler.reschedule_job(summary_job_id, trigger=trigger)
+                    print(f"Scheduler: 已更新每日汇总任务 -> {hour:02d}:{minute:02d}")
                 else:
                     scheduler.add_job(
                         bot_notify.send_daily_summary,
@@ -223,6 +226,7 @@ async def sync_jobs() -> None:
                         id=summary_job_id,
                         replace_existing=True,
                     )
+                    print(f"Scheduler: 已添加每日汇总任务 -> {hour:02d}:{minute:02d}")
             except Exception as e:
                 print(f"Error scheduling notify summary: {e}")
 

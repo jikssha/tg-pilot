@@ -1,15 +1,16 @@
 <div align="center">
+  <img src="C:/Users/zzz/.gemini/antigravity/brain/52f166f2-22c1-440c-b753-3911411030f1/tg_pilot_banner_linear_1773759662317.png" width="800" alt="TG-Pilot Banner">
 
 # 🚀 TG-Pilot
 
 **The Next-Generation Telegram Automation & Account Manager**
 
-[![Version](https://img.shields.io/badge/version-v3.4-purple.svg)](https://github.com/jikssha/tg-pilot)
+[![Version](https://img.shields.io/badge/version-v3.5-purple.svg)](https://github.com/jikssha/tg-pilot)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 [![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 
-[中文文档](README.md) · [Report Bug](https://github.com/jikssha/tg-pilot/issues)
+[中文文档](README.md) · [Changelog](CHANGELOG.md) · [Report Bug](https://github.com/jikssha/tg-pilot/issues)
 
 </div>
 
@@ -22,20 +23,21 @@ Built with **native AI integration (Vision & Computation)**, TG-Pilot handles co
 ## ✨ Key Features
 
 - **🎮 Multi-Account Fleet Management**: Consolidate and monitor unlimited Telegram sessions through a single dashboard.
-- **💎 Minimalist Linear Aesthetic (v3.3)**: Completely refactored Pure Dark console with smooth interaction and execution feedback.
+- **💎 Minimalist Linear Aesthetic (v3.5)**: Completely refactored Pure Dark console with **Custom Linear Modals** replacing native system dialogs for a premium, unified interaction.
 - **⚙️ Versatile Action Sequences**: Natively supports `Text`, `Buttons`, `Dices`, `AI Vision`, and `Math Challenges`.
 - **📱 Hidden Device Fingerprinting**: Auto-spoofs official device fingerprints (MacBook/iPhone) to minimize detection.
 - **📈 Real-time Task Radar**: Integrated task cards with one-click run, history log filtering (failures only), and config cloning.
 - **🧠 Native AI-Driven**: Encountering puzzles? Configure the LLM API to bypass them entirely on autopilot.
 - **🛡️ Rock-Solid Architecture**: Built with strict concurrency limits and built-in protections against `429 Too Many Requests`.
-- **⚡ Session Clone Engine (v3.4)**: New migration terminal to export/import physical session ZIPs. Move between machines without ever needing to re-login.
-- **🚀 Bulk Task Distribution (v3.4)**: Multi-select accounts and distribute "Task Packages" (JSON arrays) instantly across your entire fleet.
+- **⚡ Session Clone Engine (v3.5)**: High-performance session migration terminal. Export full ZIP credentials and restore fleet presence on new hardware in seconds.
+- **🚀 Bulk Flow Distribution (v3.5)**: Select multiple accounts and push "Task Packages" instantly. Align your entire fleet's sequence with a single click.
 - **📦 Modern Containerization**: Deploy effortlessly with a highly customizable, ready-to-run Docker image.
  
 
-## 🚀 Quick Start (Docker Compose)
 
-Deploy TG-Pilot in just 3 minutes with Docker Compose (Highly Recommended).
+We provide two ways to deploy TG-Pilot. Ensure [Docker](https://docs.docker.com/engine/install/) is installed on your server.
+
+### Option 1: Docker Compose (Recommended)
 
 ### 1. Prerequisites
 
@@ -72,10 +74,24 @@ EOF
 ### 3. Launch
 
 ```bash
-docker compose up -d
-```
-
 Once started, navigate to `http://YOUR_SERVER_IP:9987` in your browser.
+
+### Option 2: Docker Run (Quick Single Command)
+
+For quick testing, you can use a single `docker run` command (ensure you modify the `APP_SECRET_KEY`):
+
+```bash
+docker run -d \
+  --name tg-pilot \
+  -p 9987:9987 \
+  -v $(pwd)/data:/data \
+  -e TZ=Asia/Shanghai \
+  -e APP_SECRET_KEY=your_secret_key_here \
+  -e TG_SESSION_MODE=string \
+  -e TG_SESSION_NO_UPDATES=1 \
+  --restart unless-stopped \
+  ghcr.io/jikssha/tg-pilot:latest
+```
 
 🎉 **Default Initial Credentials**:
 - Username: `admin`
@@ -108,25 +124,9 @@ To meet various operational demands, TG-Pilot offers extensive environment varia
 
 *(Reverse Proxy Tip: If you are protecting your panel behind Nginx, it is highly recommended to change the port binding to `- "127.0.0.1:9987:9987"` to prevent direct public access.)*
 
-## 📝 Changelog
+## 📜 Full Changelog
 
-### V3.3 Deep Frontend & Brand Visual Optimization
-- **New 🔔 Daily Task Summary Report**: Added a scheduled daily summary feature for Bot notifications. Customize your report delivery time to stay updated on all automated activities at a glance.
-- **Integrated 🎨 Emerald Green Branding**: Fully implemented the redesigned TG-Pilot brand icon and Favicon. Deeply integrated a GitHub shortcut in the top-right corner of the dashboard for a more professional feel.
-- **Enhanced 🎇 Execution Immersion**: One-click play buttons now transform into real-time spinners. Active task cards feature a **subtle green pulse border**, providing clear visual feedback for automated flows.
-- **New 👁️ 2FA Password Toggle**: Support for toggling password visibility (Eye/EyeClosed) during Phone or QR login, making manual authentication much more reliable.
-- **Improved 🔍 Intelligent Log Filter**: Added a "Failed Only" switch in history modals with smooth transitions and new Phosphorus icon integration.
-- **Cleanup 🎨 Global Design Tokens**: Refactored the frontend styling system using CSS variables (`--accent-glow`), ensuring consistent branding throughout the app.
-
-### V3.2 Linear-UI Refactor & Performance
-- **Refactored 🎨 Sleek Dark Mode Interface**: The control panel has been entirely overhauled into a Linear-style modern developer tool aesthetic. Replaced the clunky account grid with a smooth scrollable sidebar list with animated status indicators, featuring an immersive pure dark mode.
-- **Refocused 🎯 Core Task Dashboard**: Demoted the massive settings section and introduced a unified layout prioritizing Sign Tasks. Tasks are now rendered as sleek independent Linear cards, with hover-triggered quick actions allowing you to perfectly oversee your whole fleet's workflow smoothly.
-- **Optimized 📊 Integrated Terminal Logs**: Removed clumsy modal popups for logs. Replaced with an embedded mini-terminal console highlighting successful/failed tasks execution right on the dashboard.
-
-### V3.1 Core Refactor & Optimization
-- **Added 👻 Native Device Spoofing**: Fully overhauled pyrogram instantiation process. Every running account now randomly (but consistently) poses as an official Apple/Microsoft client OS rather than `Pyrogram`. Massive boost for your fleet safety.
-- **Added 🚀 1-Click Proxy Test**: Integrated proxy direct connection testers into the dashboard. No more guessing.
-- **Optimized 💻 Next-Gen Defaults**: `TG_SESSION_MODE=string` and `TG_SESSION_NO_UPDATES=1` are now deeply integrated as core container defaults. Expect a 60% memory footprint drop and zero SQL `database is locked` deadlocks.
+Please refer to [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ## 📂 Architecture Stack
 

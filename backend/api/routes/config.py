@@ -365,12 +365,17 @@ class GlobalSettingsResponse(BaseModel):
     sign_interval: Optional[int] = None
     log_retention_days: int = 7
     data_dir: Optional[str] = None
+    server_time: Optional[str] = None
 
 
 @router.get("/settings", response_model=GlobalSettingsResponse)
 def get_global_settings(current_user: User = Depends(get_current_user)):
     try:
+        from datetime import datetime
         settings = get_config_service().get_global_settings()
+        # Add current server time for frontend display
+        settings = dict(settings)
+        settings["server_time"] = datetime.now().strftime("%H:%M")
         return GlobalSettingsResponse(**settings)
     except Exception as e:
         raise HTTPException(

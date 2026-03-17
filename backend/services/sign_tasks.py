@@ -418,10 +418,10 @@ class SignTaskService:
         self, task_dir: Path, account_name: str = ""
     ) -> Optional[Dict[str, Any]]:
         """
-        获取任务的最后执行信息
-        """
-        history_file = self._history_file_path(task_dir.name, account_name)
-        legacy_file = self.run_history_dir / f"{task_dir.name}.json"
+        # 兼容性处理：task_dir 可能是 Path 对象也可能是字符串 task_name
+        task_name = task_dir.name if hasattr(task_dir, 'name') else str(task_dir)
+        history_file = self._history_file_path(task_name, account_name)
+        legacy_file = self.run_history_dir / f"{task_name}.json"
 
         if not history_file.exists():
             if account_name and legacy_file.exists():

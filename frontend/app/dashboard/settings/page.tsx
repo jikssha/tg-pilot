@@ -5,139 +5,53 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getToken } from "../../../lib/auth";
 import {
-    changePassword,
-    changeUsername,
     getTOTPStatus,
-    setupTOTP,
-    getTOTPQRCode,
-    enableTOTP,
-    disableTOTP,
-    exportSessionsZip,
-    importSessionsZip,
     getAIConfig,
-    saveAIConfig,
-    testAIConnection,
-    deleteAIConfig,
-    AIConfig,
-    getGlobalSettings,
-    saveGlobalSettings,
     GlobalSettings,
-    getTelegramConfig,
-    saveTelegramConfig,
-    resetTelegramConfig,
+    getGlobalSettings,
     TelegramConfig,
-    getBotNotifyConfig,
-    saveBotNotifyConfig,
-    deleteBotNotifyConfig,
-    testBotNotify,
+    getTelegramConfig,
     BotNotifyConfig,
+    getBotNotifyConfig,
+    AIConfig,
 } from "../../../lib/api";
 import {
     CaretLeft,
-    User,
-    Lock,
-    ShieldCheck,
-    Gear,
-    Cpu,
-    DownloadSimple,
-    CloudArrowUp,
-    FileArchive,
-    Shield,
-    SignOut,
-    Spinner,
-    ArrowUDownLeft,
-    FloppyDisk,
-    WarningCircle,
-    Trash,
-    Robot as BotIcon,
-    Terminal,
-    GithubLogo,
+    UserCircle,
+    TelegramLogo,
     Bell,
-    Info,
-    CheckCircle,
-    Warning
+    Cpu,
+    Database,
+    SignOut,
+    GithubLogo,
 } from "@phosphor-icons/react";
-import { ToastContainer, useToast } from "../../../components/ui/toast";
+import { ToastContainer } from "../../../components/ui/toast";
 import { ThemeLanguageToggle } from "../../../components/ThemeLanguageToggle";
 import { useLanguage } from "../../../context/LanguageContext";
+
+// Modular Components
+import AccountSecurity from "./components/AccountSecurity";
+import TelegramAPI from "./components/TelegramAPI";
+import NotificationService from "./components/NotificationService";
+import AIEnrichment from "./components/AIEnrichment";
+import BackupMigration from "./components/BackupMigration";
 
 export default function SettingsPage() {
     const router = useRouter();
     const { t, language } = useLanguage();
     const isZh = language === "zh";
-    const { toasts, addToast, removeToast } = useToast();
     const [token, setLocalToken] = useState<string | null>(null);
-    const [userLoading, setUserLoading] = useState(false);
-    const [pwdLoading, setPwdLoading] = useState(false);
-    const [totpLoading, setTotpLoading] = useState(false);
-    const [configLoading, setConfigLoading] = useState(false);
-    const [telegramLoading, setTelegramLoading] = useState(false);
-    const [botNotifyLoading, setBotNotifyLoading] = useState(false);
-
-    // 用户名修改
-    const [usernameForm, setUsernameForm] = useState({
-        newUsername: "",
-        password: "",
-    });
-
-    // 密码修改
-    const [passwordForm, setPasswordForm] = useState({
-        oldPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-    });
-
-    // 2FA 状态
-    const [totpEnabled, setTotpEnabled] = useState(false);
-    const [totpSecret, setTotpSecret] = useState("");
-    const [totpCode, setTotpCode] = useState("");
-    const [showTotpSetup, setShowTotpSetup] = useState(false);
-
-
-    // AI 配置
-    const [aiConfig, setAIConfigState] = useState<AIConfig | null>(null);
-    const [aiForm, setAIForm] = useState({
-        api_key: "",
-        base_url: "",
-        model: "gpt-4o",
-    });
-    const [aiTestResult, setAITestResult] = useState<string | null>(null);
-    const [aiTestStatus, setAITestStatus] = useState<"success" | "error" | null>(null);
-    const [aiTesting, setAITesting] = useState(false);
-
-    // 全局设置
-    const [globalSettings, setGlobalSettings] = useState<GlobalSettings>({ sign_interval: null, log_retention_days: 7, data_dir: null });
-
-    // Telegram API 配置
-    const [telegramConfig, setTelegramConfig] = useState<TelegramConfig | null>(null);
-    const [telegramForm, setTelegramForm] = useState({
-        api_id: "",
-        api_hash: "",
-    });
-
-    // Bot 通知配置
-    const [botNotifyConfig, setBotNotifyConfig] = useState<BotNotifyConfig | null>(null);
-    const [botNotifyForm, setBotNotifyForm] = useState({
-        bot_token: "",
-        chat_id: "",
-        enabled: true,
-        notify_on_success: true,
-        notify_on_failure: true,
-        daily_summary: true,
-        daily_summary_hour: 22,
-        daily_summary_minute: 0,
-    });
-    const [botNotifyTestResult, setBotNotifyTestResult] = useState<string | null>(null);
-    const [botNotifyTestStatus, setBotNotifyTestStatus] = useState<"success" | "error" | null>(null);
-    const [botNotifyTesting, setBotNotifyTesting] = useState(false);
-
     const [checking, setChecking] = useState(true);
 
-    const formatErrorMessage = (key: string, err?: any) => {
-        const base = t(key);
-        const code = err?.code;
-        return code ? `${base} (${code})` : base;
-    };
+    // Tab State
+    const [currentTab, setCurrentTab] = useState<"account" | "telegram" | "notification" | "ai" | "backup">("account");
+
+    // Unified Data State
+    const [totpEnabled, setTotpEnabled] = useState(false);
+    const [aiConfig, setAIConfig] = useState<AIConfig | null>(null);
+    const [globalSettings, setGlobalSettings] = useState<GlobalSettings>({ sign_interval: null, log_retention_days: 7, data_dir: null });
+    const [telegramConfig, setTelegramConfig] = useState<TelegramConfig | null>(null);
+    const [botNotifyConfig, setBotNotifyConfig] = useState<BotNotifyConfig | null>(null);
 
     useEffect(() => {
         const tokenStr = getToken();
@@ -147,415 +61,70 @@ export default function SettingsPage() {
         }
         setLocalToken(tokenStr);
         setChecking(false);
-        loadTOTPStatus(tokenStr);
-        loadAIConfig(tokenStr);
-        loadGlobalSettings(tokenStr);
-        loadTelegramConfig(tokenStr);
-        loadBotNotifyConfig(tokenStr);
+        loadAllData(tokenStr);
     }, []);
 
-    const loadTOTPStatus = async (tokenStr: string) => {
+    const loadAllData = async (tokenStr: string) => {
         try {
-            const res = await getTOTPStatus(tokenStr);
-            setTotpEnabled(res.enabled);
-        } catch (err) { }
-    };
-
-    const loadAIConfig = async (tokenStr: string) => {
-        try {
-            const config = await getAIConfig(tokenStr);
-            setAIConfigState(config);
-            if (config) {
-                setAIForm({
-                    api_key: "", // 不回填密钥
-                    base_url: config.base_url || "",
-                    model: config.model || "gpt-4o",
-                });
-            }
-        } catch (err) { }
-    };
-
-    const loadGlobalSettings = async (tokenStr: string) => {
-        try {
-            const settings = await getGlobalSettings(tokenStr);
-            setGlobalSettings(settings);
-        } catch (err) { }
-    };
-
-    const loadTelegramConfig = async (tokenStr: string) => {
-        try {
-            const config = await getTelegramConfig(tokenStr);
-            setTelegramConfig(config);
-            if (config) {
-                setTelegramForm({
-                    api_id: config.api_id?.toString() || "",
-                    api_hash: config.api_hash || "",
-                });
-            }
-        } catch (err) { }
-    };
-
-    const handleChangeUsername = async () => {
-        if (!token) return;
-        if (!usernameForm.newUsername || !usernameForm.password) {
-            addToast(t("form_incomplete"), "error");
-            return;
-        }
-        try {
-            setUserLoading(true);
-            const res = await changeUsername(token, usernameForm.newUsername, usernameForm.password);
-            addToast(t("username_changed"), "success");
-            if (res.access_token) {
-                localStorage.setItem("tg-pilot-token", res.access_token);
-                setLocalToken(res.access_token);
-            }
-            setUsernameForm({ newUsername: "", password: "" });
-        } catch (err: any) {
-            addToast(formatErrorMessage("change_failed", err), "error");
-        } finally {
-            setUserLoading(false);
+            const [totp, ai, global, telegram, bot] = await Promise.all([
+                getTOTPStatus(tokenStr),
+                getAIConfig(tokenStr),
+                getGlobalSettings(tokenStr),
+                getTelegramConfig(tokenStr),
+                getBotNotifyConfig(tokenStr)
+            ]);
+            setTotpEnabled(totp.enabled);
+            setAIConfig(ai);
+            setGlobalSettings(global || { sign_interval: null, log_retention_days: 7, data_dir: null });
+            setTelegramConfig(telegram);
+            setBotNotifyConfig(bot);
+        } catch (err) {
+            console.error("Failed to load settings data", err);
         }
     };
 
-    const handleChangePassword = async () => {
-        if (!token) return;
-        if (!passwordForm.oldPassword || !passwordForm.newPassword) {
-            addToast(t("form_incomplete"), "error");
-            return;
-        }
-        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-            addToast(t("password_mismatch"), "error");
-            return;
-        }
-        try {
-            setPwdLoading(true);
-            await changePassword(token, passwordForm.oldPassword, passwordForm.newPassword);
-            addToast(t("password_changed"), "success");
-            setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
-        } catch (err: any) {
-            addToast(formatErrorMessage("change_failed", err), "error");
-        } finally {
-            setPwdLoading(false);
-        }
-    };
+    if (!token || checking) return null;
 
-    const handleSetupTOTP = async () => {
-        if (!token) return;
-        try {
-            setTotpLoading(true);
-            const res = await setupTOTP(token);
-            setTotpSecret(res.secret);
-            setShowTotpSetup(true);
-        } catch (err: any) {
-            addToast(formatErrorMessage("setup_failed", err), "error");
-        } finally {
-            setTotpLoading(false);
-        }
-    };
-
-    const handleEnableTOTP = async () => {
-        if (!token) return;
-        if (!totpCode) {
-            addToast(t("login_code_required"), "error");
-            return;
-        }
-        try {
-            setTotpLoading(true);
-            await enableTOTP(token, totpCode);
-            addToast(t("two_factor_enabled"), "success");
-            setTotpEnabled(true);
-            setShowTotpSetup(false);
-            setTotpCode("");
-        } catch (err: any) {
-            addToast(formatErrorMessage("enable_failed", err), "error");
-        } finally {
-            setTotpLoading(false);
-        }
-    };
-
-    const handleDisableTOTP = async () => {
-        if (!token) return;
-        const msg = t("two_factor_disable_prompt");
-        const code = prompt(msg);
-        if (!code) return;
-        try {
-            setTotpLoading(true);
-            await disableTOTP(token, code);
-            addToast(t("two_factor_disabled"), "success");
-            setTotpEnabled(false);
-        } catch (err: any) {
-            addToast(formatErrorMessage("disable_failed", err), "error");
-        } finally {
-            setTotpLoading(false);
-        }
-    };
-
-    const handleExportSessions = async () => {
-        if (!token) return;
-        try {
-            setConfigLoading(true);
-            const blob = await exportSessionsZip(token);
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `tg_pilot_sessions_${new Date().toISOString().split('T')[0]}.zip`;
-            a.click();
-            URL.revokeObjectURL(url);
-            addToast(isZh ? "会话压缩包导出成功" : "Sessions exported successfully", "success");
-        } catch (err: any) {
-            addToast(isZh ? "导出失败: " + err.message : "Export failed: " + err.message, "error");
-        } finally {
-            setConfigLoading(false);
-        }
-    };
-
-    const handleImportSessions = async (file: File) => {
-        if (!token || !file) return;
-        const confirmMsg = isZh 
-            ? "导入将覆盖当前所有账号会话，确定继续吗？" 
-            : "Importing will overwrite all current sessions. Continue?";
-        if (!confirm(confirmMsg)) return;
-
-        try {
-            setConfigLoading(true);
-            await importSessionsZip(token, file);
-            addToast(isZh ? "会话导入并重载成功" : "Sessions imported and reloaded", "success");
-            // 可以在此处强制刷新页面或重新加载账号列表
-            setTimeout(() => window.location.reload(), 1500);
-        } catch (err: any) {
-            addToast(isZh ? "导入失败: " + err.message : "Import failed: " + err.message, "error");
-        } finally {
-            setConfigLoading(false);
-        }
-    };
-
-    const handleSaveAI = async () => {
-        if (!token) return;
-        try {
-            setConfigLoading(true);
-            const payload: { api_key?: string; base_url?: string; model?: string } = {
-                base_url: aiForm.base_url.trim() || undefined,
-                model: aiForm.model.trim() || undefined,
-            };
-            const nextApiKey = aiForm.api_key.trim();
-            if (nextApiKey) {
-                payload.api_key = nextApiKey;
-            }
-            await saveAIConfig(token, payload);
-            addToast(t("ai_save_success"), "success");
-            loadAIConfig(token);
-        } catch (err: any) {
-            addToast(formatErrorMessage("save_failed", err), "error");
-        } finally {
-            setConfigLoading(false);
-        }
-    };
-
-    const handleTestAI = async () => {
-        if (!token) return;
-        try {
-            setAITesting(true);
-            setAITestResult(null);
-            setAITestStatus(null);
-            const res = await testAIConnection(token);
-            if (res.success) {
-                setAITestStatus("success");
-                setAITestResult(t("connect_success"));
-            } else {
-                setAITestStatus("error");
-                setAITestResult(t("connect_failed"));
-            }
-        } catch (err: any) {
-            setAITestStatus("error");
-            setAITestResult(formatErrorMessage("test_failed", err));
-        } finally {
-            setAITesting(false);
-        }
-    };
-
-    const handleDeleteAI = async () => {
-        if (!token) return;
-        if (!confirm(t("confirm_delete_ai"))) return;
-        try {
-            setConfigLoading(true);
-            await deleteAIConfig(token);
-            addToast(t("ai_delete_success"), "success");
-            setAIConfigState(null);
-            setAIForm({ api_key: "", base_url: "", model: "gpt-4o" });
-        } catch (err: any) {
-            addToast(formatErrorMessage("delete_failed", err), "error");
-        } finally {
-            setConfigLoading(false);
-        }
-    };
-
-    const handleSaveGlobal = async () => {
-        if (!token) return;
-        try {
-            setConfigLoading(true);
-            await saveGlobalSettings(token, globalSettings);
-            addToast(t("global_save_success"), "success");
-        } catch (err: any) {
-            addToast(formatErrorMessage("save_failed", err), "error");
-        } finally {
-            setConfigLoading(false);
-        }
-    };
-
-    const handleSaveTelegram = async () => {
-        if (!token) return;
-        if (!telegramForm.api_id || !telegramForm.api_hash) {
-            addToast(t("form_incomplete"), "error");
-            return;
-        }
-        try {
-            setTelegramLoading(true);
-            await saveTelegramConfig(token, {
-                api_id: telegramForm.api_id,
-                api_hash: telegramForm.api_hash,
-            });
-            addToast(t("telegram_save_success"), "success");
-            loadTelegramConfig(token);
-        } catch (err: any) {
-            addToast(formatErrorMessage("save_failed", err), "error");
-        } finally {
-            setTelegramLoading(false);
-        }
-    };
-
-    const handleResetTelegram = async () => {
-        if (!token) return;
-        if (!confirm(t("confirm_reset_telegram"))) return;
-        try {
-            setTelegramLoading(true);
-            await resetTelegramConfig(token);
-            addToast(t("config_reset"), "success");
-            loadTelegramConfig(token);
-        } catch (err: any) {
-            addToast(formatErrorMessage("operation_failed", err), "error");
-        } finally {
-            setTelegramLoading(false);
-        }
-    };
-
-    // ============ Bot 通知 ============
-
-    const loadBotNotifyConfig = async (tokenStr: string) => {
-        try {
-            const config = await getBotNotifyConfig(tokenStr);
-            setBotNotifyConfig(config);
-            if (config && config.has_config) {
-                setBotNotifyForm({
-                    bot_token: "",
-                    chat_id: config.chat_id || "",
-                    enabled: config.enabled,
-                    notify_on_success: config.notify_on_success,
-                    notify_on_failure: config.notify_on_failure,
-                    daily_summary: config.daily_summary,
-                    daily_summary_hour: config.daily_summary_hour,
-                    daily_summary_minute: config.daily_summary_minute || 0,
-                });
-            }
-        } catch (err) { }
-    };
-
-    const handleSaveBotNotify = async () => {
-        if (!token) return;
-        try {
-            setBotNotifyLoading(true);
-            await saveBotNotifyConfig(token, {
-                bot_token: botNotifyForm.bot_token.trim() || undefined,
-                chat_id: botNotifyForm.chat_id.trim() || undefined,
-                enabled: botNotifyForm.enabled,
-                notify_on_success: botNotifyForm.notify_on_success,
-                notify_on_failure: botNotifyForm.notify_on_failure,
-                daily_summary: botNotifyForm.daily_summary,
-                daily_summary_hour: botNotifyForm.daily_summary_hour,
-                daily_summary_minute: botNotifyForm.daily_summary_minute,
-            });
-            addToast("Bot 通知配置已保存", "success");
-            loadBotNotifyConfig(token);
-        } catch (err: any) {
-            addToast(formatErrorMessage("save_failed", err), "error");
-        } finally {
-            setBotNotifyLoading(false);
-        }
-    };
-
-    const handleTestBotNotify = async () => {
-        if (!token) return;
-        try {
-            setBotNotifyTesting(true);
-            setBotNotifyTestResult(null);
-            setBotNotifyTestStatus(null);
-            const res = await testBotNotify(token);
-            if (res.success) {
-                setBotNotifyTestStatus("success");
-                setBotNotifyTestResult("测试消息已发送，请检查 Telegram");
-            } else {
-                setBotNotifyTestStatus("error");
-                setBotNotifyTestResult(res.message || "发送失败");
-            }
-        } catch (err: any) {
-            setBotNotifyTestStatus("error");
-            setBotNotifyTestResult(formatErrorMessage("test_failed", err));
-        } finally {
-            setBotNotifyTesting(false);
-        }
-    };
-
-    const handleDeleteBotNotify = async () => {
-        if (!token) return;
-        if (!confirm("确定要删除 Bot 通知配置吗？")) return;
-        try {
-            setBotNotifyLoading(true);
-            await deleteBotNotifyConfig(token);
-            addToast("Bot 通知配置已删除", "success");
-            setBotNotifyConfig(null);
-            setBotNotifyForm({
-                bot_token: "",
-                chat_id: "",
-                enabled: true,
-                notify_on_success: true,
-                notify_on_failure: true,
-                daily_summary: true,
-                daily_summary_hour: 22,
-                daily_summary_minute: 0,
-            });
-        } catch (err: any) {
-            addToast(formatErrorMessage("delete_failed", err), "error");
-        } finally {
-            setBotNotifyLoading(false);
-        }
-    };
-
-    if (!token || checking) {
-        return null;
-    }
+    const navItems = [
+        { id: "account", icon: UserCircle, label: isZh ? "账户安全与验证" : "Account & Security" },
+        { id: "telegram", icon: TelegramLogo, label: isZh ? "Telegram API" : "Telegram API" },
+        { id: "notification", icon: Bell, label: isZh ? "通知服务中心" : "Notifications" },
+        { id: "ai", icon: Cpu, label: isZh ? "AI 辅助增强" : "AI Enrichment" },
+        { id: "backup", icon: Database, label: isZh ? "备份、迁移与引擎" : "Backup & Engine" },
+    ] as const;
 
     return (
-        <div id="settings-view" className="w-full h-full flex flex-col">
-            <nav className="navbar">
-                <div className="nav-brand">
-                    <div className="flex items-center gap-4">
-                        <Link href="/dashboard" className="action-btn !w-8 !h-8" title={t("sidebar_home")}>
-                            <CaretLeft weight="bold" size={18} />
-                        </Link>
-                        <h1 className="text-lg font-bold tracking-tight">{t("sidebar_settings")}</h1>
+        <div className="flex flex-col h-screen overflow-hidden bg-[var(--bg-body)] text-white">
+            <ToastContainer />
+            
+            {/* Premium Header */}
+            <header className="h-[60px] px-8 flex items-center justify-between border-b border-white/[0.05] bg-black/40 backdrop-blur-xl z-50 shrink-0">
+                <div className="flex items-center gap-6">
+                    <Link href="/dashboard" className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center hover:bg-white/[0.08] transition-all" title={t("sidebar_home")}>
+                        <CaretLeft weight="bold" size={18} />
+                    </Link>
+                    <div className="h-5 w-px bg-white/10"></div>
+                    <div>
+                        <h1 className="text-sm font-bold tracking-tight">
+                            {isZh ? "系统控制面板" : "System Configuration"}
+                        </h1>
+                        <p className="text-[9px] font-black uppercase tracking-[0.25em] text-[#8a3ffc] mt-0.5 opacity-80 shadow-[0_0_20px_rgba(138,63,252,0.3)]">
+                            Global Control Center
+                        </p>
                     </div>
                 </div>
-                <div className="top-right-actions">
-                    <a
-                        href="https://github.com/jikssha/tg-pilot"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="action-btn"
-                        title={t("github_repo")}
-                    >
-                        <GithubLogo weight="bold" />
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Node Healthy</span>
+                    </div>
+                    <div className="h-5 w-px bg-white/10 mx-1"></div>
+                    <ThemeLanguageToggle />
+                    <a href="https://github.com/jikssha/tg-pilot" target="_blank" rel="noreferrer" className="icon-btn" title="GitHub">
+                        <GithubLogo weight="bold" size={18} />
                     </a>
-                    <div
-                        className="action-btn !text-rose-400 hover:bg-rose-500/10"
+                    <button 
+                        className="icon-btn !text-rose-400 hover:bg-rose-500/10" 
                         title={t("logout")}
                         onClick={() => {
                             const { logout } = require("../../../lib/auth");
@@ -563,549 +132,118 @@ export default function SettingsPage() {
                             router.push("/");
                         }}
                     >
-                        <SignOut weight="bold" />
-                    </div>
+                        <SignOut weight="bold" size={18} />
+                    </button>
                 </div>
-            </nav>
+            </header>
 
-            <main className="main-content">
-                <div className="max-w-4xl mx-auto space-y-6 animate-float-up pb-10">
-                    {/* 用户名修改 */}
-                    <div className="glass-panel p-6 px-7">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 py-2.5 bg-blue-500/10 rounded-xl text-blue-400">
-                                <User weight="bold" size={20} />
-                            </div>
-                            <h2 className="text-xl font-bold tracking-tight">{t("username")}</h2>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div>
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("new_username")}</label>
-                                <input
-                                    type="text"
-                                    className="h-11 !px-4"
-                                    placeholder={t("new_username_placeholder")}
-                                    value={usernameForm.newUsername}
-                                    onChange={(e) => setUsernameForm({ ...usernameForm, newUsername: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("current_password")}</label>
-                                <input
-                                    type="password"
-                                    className="h-11 !px-4"
-                                    placeholder={t("current_password_placeholder")}
-                                    value={usernameForm.password}
-                                    onChange={(e) => setUsernameForm({ ...usernameForm, password: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                        <button className="btn-gradient px-8 h-10 min-w-[120px] !text-xs font-bold" onClick={handleChangeUsername} disabled={userLoading}>
-                            {userLoading ? <Spinner className="animate-spin" /> : t("change_username")}
-                        </button>
-                    </div>
-
-                    {/* 密码修改 */}
-                    <div className="glass-panel p-6 px-7">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 py-2.5 bg-amber-500/10 rounded-xl text-amber-400">
-                                <Lock weight="bold" size={20} />
-                            </div>
-                            <h2 className="text-xl font-bold tracking-tight">{t("change_password")}</h2>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                            <div>
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("old_password")}</label>
-                                <input
-                                    type="password"
-                                    className="h-11 !px-4"
-                                    value={passwordForm.oldPassword}
-                                    onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("new_password")}</label>
-                                <input
-                                    type="password"
-                                    className="h-11 !px-4"
-                                    value={passwordForm.newPassword}
-                                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("confirm_new_password")}</label>
-                                <input
-                                    type="password"
-                                    className="h-11 !px-4"
-                                    value={passwordForm.confirmPassword}
-                                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                                />
-                            </div>
-                        </div>
-                        <button className="btn-gradient px-8 h-10 min-w-[120px] !text-xs font-bold" onClick={handleChangePassword} disabled={pwdLoading}>
-                            {pwdLoading ? <Spinner className="animate-spin" /> : t("change_password")}
-                        </button>
-                    </div>
-
-                    {/* 2FA 设置 */}
-                    <div className="glass-panel p-6 px-7 overflow-hidden">
-                        <div className="flex justify-between items-center mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 py-2.5 bg-emerald-500/10 rounded-xl text-emerald-400">
-                                    <ShieldCheck weight="bold" size={20} />
-                                </div>
-                                <h2 className="text-xl font-bold tracking-tight">{t("2fa_settings")}</h2>
-                            </div>
-                            <div className={`shrink-0 bg-${totpEnabled ? 'emerald' : 'rose'}-500/10 border border-${totpEnabled ? 'emerald' : 'rose'}-500/20 text-${totpEnabled ? 'emerald' : 'rose'}-400 px-4 py-1 rounded-full text-[10px] font-bold tracking-wider`}>
-                                {totpEnabled ? t("status_enabled") : t("status_disabled")}
-                            </div>
-                        </div>
-
-                        {!totpEnabled && !showTotpSetup && (
-                            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 flex gap-4 items-start">
-                                <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
-                                    <WarningCircle weight="bold" size={18} />
-                                </div>
-                                <div>
-                                    <p className="text-[11px] text-main/70 leading-relaxed max-w-2xl">
-                                        {t("2fa_enable_desc")}
-                                    </p>
-                                    <button onClick={handleSetupTOTP} className="btn-secondary mt-3 w-fit h-8 px-4 text-[11px]" disabled={totpLoading}>
-                                        {totpLoading ? <Spinner className="animate-spin" /> : t("start_setup")}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {showTotpSetup && (
-                            <div className="animate-float-up space-y-4">
-                                <div className="flex flex-col md:flex-row gap-4 items-center md:items-start p-4 bg-white/2 rounded-xl border border-white/5 shadow-inner">
-                                    <div className="bg-white p-2 rounded-lg shrink-0">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img
-                                            src={`/api/user/totp/qrcode?token=${token}`}
-                                            alt={t("qr_alt")}
-                                            className="w-28 h-28"
-                                        />
-                                    </div>
-                                    <div className="flex-1 space-y-3">
-                                        <div>
-                                            <h4 className="font-bold text-xs text-main mb-1">{t("scan_qr")}</h4>
-                                            <p className="text-[10px] text-[#9496a1]">{t("scan_qr_desc")}</p>
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-xs text-main mb-1">{t("backup_secret")}</h4>
-                                            <input
-                                                readOnly
-                                                value={totpSecret}
-                                                className="!p-2.5 !bg-white/2 !border-white/8 !rounded-lg !text-[10px] break-all !font-mono !text-[#b57dff] !mb-0 cursor-text"
-                                                onClick={(e) => (e.target as HTMLInputElement).select()}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="space-y-3 w-full max-w-2xl">
-                                    <label className="text-[12px] font-bold text-main/60 uppercase tracking-widest">{t("verify_code")}</label>
-                                    <div className="flex gap-4">
-                                        <input
-                                            value={totpCode}
-                                            onChange={(e) => setTotpCode(e.target.value)}
-                                            placeholder={t("totp_code_placeholder")}
-                                            className="text-center text-3xl tracking-[0.8em] h-14 !py-0 w-full min-w-0 flex-[2] border-2 border-black/10 dark:border-white/10 focus:border-[#8a3ffc]/50 bg-white/5 dark:bg-white/5 rounded-2xl font-bold transition-all shadow-inner"
-                                        />
-                                        <button onClick={handleEnableTOTP} className="btn-gradient px-8 shrink-0 h-14 !text-sm font-bold shadow-lg flex-1" disabled={totpLoading}>
-                                            {totpLoading ? <Spinner className="animate-spin" /> : t("verify")}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {totpEnabled && (
-                            <button onClick={handleDisableTOTP} className="btn-secondary !text-rose-400 hover:bg-rose-500/10 w-fit px-6 !py-2.5 !text-xs" disabled={totpLoading}>
-                                {totpLoading ? <Spinner className="animate-spin" /> : t("disable_2fa")}
-                            </button>
-                        )}
-                    </div>
-
-                    {/* AI 配置 */}
-                    <div className="glass-panel p-6 px-7">
-                        <div className="flex justify-between items-center mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 py-2.5 bg-indigo-500/10 rounded-xl text-indigo-400">
-                                    <BotIcon weight="bold" size={20} />
-                                </div>
-                                <h2 className="text-xl font-bold tracking-tight">{t("ai_config")}</h2>
-                            </div>
-                            {aiConfig && (
-                                <button onClick={handleDeleteAI} className="action-btn !w-9 !h-9 !text-rose-400" title={t("delete_ai_config")}>
-                                    <Trash weight="bold" size={18} />
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div className="md:col-span-2">
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("api_key")}</label>
-                                <input
-                                    type="password"
-                                    className="h-11 !px-4"
-                                    value={aiForm.api_key}
-                                    onChange={(e) => setAIForm({ ...aiForm, api_key: e.target.value })}
-                                    placeholder={aiConfig?.api_key_masked || t("api_key")}
-                                />
-                                {aiConfig?.api_key_masked && (
-                                    <p className="mt-2 text-[10px] text-main/40 italic flex items-center gap-1.5">
-                                        <Info weight="bold" size={12} className="text-[#b57dff]" />
-                                        {t("api_key_keep_hint")}
-                                    </p>
-                                )}
-                            </div>
-                            <div>
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("base_url")}</label>
-                                <input
-                                    className="h-11 !px-4"
-                                    value={aiForm.base_url}
-                                    onChange={(e) => setAIForm({ ...aiForm, base_url: e.target.value })}
-                                    placeholder={t("ai_base_url_placeholder")}
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("model")}</label>
-                                <input
-                                    className="h-11 !px-4"
-                                    value={aiForm.model}
-                                    onChange={(e) => setAIForm({ ...aiForm, model: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex gap-4">
-                            <button onClick={handleSaveAI} className="btn-gradient px-8 h-10 !text-xs font-bold" disabled={configLoading}>
-                                {configLoading ? <Spinner className="animate-spin" /> : t("save")}
-                            </button>
-                            <button onClick={handleTestAI} className="btn-secondary px-8 h-10 !text-xs font-bold" disabled={aiTesting || configLoading}>
-                                {aiTesting ? <Spinner className="animate-spin" /> : t("test_connection")}
-                            </button>
-                        </div>
-
-                        {aiTestResult && (
-                            <div className={`mt-6 p-4 rounded-2xl text-[11px] border leading-relaxed ${aiTestStatus === "success" ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'} animate-float-up`}>
-                                <div className="flex items-center gap-2 font-bold mb-1.5 uppercase tracking-widest text-[10px]">
-                                    {aiTestStatus === "success" ? <CheckCircle weight="bold" /> : <Warning weight="bold" />}
-                                    {aiTestStatus === "success" ? t("process_successful") : t("process_error")}
-                                </div>
-                                {aiTestResult}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Bot 通知配置 */}
-                    <div className="glass-panel p-6 px-7">
-                        <div className="flex justify-between items-center mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 py-2.5 bg-teal-500/10 rounded-xl text-teal-400">
-                                    <Bell weight="bold" size={20} />
-                                </div>
-                                <h2 className="text-xl font-bold tracking-tight">{t("bot_notify")}</h2>
-                            </div>
-                            {botNotifyConfig?.has_config && (
-                                <button onClick={handleDeleteBotNotify} className="action-btn !w-9 !h-9 !text-rose-400" title={t("delete_bot_config")}>
-                                    <Trash weight="bold" size={18} />
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div>
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("bot_token")}</label>
-                                <input
-                                    type="password"
-                                    className="h-11 !px-4"
-                                    value={botNotifyForm.bot_token}
-                                    onChange={(e) => setBotNotifyForm({ ...botNotifyForm, bot_token: e.target.value })}
-                                    placeholder={botNotifyConfig?.bot_token_masked || t("bot_token_placeholder")}
-                                />
-                                {botNotifyConfig?.bot_token_masked && (
-                                    <p className="mt-2 text-[10px] text-main/40 italic flex items-center gap-1.5">
-                                        <Info weight="bold" size={12} className="text-[#b57dff]" />
-                                        {t("bot_token_keep_hint")}
-                                    </p>
-                                )}
-                            </div>
-                            <div>
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("chat_id")}</label>
-                                <input
-                                    className="h-11 !px-4"
-                                    value={botNotifyForm.chat_id}
-                                    onChange={(e) => setBotNotifyForm({ ...botNotifyForm, chat_id: e.target.value })}
-                                    placeholder={t("chat_id_placeholder")}
-                                />
-                            </div>
-                        </div>
-
-                        {/* 通知开关 */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setBotNotifyForm({ ...botNotifyForm, enabled: !botNotifyForm.enabled })}>
-                                <div className={`w-10 h-6 rounded-full relative transition-all shadow-input border ${botNotifyForm.enabled ? 'bg-[#8a3ffc] border-[#8a3ffc]' : 'bg-white/5 border-white/10 dark:border-white/20'}`}>
-                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-md ${botNotifyForm.enabled ? 'left-5' : 'left-0.5'}`}></div>
-                                </div>
-                                <span className={`text-[12px] select-none ${botNotifyForm.enabled ? 'text-main font-bold' : 'text-main/40 group-hover:text-main/60'}`}>{t("enable_notify")}</span>
-                            </div>
-                            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setBotNotifyForm({ ...botNotifyForm, notify_on_success: !botNotifyForm.notify_on_success })}>
-                                <div className={`w-10 h-6 rounded-full relative transition-all shadow-input border ${botNotifyForm.notify_on_success ? 'bg-emerald-500 border-emerald-500' : 'bg-white/5 border-white/10 dark:border-white/20'}`}>
-                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-md ${botNotifyForm.notify_on_success ? 'left-5' : 'left-0.5'}`}></div>
-                                </div>
-                                <span className={`text-[12px] select-none ${botNotifyForm.notify_on_success ? 'text-emerald-400 font-bold' : 'text-main/40 group-hover:text-main/60'}`}>{t("notify_on_success")}</span>
-                            </div>
-                            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setBotNotifyForm({ ...botNotifyForm, notify_on_failure: !botNotifyForm.notify_on_failure })}>
-                                <div className={`w-10 h-6 rounded-full relative transition-all shadow-input border ${botNotifyForm.notify_on_failure ? 'bg-rose-500 border-rose-500' : 'bg-white/5 border-white/10 dark:border-white/20'}`}>
-                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-md ${botNotifyForm.notify_on_failure ? 'left-5' : 'left-0.5'}`}></div>
-                                </div>
-                                <span className={`text-[12px] select-none ${botNotifyForm.notify_on_failure ? 'text-rose-400 font-bold' : 'text-main/40 group-hover:text-main/60'}`}>{t("notify_on_failure")}</span>
-                            </div>
-                        </div>
-
-                        {/* 每日汇总 */}
-                        <div className="flex flex-col md:flex-row md:items-center gap-6 mb-6">
-                            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setBotNotifyForm({ ...botNotifyForm, daily_summary: !botNotifyForm.daily_summary })}>
-                                <div className={`w-10 h-6 rounded-full relative transition-all shadow-input border ${botNotifyForm.daily_summary ? 'bg-[#8a3ffc] border-[#8a3ffc]' : 'bg-white/5 border-white/10 dark:border-white/20'}`}>
-                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-md ${botNotifyForm.daily_summary ? 'left-5' : 'left-0.5'}`}></div>
-                                </div>
-                                <span className={`text-[12px] select-none ${botNotifyForm.daily_summary ? 'text-main font-bold' : 'text-main/40 group-hover:text-main/60'}`}>{t("daily_summary")}</span>
-                            </div>
-                            {botNotifyForm.daily_summary && (
-                                <div className="flex items-center gap-3 animate-float-up">
-                                    <span className="text-[11px] uppercase tracking-wider font-bold text-main/30">{t("send_time")}:</span>
-                                    <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-2">
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="23"
-                                            className="!py-1 !px-2 !w-12 text-center !bg-transparent !border-none !shadow-none font-mono text-xs"
-                                            value={botNotifyForm.daily_summary_hour}
-                                            onChange={(e) => setBotNotifyForm({ ...botNotifyForm, daily_summary_hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
-                                        />
-                                        <span className="text-[11px] font-bold text-main/40 tracking-widest">:</span>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="59"
-                                            className="!py-1 !px-2 !w-12 text-center !bg-transparent !border-none !shadow-none font-mono text-xs"
-                                            value={botNotifyForm.daily_summary_minute.toString().padStart(2, '0')}
-                                            onChange={(e) => setBotNotifyForm({ ...botNotifyForm, daily_summary_minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex gap-4 mb-6">
-                            <button onClick={handleSaveBotNotify} className="btn-gradient px-8 h-10 !text-xs font-bold" disabled={botNotifyLoading}>
-                                {botNotifyLoading ? <Spinner className="animate-spin" /> : t("save")}
-                            </button>
-                            <button onClick={handleTestBotNotify} className="btn-secondary px-8 h-10 !text-xs font-bold" disabled={botNotifyTesting || botNotifyLoading}>
-                                {botNotifyTesting ? <Spinner className="animate-spin" /> : t("test_connection")}
-                            </button>
-                        </div>
-
-                        {botNotifyTestResult && (
-                            <div className={`mb-6 p-4 rounded-2xl text-[11px] border leading-relaxed ${botNotifyTestStatus === "success" ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'} animate-float-up`}>
-                                <div className="flex items-center gap-2 font-bold mb-1.5 uppercase tracking-widest text-[10px]">
-                                    {botNotifyTestStatus === "success" ? <CheckCircle weight="bold" /> : <Warning weight="bold" />}
-                                    {botNotifyTestStatus === "success" ? t("process_successful") : t("process_error")}
-                                </div>
-                                {botNotifyTestResult}
-                            </div>
-                        )}
-
-                        <div className="p-4 rounded-2xl bg-teal-500/5 border border-teal-500/15 text-[10px] text-main/50 leading-loose flex flex-col gap-1">
-                            <p className="flex items-center gap-2 italic">
-                                <Info weight="bold" size={14} className="text-teal-400" />
-                                如何获取 Bot Token：与 <b className="text-main/70">@BotFather</b> 对话，发送 /newbot 创建机器人
-                            </p>
-                            <p className="flex items-center gap-2 italic">
-                                <Info weight="bold" size={14} className="text-teal-400" />
-                                如何获取 Chat ID：与 <b className="text-main/70">@userinfobot</b> 对话，或使用网页端查看 URL 中的 ID
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* 全局设置 */}
-                    <div className="glass-panel p-6 px-7">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 py-2.5 bg-violet-500/10 rounded-xl text-violet-400">
-                                <Gear weight="bold" size={20} />
-                            </div>
-                            <h2 className="text-xl font-bold tracking-tight">{t("global_settings")}</h2>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div>
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("sign_interval")}</label>
-                                <input
-                                    type="number"
-                                    className="h-11 !px-4"
-                                    value={globalSettings.sign_interval === null ? "" : globalSettings.sign_interval}
-                                    onChange={(e) => setGlobalSettings({ ...globalSettings, sign_interval: e.target.value ? parseInt(e.target.value) : null })}
-                                    placeholder={t("sign_interval_placeholder")}
-                                />
-                                <p className="mt-2 text-[10px] text-main/40 italic flex items-center gap-1.5">
-                                    <Info weight="bold" size={12} className="text-[#b57dff]" />
-                                    {t("sign_interval_desc")}
-                                </p>
-                            </div>
-                            <div>
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("log_retention")}</label>
-                                <input
-                                    type="number"
-                                    className="h-11 !px-4"
-                                    value={globalSettings.log_retention_days}
-                                    onChange={(e) => setGlobalSettings({ ...globalSettings, log_retention_days: parseInt(e.target.value) || 0 })}
-                                />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("data_dir")}</label>
-                                <input
-                                    className="h-11 !px-4"
-                                    value={globalSettings.data_dir || ""}
-                                    onChange={(e) => setGlobalSettings({ ...globalSettings, data_dir: e.target.value || null })}
-                                    placeholder={t("data_dir_placeholder")}
-                                />
-                                <p className="mt-2 text-[10px] text-main/40 italic flex items-center gap-1.5">
-                                    <Info weight="bold" size={12} className="text-[#b57dff]" />
-                                    {t("data_dir_desc")}
-                                </p>
-                                <p className="mt-1 text-[10px] text-amber-500/60 font-medium">{t("data_dir_restart_hint")}</p>
-                            </div>
-                        </div>
-                        <button className="btn-gradient w-fit px-5 !py-2 !text-[11px]" onClick={handleSaveGlobal} disabled={configLoading}>
-                            {configLoading ? <Spinner className="animate-spin" /> : t("save_global_params")}
-                        </button>
-                    </div>
-
-                    {/* Telegram API 配置 */}
-                    <div className="glass-panel p-6 px-7">
-                        <div className="flex justify-between items-center mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 py-2.5 bg-sky-500/10 rounded-xl text-sky-400">
-                                    <Cpu weight="bold" size={20} />
-                                </div>
-                                <h2 className="text-xl font-bold tracking-tight">{t("tg_api_config")}</h2>
-                            </div>
-                            <button onClick={handleResetTelegram} className="action-btn !w-9 !h-9" title={t("restore_default")} disabled={telegramLoading}>
-                                {telegramLoading ? <Spinner className="animate-spin" size={14} /> : <ArrowUDownLeft weight="bold" size={18} />}
-                            </button>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div>
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("api_id")}</label>
-                                <input
-                                    className="h-11 !px-4"
-                                    value={telegramForm.api_id}
-                                    onChange={(e) => setTelegramForm({ ...telegramForm, api_id: e.target.value })}
-                                    placeholder={t("tg_api_id_placeholder")}
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("api_hash")}</label>
-                                <input
-                                    className="h-11 !px-4"
-                                    value={telegramForm.api_hash}
-                                    onChange={(e) => setTelegramForm({ ...telegramForm, api_hash: e.target.value })}
-                                    placeholder={t("tg_api_hash_placeholder")}
-                                />
-                            </div>
-                        </div>
-                        <button className="btn-gradient px-8 h-10 !text-xs font-bold mb-6" onClick={handleSaveTelegram} disabled={telegramLoading}>
-                            {telegramLoading ? <Spinner className="animate-spin" /> : t("apply_api_config")}
-                        </button>
-                        <div className="p-4 rounded-2xl bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/30 dark:border-amber-500/20 text-[10px] text-amber-700 dark:text-amber-200/60 leading-relaxed shadow-sm font-medium">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Terminal weight="bold" className="text-amber-600 dark:text-amber-400" size={14} />
-                                <span className="font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">{t("warning_notice")}</span>
-                            </div>
-                            {t("tg_config_warning")}
-                        </div>
-                    </div>
-
-                    {/* 会话批量迁移引擎 */}
-                    <div className="glass-panel p-6 px-7 border-l-4 border-l-emerald-500">
-                        <div className="flex items-center gap-3 mb-8">
-                            <div className="p-2 py-2.5 bg-emerald-500/10 rounded-xl text-emerald-400">
-                                <FileArchive weight="bold" size={20} />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold tracking-tight">{isZh ? "高级会话克隆与同步" : "Session Migration Engine"}</h2>
-                                <p className="text-[10px] text-main/30 uppercase tracking-[0.2em] font-mono mt-0.5">Physical Level Data Sync</p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                            {/* 导出端 */}
-                            <div className="flex flex-col bg-white/2 rounded-3xl p-6 border border-white/5 hover:border-emerald-500/20 transition-colors group">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
-                                        <CloudArrowUp weight="bold" size={20} />
-                                    </div>
-                                    <h3 className="text-sm font-bold">{isZh ? "克隆出口 (Clone Out)" : "Export Sessions"}</h3>
-                                </div>
-                                <p className="text-xs text-main/40 leading-relaxed mb-8">
-                                    {isZh 
-                                        ? "将本机器所有已登录账号的物理 Session 文件打包成二进制压缩包。包含该包的机器无需扫码即可满血复活。" 
-                                        : "Pack all active login sessions into a binary ZIP. Any machine with this package can resume accounts without login."}
-                                </p>
-                                <button 
-                                    onClick={handleExportSessions} 
-                                    className="mt-auto bg-emerald-500 hover:bg-emerald-600 text-white h-11 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
-                                    disabled={configLoading}
+            <div className="flex flex-1 overflow-hidden">
+                {/* Sidebar Navigation */}
+                <aside className="w-[320px] border-r border-white/5 p-8 hidden md:flex flex-col gap-10 bg-black/20 overflow-y-auto custom-scrollbar">
+                    <div>
+                        <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-6 pl-4">General Settings</p>
+                        <nav className="space-y-1">
+                            {navItems.slice(0, 3).map((item) => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setCurrentTab(item.id)}
+                                    className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${
+                                        currentTab === item.id 
+                                        ? "bg-white/[0.08] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]" 
+                                        : "text-white/40 hover:text-white/70 hover:bg-white/[0.02]"
+                                    }`}
                                 >
-                                    {configLoading ? <Spinner className="animate-spin" /> : <><FileArchive weight="bold" size={18} /> {isZh ? "生成物理迁移压缩包" : "Generate Migration ZIP"}</>}
+                                    <item.icon size={20} weight={currentTab === item.id ? "fill" : "bold"} className={currentTab === item.id ? "text-[#8a3ffc]" : ""} />
+                                    <span>{item.label}</span>
                                 </button>
-                                <div className="mt-4 flex items-center gap-2 px-3 py-2 bg-rose-500/5 rounded-xl border border-rose-500/10 text-rose-500/60 text-[10px] italic leading-tight">
-                                    <Shield weight="bold" size={14} />
-                                    注意：压缩包包含账号完全控制权，严禁泄露。
-                                </div>
-                            </div>
+                            ))}
+                        </nav>
+                    </div>
 
-                            {/* 导入端 */}
-                            <div className="flex flex-col bg-white/2 rounded-3xl p-6 border border-white/5 hover:border-sky-500/20 transition-colors group">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="w-10 h-10 rounded-2xl bg-sky-500/10 flex items-center justify-center text-sky-400 group-hover:scale-110 transition-transform">
-                                        <DownloadSimple weight="bold" size={20} />
-                                    </div>
-                                    <h3 className="text-sm font-bold">{isZh ? "克隆入口 (Clone In)" : "Import Sessions"}</h3>
-                                </div>
-                                <p className="text-xs text-main/40 leading-relaxed mb-8">
-                                    {isZh 
-                                        ? "从外部上传会话压缩包。系统会自动解压并替换本地会话目录，随后立即更新账号状态库。" 
-                                        : "Upload a session ZIP from outside. The system will automatically extract and replace local sessions."}
-                                </p>
-                                <label className={`mt-auto cursor-pointer h-11 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border-2 border-dashed border-white/10 hover:border-sky-500/40 hover:bg-sky-500/5 transition-all active:scale-95 ${configLoading ? 'opacity-50 pointer-events-none' : ''}`}>
-                                    {configLoading ? <Spinner className="animate-spin" /> : <><CloudArrowUp weight="bold" size={18} /> {isZh ? "上传并还原物理会话" : "Upload & Restore Sessions"}</>}
-                                    <input 
-                                        type="file" 
-                                        accept=".zip" 
-                                        className="hidden" 
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) handleImportSessions(file);
-                                        }}
-                                    />
-                                </label>
-                                <p className="mt-4 text-[10px] text-main/20 text-center uppercase tracking-widest font-mono">
-                                    Accepts .zip backup only
-                                </p>
-                            </div>
+                    <div>
+                        <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-6 pl-4">Advanced Protocol</p>
+                        <nav className="space-y-1">
+                            {navItems.slice(3).map((item) => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setCurrentTab(item.id)}
+                                    className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${
+                                        currentTab === item.id 
+                                        ? "bg-white/[0.08] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]" 
+                                        : "text-white/40 hover:text-white/70 hover:bg-white/[0.02]"
+                                    }`}
+                                >
+                                    <item.icon size={20} weight={currentTab === item.id ? "fill" : "bold"} className={currentTab === item.id ? "text-[#8a3ffc]" : ""} />
+                                    <span>{item.label}</span>
+                                </button>
+                            ))}
+                        </nav>
+                    </div>
+
+                    <div className="mt-auto">
+                        <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 text-center">
+                            <p className="text-[11px] text-white/20 font-medium leading-relaxed italic">
+                                {isZh ? "“ 极简是最高级的复杂 ”" : "“ Simplicity is the ultimate sophistication ”"}
+                            </p>
                         </div>
                     </div>
-                </div>
-            </main>
+                </aside>
 
-            <ToastContainer toasts={toasts} removeToast={removeToast} />
+                {/* Content Area */}
+                <main className="flex-1 overflow-y-auto custom-scrollbar bg-black/10 p-6 md:p-12 lg:p-16">
+                    <div className="max-w-4xl mx-auto min-h-full flex flex-col">
+                        <div className="flex-1">
+                            {currentTab === "account" && (
+                                <AccountSecurity 
+                                    token={token} 
+                                    totpEnabled={totpEnabled} 
+                                    setTotpEnabled={setTotpEnabled} 
+                                    setToken={setLocalToken} 
+                                />
+                            )}
+                            {currentTab === "telegram" && (
+                                <TelegramAPI 
+                                    token={token} 
+                                    telegramConfig={telegramConfig} 
+                                    loadTelegramConfig={() => loadAllData(token)} 
+                                />
+                            )}
+                            {currentTab === "notification" && (
+                                <NotificationService 
+                                    token={token} 
+                                    botNotifyConfig={botNotifyConfig} 
+                                    globalSettings={globalSettings}
+                                    loadBotNotifyConfig={() => loadAllData(token)} 
+                                />
+                            )}
+                            {currentTab === "ai" && (
+                                <AIEnrichment 
+                                    token={token} 
+                                    aiConfig={aiConfig} 
+                                    loadAIConfig={() => loadAllData(token)} 
+                                />
+                            )}
+                            {currentTab === "backup" && (
+                                <BackupMigration 
+                                    token={token} 
+                                    globalSettings={globalSettings} 
+                                    loadGlobalSettings={() => loadAllData(token)} 
+                                />
+                            )}
+                        </div>
+
+                        {/* Footer Info */}
+                        <footer className="mt-20 pt-10 border-t border-white/5 flex flex-col items-center gap-4 text-white/10 group hover:text-white/20 transition-colors">
+                            <p className="text-[9px] uppercase tracking-[0.6em] font-bold">TG-Pilot Minimalist Protocol</p>
+                            <div className="flex gap-6 opacity-50 group-hover:opacity-100 transition-opacity">
+                                <i className="ph ph-shield-check text-lg"></i>
+                                <i className="ph ph-lightning text-lg"></i>
+                                <i className="ph ph-cube text-lg"></i>
+                            </div>
+                        </footer>
+                    </div>
+                </main>
+            </div>
         </div>
     );
 }
