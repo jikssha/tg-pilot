@@ -63,7 +63,8 @@ import { useLanguage } from "../../../context/LanguageContext";
 
 export default function SettingsPage() {
     const router = useRouter();
-    const { t, isZh } = useLanguage();
+    const { t, language } = useLanguage();
+    const isZh = language === "zh";
     const { toasts, addToast, removeToast } = useToast();
     const [token, setLocalToken] = useState<string | null>(null);
     const [userLoading, setUserLoading] = useState(false);
@@ -519,6 +520,7 @@ export default function SettingsPage() {
                 notify_on_failure: true,
                 daily_summary: true,
                 daily_summary_hour: 22,
+                daily_summary_minute: 0,
             });
         } catch (err: any) {
             addToast(formatErrorMessage("delete_failed", err), "error");

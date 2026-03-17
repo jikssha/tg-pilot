@@ -225,7 +225,7 @@ export default function AccountTasksContent({
     initialAccountName?: string 
 }) {
     const router = useRouter();
-    const { t, language, isZh } = useLanguage();
+    const { t, language } = useLanguage();
     const searchParams = useSearchParams();
     const accountNameFromUrl = searchParams.get("name") || "";
     const accountName = initialAccountName || accountNameFromUrl;

@@ -79,7 +79,8 @@ export default function Dashboard() {
   const [bulkImportConfig, setBulkImportConfig] = useState("");
   const [bulkImportLoading, setBulkImportLoading] = useState(false);
   const router = useRouter();
-  const { t, isZh } = useLanguage();
+  const { t, language } = useLanguage();
+  const isZh = language === "zh";
   const { toasts, addToast, removeToast } = useToast();
   const [token, setLocalToken] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<AccountInfo[]>([]);
@@ -1099,7 +1100,7 @@ export default function Dashboard() {
         isZh 
           ? `批量分发完成！共处理 ${configsToImport.length} 个任务，成功部署 ${successCount} 次` 
           : `Bulk distribution complete! Handled ${configsToImport.length} tasks, successfully deployed ${successCount} times`,
-        failCount > 0 ? "warning" : "success"
+        failCount > 0 ? "info" : "success"
       );
       
       setShowBulkImport(false);
@@ -1109,7 +1110,7 @@ export default function Dashboard() {
       // setSelectedAccounts(new Set());
       
       // 刷新数据
-      loadAccounts(token);
+      loadData(token);
       if (selectedAccountName) {
          // 可选：触发内部组件刷新
       }
