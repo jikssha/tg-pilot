@@ -104,18 +104,6 @@ export default function Dashboard() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<string | null>(null);
 
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-[var(--accent-glow)]/20 border-t-[var(--accent-glow)] rounded-full animate-spin"></div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent-glow)]/40 font-bold animate-pulse">
-            System Initializing
-          </div>
-        </div>
-      </div>
-    );
-  }
   const qrPasswordRef = useRef("");
   const qrPasswordLoadingRef = useRef(false);
 
@@ -1037,6 +1025,19 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-[var(--accent-glow)]/20 border-t-[var(--accent-glow)] rounded-full animate-spin"></div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent-glow)]/40 font-bold animate-pulse">
+            System Initializing
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const selectedAccount = accounts.find((a) => a.name === selectedAccountName);
   const selectedStatus = selectedAccountName ? accountStatusMap[selectedAccountName] : null;

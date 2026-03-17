@@ -50,6 +50,9 @@ import {
     Terminal,
     GithubLogo,
     Bell,
+    Info,
+    CheckCircle,
+    Warning
 } from "@phosphor-icons/react";
 import { ToastContainer, useToast } from "../../../components/ui/toast";
 import { ThemeLanguageToggle } from "../../../components/ThemeLanguageToggle";
