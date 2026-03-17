@@ -1,4 +1,4 @@
-const TOKEN_KEY = "tg-signer-token";
+const TOKEN_KEY = "tg-pilot-token";
 
 export const getToken = (): string | null => {
   if (typeof window === "undefined") return null;

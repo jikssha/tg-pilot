@@ -58,7 +58,7 @@ Homepage = "https://github.com/jikssha/tg-pilot"
 Repository = "https://github.com/jikssha/tg-pilot"
 
 [project.scripts]
-tg-signer = "tg_signer.__main__:signer"
+tg-pilot = "tg_signer.__main__:signer"
 
 [tool.setuptools]
 include-package-data = true

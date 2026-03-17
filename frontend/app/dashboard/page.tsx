@@ -42,7 +42,8 @@ import {
   CirclesThree,
   TerminalWindow,
   Eye,
-  EyeClosed
+  EyeClosed,
+  GithubLogo
 } from "@phosphor-icons/react";
 import { ToastContainer, useToast } from "../../components/ui/toast";
 import { ThemeLanguageToggle } from "../../components/ThemeLanguageToggle";
@@ -61,6 +62,8 @@ const DASHBOARD_STATUS_CHECKED_KEY = "tg-pilot:dashboard-status-checked";
 const DASHBOARD_STATUS_CACHE_KEY = "tg-pilot:dashboard-status-cache";
 
 export default function Dashboard() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const [show2FAPassword, setShow2FAPassword] = useState(false);
   const router = useRouter();
   const { t } = useLanguage();
@@ -98,6 +101,21 @@ export default function Dashboard() {
   const [qrPassword, setQrPassword] = useState("");
   const [qrPasswordLoading, setQrPasswordLoading] = useState(false);
   const [proxyTesting, setProxyTesting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<string | null>(null);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-[var(--accent-glow)]/20 border-t-[var(--accent-glow)] rounded-full animate-spin"></div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent-glow)]/40 font-bold animate-pulse">
+            System Initializing
+          </div>
+        </div>
+      </div>
+    );
+  }
   const qrPasswordRef = useRef("");
   const qrPasswordLoadingRef = useRef(false);
 
@@ -494,13 +512,14 @@ export default function Dashboard() {
     t,
   ]);
 
-  const handleDeleteAccount = async (name: string) => {
-    if (!token) return;
-    if (!confirm(t("confirm_delete_account").replace("{name}", name))) return;
+  const handleDeleteAccount = async () => {
+    if (!token || !accountToDelete) return;
     try {
       setLoading(true);
-      await deleteAccount(token, name);
+      await deleteAccount(token, accountToDelete);
       addToast(t("account_deleted"), "success");
+      setShowDeleteConfirm(false);
+      setAccountToDelete(null);
       loadData(token);
     } catch (err: any) {
       addToast(formatErrorMessage("delete_failed", err), "error");
@@ -1033,7 +1052,7 @@ export default function Dashboard() {
                <PaperPlaneRight weight="fill" className="text-xs" />
             </div>
             TG-Pilot
-            <span className="text-[10px] font-mono bg-white/5 border border-white/10 px-1 rounded-sm text-main/30 ml-0.5">v3.2</span>
+            <span className="text-[10px] font-mono bg-white/5 border border-white/10 px-1 rounded-sm text-main/30 ml-0.5">v3.3</span>
           </div>
           <Link href="/dashboard/settings" title={t("sidebar_settings")} className="text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-white/5 p-1 rounded transition-colors">
             <Gear weight="bold" />
@@ -1102,17 +1121,16 @@ export default function Dashboard() {
                 )}
             </div>
             <div className="flex items-center gap-2">
+                <a
+                  href="https://github.com/jikssha/tg-pilot"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="action-btn"
+                  title={t("github_repo")}
+                >
+                  <GithubLogo weight="bold" />
+                </a>
                 <ThemeLanguageToggle />
-                {selectedAccount && (
-                  <>
-                    <button 
-                      className="px-2.5 py-1.5 rounded-md text-xs font-medium inline-flex items-center gap-1.5 text-rose-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                      onClick={() => handleDeleteAccount(selectedAccount.name)}
-                    >
-                      <Trash weight="bold" /> {t("remove")}
-                    </button>
-                  </>
-                )}
             </div>
         </header>
 
@@ -1143,6 +1161,17 @@ export default function Dashboard() {
                       ) : (
                         <span className="w-2.5 h-2.5 border border-rose-500 rounded-full inline-block"></span>
                       )}
+                      
+                      <button 
+                        className="ml-2 p-1.5 rounded-md text-rose-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                        onClick={() => {
+                          setAccountToDelete(selectedAccount.name);
+                          setShowDeleteConfirm(true);
+                        }}
+                        title={t("remove")}
+                      >
+                        <Trash weight="bold" size={18} />
+                      </button>
                   </h1>
                   <div className="flex flex-wrap items-center gap-3 mt-4">
 
@@ -1253,16 +1282,21 @@ export default function Dashboard() {
                     />
 
                     <label className="text-[11px] mb-1">{t("login_code")}</label>
-                    <div className="input-group !mb-4">
+                    <div className="relative !mb-4">
                       <input
                         type="text"
-                        className="!py-2.5 !px-4"
+                        className="!py-2.5 !px-4 pr-12"
                         placeholder={t("login_code_placeholder")}
                         value={loginData.phone_code}
                         onChange={(e) => setLoginData({ ...loginData, phone_code: e.target.value })}
                       />
-                      <button className="btn-code !h-[42px] !w-[42px] !text-lg" onClick={handleStartLogin} disabled={loading} title={t("send_code")}>
-                        {loading ? <Spinner className="animate-spin" size={16} /> : <PaperPlaneRight weight="bold" />}
+                      <button 
+                        className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-[var(--accent-glow)] hover:bg-white/5 rounded-lg transition-colors"
+                        onClick={handleStartLogin} 
+                        disabled={loading} 
+                        title={t("send_code")}
+                      >
+                        {loading ? <Spinner className="animate-spin" size={16} /> : <PaperPlaneRight weight="bold" size={20} />}
                       </button>
                     </div>
 
@@ -1512,6 +1546,46 @@ export default function Dashboard() {
                 <button className="btn-secondary flex-1 h-10 !py-0 !text-xs" onClick={() => setShowEditDialog(false)}>{t("cancel")}</button>
                 <button className="btn-gradient flex-1 h-10 !py-0 !text-xs" onClick={handleSaveEdit} disabled={loading}>
                   {loading ? <Spinner className="animate-spin" /> : t("save")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="modal-overlay active">
+          <div className="glass-panel modal-content !max-w-[420px] !p-8 animate-scale-in" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-14 h-14 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 mb-5 border border-rose-500/20">
+                <Trash weight="fill" size={28} />
+              </div>
+              <h3 className="text-xl font-semibold text-[var(--text-main)] mb-3">
+                {t("confirm_delete")}
+              </h3>
+              <p className="text-sm text-[var(--text-sub)] mb-8 leading-relaxed">
+                {t("confirm_delete_account").replace("{name}", accountToDelete || "")}
+                <br />
+                这将会删除该账号所有的任务配置、登录会话和历史日志。此操作不可撤销。
+              </p>
+              
+              <div className="flex gap-3 w-full">
+                <button 
+                  className="linear-btn-secondary flex-1 h-11 !text-sm" 
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setAccountToDelete(null);
+                  }}
+                  disabled={loading}
+                >
+                  {t("cancel")}
+                </button>
+                <button 
+                  className="bg-rose-500 hover:bg-rose-600 text-white flex-1 h-11 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                  onClick={handleDeleteAccount}
+                  disabled={loading}
+                >
+                  {loading ? <Spinner className="animate-spin" /> : <><Trash weight="bold" /> {t("delete")}</>}
                 </button>
               </div>
             </div>

@@ -108,7 +108,9 @@ To meet various operational demands, TG-Pilot offers extensive environment varia
 
 ## 📝 Changelog
 
-### V3.3 Deep Frontend & Visual Optimization
+### V3.3 Deep Frontend & Brand Visual Optimization
+- **New 🔔 Daily Task Summary Report**: Added a scheduled daily summary feature for Bot notifications. Customize your report delivery time to stay updated on all automated activities at a glance.
+- **Integrated 🎨 Emerald Green Branding**: Fully implemented the redesigned TG-Pilot brand icon and Favicon. Deeply integrated a GitHub shortcut in the top-right corner of the dashboard for a more professional feel.
 - **Enhanced 🎇 Execution Immersion**: One-click play buttons now transform into real-time spinners. Active task cards feature a **subtle green pulse border**, providing clear visual feedback for automated flows.
 - **New 👁️ 2FA Password Toggle**: Support for toggling password visibility (Eye/EyeClosed) during Phone or QR login, making manual authentication much more reliable.
 - **Improved 🔍 Intelligent Log Filter**: Added a "Failed Only" switch in history modals with smooth transitions and new Phosphorus icon integration.
@@ -119,7 +121,7 @@ To meet various operational demands, TG-Pilot offers extensive environment varia
 - **Refocused 🎯 Core Task Dashboard**: Demoted the massive settings section and introduced a unified layout prioritizing Sign Tasks. Tasks are now rendered as sleek independent Linear cards, with hover-triggered quick actions allowing you to perfectly oversee your whole fleet's workflow smoothly.
 - **Optimized 📊 Integrated Terminal Logs**: Removed clumsy modal popups for logs. Replaced with an embedded mini-terminal console highlighting successful/failed tasks execution right on the dashboard.
 
-### V0.2.x Core Polish
+### V3.1 Core Refactor & Optimization
 - **Added 👻 Native Device Spoofing**: Fully overhauled pyrogram instantiation process. Every running account now randomly (but consistently) poses as an official Apple/Microsoft client OS rather than `Pyrogram`. Massive boost for your fleet safety.
 - **Added 🚀 1-Click Proxy Test**: Integrated proxy direct connection testers into the dashboard. No more guessing.
 - **Optimized 💻 Next-Gen Defaults**: `TG_SESSION_MODE=string` and `TG_SESSION_NO_UPDATES=1` are now deeply integrated as core container defaults. Expect a 60% memory footprint drop and zero SQL `database is locked` deadlocks.

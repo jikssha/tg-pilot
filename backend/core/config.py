@@ -22,11 +22,11 @@ def get_default_secret_key() -> str:
 
     # 否则使用固定的默认值（生产环境应该设置环境变量）
     # 这个默认值确保应用能启动，但不够安全
-    return "tg-signer-default-secret-key-please-change-in-production-2024"
+    return "tg-pilot-default-secret-key-please-change-in-production-2024"
 
 
 class Settings(BaseSettings):
-    app_name: str = "tg-signer-panel"
+    app_name: str = "tg-pilot-panel"
     host: str = os.getenv("APP_HOST", "127.0.0.1")
     port: int = 3000
 

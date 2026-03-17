@@ -134,7 +134,7 @@ class BotNotifyService:
 
         try:
             text = (
-                "🔔 <b>TG SignPulse 通知测试</b>\n\n"
+                "🔔 <b>TG-Pilot 通知测试</b>\n\n"
                 f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
                 "✅ 连接成功！通知功能已就绪。"
             )

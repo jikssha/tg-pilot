@@ -201,7 +201,7 @@ export default function SettingsPage() {
             const res = await changeUsername(token, usernameForm.newUsername, usernameForm.password);
             addToast(t("username_changed"), "success");
             if (res.access_token) {
-                localStorage.setItem("tg-signer-token", res.access_token);
+                localStorage.setItem("tg-pilot-token", res.access_token);
                 setLocalToken(res.access_token);
             }
             setUsernameForm({ newUsername: "", password: "" });
@@ -562,96 +562,96 @@ export default function SettingsPage() {
             </nav>
 
             <main className="main-content">
-                <div className="space-y-6 animate-float-up pb-10">
+                <div className="max-w-4xl mx-auto space-y-6 animate-float-up pb-10">
                     {/* 用户名修改 */}
-                    <div className="glass-panel p-4">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
-                                <User weight="bold" size={18} />
+                    <div className="glass-panel p-6 px-7">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 py-2.5 bg-blue-500/10 rounded-xl text-blue-400">
+                                <User weight="bold" size={20} />
                             </div>
-                            <h2 className="text-lg font-bold">{t("username")}</h2>
+                            <h2 className="text-xl font-bold tracking-tight">{t("username")}</h2>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label className="text-[12px] mb-1.5">{t("new_username")}</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("new_username")}</label>
                                 <input
                                     type="text"
-                                    className="!py-2.5 !px-4"
+                                    className="h-11 !px-4"
                                     placeholder={t("new_username_placeholder")}
                                     value={usernameForm.newUsername}
                                     onChange={(e) => setUsernameForm({ ...usernameForm, newUsername: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <label className="text-[12px] mb-1.5">{t("current_password")}</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("current_password")}</label>
                                 <input
                                     type="password"
-                                    className="!py-2.5 !px-4"
+                                    className="h-11 !px-4"
                                     placeholder={t("current_password_placeholder")}
                                     value={usernameForm.password}
                                     onChange={(e) => setUsernameForm({ ...usernameForm, password: e.target.value })}
                                 />
                             </div>
                         </div>
-                        <button className="btn-gradient w-fit px-6 !py-2.5 !text-xs" onClick={handleChangeUsername} disabled={userLoading}>
+                        <button className="btn-gradient px-8 h-10 min-w-[120px] !text-xs font-bold" onClick={handleChangeUsername} disabled={userLoading}>
                             {userLoading ? <Spinner className="animate-spin" /> : t("change_username")}
                         </button>
                     </div>
 
                     {/* 密码修改 */}
-                    <div className="glass-panel p-4">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-amber-500/10 rounded-xl text-amber-400">
-                                <Lock weight="bold" size={18} />
+                    <div className="glass-panel p-6 px-7">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 py-2.5 bg-amber-500/10 rounded-xl text-amber-400">
+                                <Lock weight="bold" size={20} />
                             </div>
-                            <h2 className="text-lg font-bold">{t("change_password")}</h2>
+                            <h2 className="text-xl font-bold tracking-tight">{t("change_password")}</h2>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div>
-                                <label className="text-[12px] mb-1.5">{t("old_password")}</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("old_password")}</label>
                                 <input
                                     type="password"
-                                    className="!py-2.5 !px-4"
+                                    className="h-11 !px-4"
                                     value={passwordForm.oldPassword}
                                     onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <label className="text-[12px] mb-1.5">{t("new_password")}</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("new_password")}</label>
                                 <input
                                     type="password"
-                                    className="!py-2.5 !px-4"
+                                    className="h-11 !px-4"
                                     value={passwordForm.newPassword}
                                     onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <label className="text-[12px] mb-1.5">{t("confirm_new_password")}</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("confirm_new_password")}</label>
                                 <input
                                     type="password"
-                                    className="!py-2.5 !px-4"
+                                    className="h-11 !px-4"
                                     value={passwordForm.confirmPassword}
                                     onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
                                 />
                             </div>
                         </div>
-                        <button className="btn-gradient w-fit px-6 !py-2.5 !text-xs" onClick={handleChangePassword} disabled={pwdLoading}>
+                        <button className="btn-gradient px-8 h-10 min-w-[120px] !text-xs font-bold" onClick={handleChangePassword} disabled={pwdLoading}>
                             {pwdLoading ? <Spinner className="animate-spin" /> : t("change_password")}
                         </button>
                     </div>
 
                     {/* 2FA 设置 */}
-                    <div className="glass-panel p-4 overflow-hidden">
-                        <div className="flex justify-between items-center mb-4">
+                    <div className="glass-panel p-6 px-7 overflow-hidden">
+                        <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400">
-                                    <ShieldCheck weight="bold" size={18} />
+                                <div className="p-2 py-2.5 bg-emerald-500/10 rounded-xl text-emerald-400">
+                                    <ShieldCheck weight="bold" size={20} />
                                 </div>
-                                <h2 className="text-lg font-bold">{t("2fa_settings")}</h2>
+                                <h2 className="text-xl font-bold tracking-tight">{t("2fa_settings")}</h2>
                             </div>
-                            <div className={`shrink-0 bg-${totpEnabled ? 'emerald' : 'rose'}-500/10 border border-${totpEnabled ? 'emerald' : 'rose'}-500/20 text-${totpEnabled ? 'emerald' : 'rose'}-400 px-3 py-0.5 rounded-full text-[10px] font-bold`}>
+                            <div className={`shrink-0 bg-${totpEnabled ? 'emerald' : 'rose'}-500/10 border border-${totpEnabled ? 'emerald' : 'rose'}-500/20 text-${totpEnabled ? 'emerald' : 'rose'}-400 px-4 py-1 rounded-full text-[10px] font-bold tracking-wider`}>
                                 {totpEnabled ? t("status_enabled") : t("status_disabled")}
                             </div>
                         </div>
@@ -724,68 +724,70 @@ export default function SettingsPage() {
                     </div>
 
                     {/* AI 配置 */}
-                    <div className="glass-panel p-4">
-                        <div className="flex justify-between items-center mb-4">
+                    <div className="glass-panel p-6 px-7">
+                        <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
-                                    <BotIcon weight="bold" size={18} />
+                                <div className="p-2 py-2.5 bg-indigo-500/10 rounded-xl text-indigo-400">
+                                    <BotIcon weight="bold" size={20} />
                                 </div>
-                                <h2 className="text-lg font-bold">{t("ai_config")}</h2>
+                                <h2 className="text-xl font-bold tracking-tight">{t("ai_config")}</h2>
                             </div>
                             {aiConfig && (
-                                <button onClick={handleDeleteAI} className="action-btn !w-8 !h-8 !text-rose-400" title={t("delete_ai_config")}>
-                                    <Trash weight="bold" size={16} />
+                                <button onClick={handleDeleteAI} className="action-btn !w-9 !h-9 !text-rose-400" title={t("delete_ai_config")}>
+                                    <Trash weight="bold" size={18} />
                                 </button>
                             )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div className="md:col-span-2">
-                                <label className="text-[11px] mb-1">{t("api_key")}</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("api_key")}</label>
                                 <input
                                     type="password"
-                                    className="!py-2 !px-4"
+                                    className="h-11 !px-4"
                                     value={aiForm.api_key}
                                     onChange={(e) => setAIForm({ ...aiForm, api_key: e.target.value })}
                                     placeholder={aiConfig?.api_key_masked || t("api_key")}
                                 />
                                 {aiConfig?.api_key_masked && (
-                                    <p className="mt-1 text-[9px] text-main/40">
+                                    <p className="mt-2 text-[10px] text-main/40 italic flex items-center gap-1.5">
+                                        <Info weight="bold" size={12} className="text-[#b57dff]" />
                                         {t("api_key_keep_hint")}
                                     </p>
                                 )}
                             </div>
                             <div>
-                                <label className="text-[11px] mb-1">{t("base_url")}</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("base_url")}</label>
                                 <input
-                                    className="!py-2 !px-4"
+                                    className="h-11 !px-4"
                                     value={aiForm.base_url}
                                     onChange={(e) => setAIForm({ ...aiForm, base_url: e.target.value })}
                                     placeholder={t("ai_base_url_placeholder")}
                                 />
                             </div>
                             <div>
-                                <label className="text-[11px] mb-1">{t("model")}</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("model")}</label>
                                 <input
-                                    className="!py-2 !px-4"
+                                    className="h-11 !px-4"
                                     value={aiForm.model}
                                     onChange={(e) => setAIForm({ ...aiForm, model: e.target.value })}
                                 />
                             </div>
                         </div>
 
-                        <div className="flex gap-3">
-                            <button onClick={handleSaveAI} className="btn-gradient w-fit px-5 !py-2 !text-[11px]" disabled={configLoading}>
+                        <div className="flex gap-4">
+                            <button onClick={handleSaveAI} className="btn-gradient px-8 h-10 !text-xs font-bold" disabled={configLoading}>
                                 {configLoading ? <Spinner className="animate-spin" /> : t("save")}
                             </button>
-                            <button onClick={handleTestAI} className="btn-secondary w-fit px-5 !py-2 !text-[11px]" disabled={aiTesting || configLoading}>
+                            <button onClick={handleTestAI} className="btn-secondary px-8 h-10 !text-xs font-bold" disabled={aiTesting || configLoading}>
                                 {aiTesting ? <Spinner className="animate-spin" /> : t("test_connection")}
                             </button>
                         </div>
 
                         {aiTestResult && (
-                            <div className={`mt-4 p-3 rounded-xl text-[11px] border ${aiTestStatus === "success" ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'} animate-float-up`}>
-                                <div className="flex items-center gap-2 font-bold mb-0.5 uppercase tracking-wider text-[9px]">
+                            <div className={`mt-6 p-4 rounded-2xl text-[11px] border leading-relaxed ${aiTestStatus === "success" ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'} animate-float-up`}>
+                                <div className="flex items-center gap-2 font-bold mb-1.5 uppercase tracking-widest text-[10px]">
+                                    {aiTestStatus === "success" ? <CheckCircle weight="bold" /> : <Warning weight="bold" />}
                                     {aiTestStatus === "success" ? t("process_successful") : t("process_error")}
                                 </div>
                                 {aiTestResult}
@@ -794,158 +796,174 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Bot 通知配置 */}
-                    <div className="glass-panel p-4">
-                        <div className="flex justify-between items-center mb-4">
+                    <div className="glass-panel p-6 px-7">
+                        <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-teal-500/10 rounded-xl text-teal-400">
-                                    <Bell weight="bold" size={18} />
+                                <div className="p-2 py-2.5 bg-teal-500/10 rounded-xl text-teal-400">
+                                    <Bell weight="bold" size={20} />
                                 </div>
-                                <h2 className="text-lg font-bold">Bot 通知</h2>
+                                <h2 className="text-xl font-bold tracking-tight">{t("bot_notify")}</h2>
                             </div>
                             {botNotifyConfig?.has_config && (
-                                <button onClick={handleDeleteBotNotify} className="action-btn !w-8 !h-8 !text-rose-400" title="删除 Bot 通知配置">
-                                    <Trash weight="bold" size={16} />
+                                <button onClick={handleDeleteBotNotify} className="action-btn !w-9 !h-9 !text-rose-400" title={t("delete_bot_config")}>
+                                    <Trash weight="bold" size={18} />
                                 </button>
                             )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label className="text-[11px] mb-1">Bot Token</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("bot_token")}</label>
                                 <input
                                     type="password"
-                                    className="!py-2 !px-4"
+                                    className="h-11 !px-4"
                                     value={botNotifyForm.bot_token}
                                     onChange={(e) => setBotNotifyForm({ ...botNotifyForm, bot_token: e.target.value })}
-                                    placeholder={botNotifyConfig?.bot_token_masked || "输入 Telegram Bot Token"}
+                                    placeholder={botNotifyConfig?.bot_token_masked || t("bot_token_placeholder")}
                                 />
                                 {botNotifyConfig?.bot_token_masked && (
-                                    <p className="mt-1 text-[9px] text-main/40">
-                                        留空则保留当前 Token
+                                    <p className="mt-2 text-[10px] text-main/40 italic flex items-center gap-1.5">
+                                        <Info weight="bold" size={12} className="text-[#b57dff]" />
+                                        {t("bot_token_keep_hint")}
                                     </p>
                                 )}
                             </div>
                             <div>
-                                <label className="text-[11px] mb-1">Chat ID</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("chat_id")}</label>
                                 <input
-                                    className="!py-2 !px-4"
+                                    className="h-11 !px-4"
                                     value={botNotifyForm.chat_id}
                                     onChange={(e) => setBotNotifyForm({ ...botNotifyForm, chat_id: e.target.value })}
-                                    placeholder="输入接收通知的 Chat ID"
+                                    placeholder={t("chat_id_placeholder")}
                                 />
                             </div>
                         </div>
 
                         {/* 通知开关 */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setBotNotifyForm({ ...botNotifyForm, enabled: !botNotifyForm.enabled })}>
-                                <div className={`w-10 h-6 rounded-full relative transition-all shadow-sm border ${botNotifyForm.enabled ? 'bg-[#8a3ffc] border-[#8a3ffc]' : 'bg-black/20 dark:bg-white/10 border-black/10 dark:border-white/30'}`}>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setBotNotifyForm({ ...botNotifyForm, enabled: !botNotifyForm.enabled })}>
+                                <div className={`w-10 h-6 rounded-full relative transition-all shadow-input border ${botNotifyForm.enabled ? 'bg-[#8a3ffc] border-[#8a3ffc]' : 'bg-white/5 border-white/10 dark:border-white/20'}`}>
                                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-md ${botNotifyForm.enabled ? 'left-5' : 'left-0.5'}`}></div>
                                 </div>
-                                <span className={`text-[12px] select-none ${botNotifyForm.enabled ? 'text-main font-bold' : 'text-main/40'}`}>启用通知</span>
+                                <span className={`text-[12px] select-none ${botNotifyForm.enabled ? 'text-main font-bold' : 'text-main/40 group-hover:text-main/60'}`}>{t("enable_notify")}</span>
                             </div>
-                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setBotNotifyForm({ ...botNotifyForm, notify_on_success: !botNotifyForm.notify_on_success })}>
-                                <div className={`w-10 h-6 rounded-full relative transition-all shadow-sm border ${botNotifyForm.notify_on_success ? 'bg-emerald-500 border-emerald-500' : 'bg-black/20 dark:bg-white/10 border-black/10 dark:border-white/30'}`}>
+                            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setBotNotifyForm({ ...botNotifyForm, notify_on_success: !botNotifyForm.notify_on_success })}>
+                                <div className={`w-10 h-6 rounded-full relative transition-all shadow-input border ${botNotifyForm.notify_on_success ? 'bg-emerald-500 border-emerald-500' : 'bg-white/5 border-white/10 dark:border-white/20'}`}>
                                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-md ${botNotifyForm.notify_on_success ? 'left-5' : 'left-0.5'}`}></div>
                                 </div>
-                                <span className={`text-[12px] select-none ${botNotifyForm.notify_on_success ? 'text-main font-bold' : 'text-main/40'}`}>成功时通知</span>
+                                <span className={`text-[12px] select-none ${botNotifyForm.notify_on_success ? 'text-emerald-400 font-bold' : 'text-main/40 group-hover:text-main/60'}`}>{t("notify_on_success")}</span>
                             </div>
-                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setBotNotifyForm({ ...botNotifyForm, notify_on_failure: !botNotifyForm.notify_on_failure })}>
-                                <div className={`w-10 h-6 rounded-full relative transition-all shadow-sm border ${botNotifyForm.notify_on_failure ? 'bg-rose-500 border-rose-500' : 'bg-black/20 dark:bg-white/10 border-black/10 dark:border-white/30'}`}>
+                            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setBotNotifyForm({ ...botNotifyForm, notify_on_failure: !botNotifyForm.notify_on_failure })}>
+                                <div className={`w-10 h-6 rounded-full relative transition-all shadow-input border ${botNotifyForm.notify_on_failure ? 'bg-rose-500 border-rose-500' : 'bg-white/5 border-white/10 dark:border-white/20'}`}>
                                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-md ${botNotifyForm.notify_on_failure ? 'left-5' : 'left-0.5'}`}></div>
                                 </div>
-                                <span className={`text-[12px] select-none ${botNotifyForm.notify_on_failure ? 'text-main font-bold' : 'text-main/40'}`}>失败时通知</span>
+                                <span className={`text-[12px] select-none ${botNotifyForm.notify_on_failure ? 'text-rose-400 font-bold' : 'text-main/40 group-hover:text-main/60'}`}>{t("notify_on_failure")}</span>
                             </div>
                         </div>
 
                         {/* 每日汇总 */}
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setBotNotifyForm({ ...botNotifyForm, daily_summary: !botNotifyForm.daily_summary })}>
-                                <div className={`w-10 h-6 rounded-full relative transition-all shadow-sm border ${botNotifyForm.daily_summary ? 'bg-[#8a3ffc] border-[#8a3ffc]' : 'bg-black/20 dark:bg-white/10 border-black/10 dark:border-white/30'}`}>
+                        <div className="flex flex-col md:flex-row md:items-center gap-6 mb-6">
+                            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setBotNotifyForm({ ...botNotifyForm, daily_summary: !botNotifyForm.daily_summary })}>
+                                <div className={`w-10 h-6 rounded-full relative transition-all shadow-input border ${botNotifyForm.daily_summary ? 'bg-[#8a3ffc] border-[#8a3ffc]' : 'bg-white/5 border-white/10 dark:border-white/20'}`}>
                                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-md ${botNotifyForm.daily_summary ? 'left-5' : 'left-0.5'}`}></div>
                                 </div>
-                                <span className={`text-[12px] select-none ${botNotifyForm.daily_summary ? 'text-main font-bold' : 'text-main/40'}`}>每日汇总报告</span>
+                                <span className={`text-[12px] select-none ${botNotifyForm.daily_summary ? 'text-main font-bold' : 'text-main/40 group-hover:text-main/60'}`}>{t("daily_summary")}</span>
                             </div>
                             {botNotifyForm.daily_summary && (
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[11px] text-main/60">发送时间:</span>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="23"
-                                        className="!py-1 !px-3 !w-16 text-center"
-                                        value={botNotifyForm.daily_summary_hour}
-                                        onChange={(e) => setBotNotifyForm({ ...botNotifyForm, daily_summary_hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
-                                    />
-                                    <span className="text-[11px] text-main/60">:00</span>
+                                <div className="flex items-center gap-3 animate-float-up">
+                                    <span className="text-[11px] uppercase tracking-wider font-bold text-main/30">{t("send_time")}:</span>
+                                    <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-2">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="23"
+                                            className="!py-1 !px-2 !w-12 text-center !bg-transparent !border-none !shadow-none font-mono text-xs"
+                                            value={botNotifyForm.daily_summary_hour}
+                                            onChange={(e) => setBotNotifyForm({ ...botNotifyForm, daily_summary_hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
+                                        />
+                                        <span className="text-[11px] font-bold text-main/40 tracking-widest">:00</span>
+                                    </div>
                                 </div>
                             )}
                         </div>
 
-                        <div className="flex gap-3">
-                            <button onClick={handleSaveBotNotify} className="btn-gradient w-fit px-5 !py-2 !text-[11px]" disabled={botNotifyLoading}>
-                                {botNotifyLoading ? <Spinner className="animate-spin" /> : "保存"}
+                        <div className="flex gap-4 mb-6">
+                            <button onClick={handleSaveBotNotify} className="btn-gradient px-8 h-10 !text-xs font-bold" disabled={botNotifyLoading}>
+                                {botNotifyLoading ? <Spinner className="animate-spin" /> : t("save")}
                             </button>
-                            <button onClick={handleTestBotNotify} className="btn-secondary w-fit px-5 !py-2 !text-[11px]" disabled={botNotifyTesting || botNotifyLoading}>
-                                {botNotifyTesting ? <Spinner className="animate-spin" /> : "发送测试"}
+                            <button onClick={handleTestBotNotify} className="btn-secondary px-8 h-10 !text-xs font-bold" disabled={botNotifyTesting || botNotifyLoading}>
+                                {botNotifyTesting ? <Spinner className="animate-spin" /> : t("test_connection")}
                             </button>
                         </div>
 
                         {botNotifyTestResult && (
-                            <div className={`mt-4 p-3 rounded-xl text-[11px] border ${botNotifyTestStatus === "success" ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'} animate-float-up`}>
-                                <div className="flex items-center gap-2 font-bold mb-0.5 uppercase tracking-wider text-[9px]">
-                                    {botNotifyTestStatus === "success" ? "✅ 发送成功" : "❌ 发送失败"}
+                            <div className={`mb-6 p-4 rounded-2xl text-[11px] border leading-relaxed ${botNotifyTestStatus === "success" ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'} animate-float-up`}>
+                                <div className="flex items-center gap-2 font-bold mb-1.5 uppercase tracking-widest text-[10px]">
+                                    {botNotifyTestStatus === "success" ? <CheckCircle weight="bold" /> : <Warning weight="bold" />}
+                                    {botNotifyTestStatus === "success" ? t("process_successful") : t("process_error")}
                                 </div>
                                 {botNotifyTestResult}
                             </div>
                         )}
 
-                        <div className="mt-4 p-3.5 rounded-xl bg-teal-500/5 border border-teal-500/15 text-[10px] text-main/50 leading-relaxed">
-                            <p>💡 如何获取 Bot Token：与 <b>@BotFather</b> 对话，发送 /newbot 创建机器人</p>
-                            <p className="mt-1">💡 如何获取 Chat ID：与 <b>@userinfobot</b> 对话，或发送消息后访问 https://api.telegram.org/bot[TOKEN]/getUpdates</p>
+                        <div className="p-4 rounded-2xl bg-teal-500/5 border border-teal-500/15 text-[10px] text-main/50 leading-loose flex flex-col gap-1">
+                            <p className="flex items-center gap-2 italic">
+                                <Info weight="bold" size={14} className="text-teal-400" />
+                                如何获取 Bot Token：与 <b className="text-main/70">@BotFather</b> 对话，发送 /newbot 创建机器人
+                            </p>
+                            <p className="flex items-center gap-2 italic">
+                                <Info weight="bold" size={14} className="text-teal-400" />
+                                如何获取 Chat ID：与 <b className="text-main/70">@userinfobot</b> 对话，或使用网页端查看 URL 中的 ID
+                            </p>
                         </div>
                     </div>
 
                     {/* 全局设置 */}
-                    <div className="glass-panel p-4">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-violet-500/10 rounded-xl text-violet-400">
-                                <Gear weight="bold" size={18} />
+                    <div className="glass-panel p-6 px-7">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 py-2.5 bg-violet-500/10 rounded-xl text-violet-400">
+                                <Gear weight="bold" size={20} />
                             </div>
-                            <h2 className="text-lg font-bold">{t("global_settings")}</h2>
+                            <h2 className="text-xl font-bold tracking-tight">{t("global_settings")}</h2>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label className="text-[11px] mb-1">{t("sign_interval")}</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("sign_interval")}</label>
                                 <input
                                     type="number"
-                                    className="!py-2 !px-4"
+                                    className="h-11 !px-4"
                                     value={globalSettings.sign_interval === null ? "" : globalSettings.sign_interval}
                                     onChange={(e) => setGlobalSettings({ ...globalSettings, sign_interval: e.target.value ? parseInt(e.target.value) : null })}
                                     placeholder={t("sign_interval_placeholder")}
                                 />
-                                <p className="mt-1 text-[9px] text-[#9496a1]">{t("sign_interval_desc")}</p>
+                                <p className="mt-2 text-[10px] text-main/40 italic flex items-center gap-1.5">
+                                    <Info weight="bold" size={12} className="text-[#b57dff]" />
+                                    {t("sign_interval_desc")}
+                                </p>
                             </div>
                             <div>
-                                <label className="text-[11px] mb-1">{t("log_retention")}</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("log_retention")}</label>
                                 <input
                                     type="number"
-                                    className="!py-2 !px-4"
+                                    className="h-11 !px-4"
                                     value={globalSettings.log_retention_days}
                                     onChange={(e) => setGlobalSettings({ ...globalSettings, log_retention_days: parseInt(e.target.value) || 0 })}
                                 />
                             </div>
                             <div className="md:col-span-2">
-                                <label className="text-[11px] mb-1">{t("data_dir")}</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("data_dir")}</label>
                                 <input
-                                    className="!py-2 !px-4"
+                                    className="h-11 !px-4"
                                     value={globalSettings.data_dir || ""}
                                     onChange={(e) => setGlobalSettings({ ...globalSettings, data_dir: e.target.value || null })}
                                     placeholder={t("data_dir_placeholder")}
                                 />
-                                <p className="mt-1 text-[9px] text-[#9496a1]">{t("data_dir_desc")}</p>
-                                <p className="mt-1 text-[9px] text-amber-400">{t("data_dir_restart_hint")}</p>
+                                <p className="mt-2 text-[10px] text-main/40 italic flex items-center gap-1.5">
+                                    <Info weight="bold" size={12} className="text-[#b57dff]" />
+                                    {t("data_dir_desc")}
+                                </p>
+                                <p className="mt-1 text-[10px] text-amber-500/60 font-medium">{t("data_dir_restart_hint")}</p>
                             </div>
                         </div>
                         <button className="btn-gradient w-fit px-5 !py-2 !text-[11px]" onClick={handleSaveGlobal} disabled={configLoading}>
@@ -954,66 +972,66 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Telegram API 配置 */}
-                    <div className="glass-panel p-4">
-                        <div className="flex justify-between items-center mb-4">
+                    <div className="glass-panel p-6 px-7">
+                        <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-sky-500/10 rounded-xl text-sky-400">
-                                    <Cpu weight="bold" size={18} />
+                                <div className="p-2 py-2.5 bg-sky-500/10 rounded-xl text-sky-400">
+                                    <Cpu weight="bold" size={20} />
                                 </div>
-                                <h2 className="text-lg font-bold">{t("tg_api_config")}</h2>
+                                <h2 className="text-xl font-bold tracking-tight">{t("tg_api_config")}</h2>
                             </div>
-                            <button onClick={handleResetTelegram} className="action-btn !w-8 !h-8" title={t("restore_default")} disabled={telegramLoading}>
-                                {telegramLoading ? <Spinner className="animate-spin" size={14} /> : <ArrowUDownLeft weight="bold" size={16} />}
+                            <button onClick={handleResetTelegram} className="action-btn !w-9 !h-9" title={t("restore_default")} disabled={telegramLoading}>
+                                {telegramLoading ? <Spinner className="animate-spin" size={14} /> : <ArrowUDownLeft weight="bold" size={18} />}
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label className="text-[11px] mb-1">{t("api_id")}</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("api_id")}</label>
                                 <input
-                                    className="!py-2 !px-4"
+                                    className="h-11 !px-4"
                                     value={telegramForm.api_id}
                                     onChange={(e) => setTelegramForm({ ...telegramForm, api_id: e.target.value })}
                                     placeholder={t("tg_api_id_placeholder")}
                                 />
                             </div>
                             <div>
-                                <label className="text-[11px] mb-1">{t("api_hash")}</label>
+                                <label className="text-[11px] uppercase tracking-wider font-bold text-main/30 mb-2 block">{t("api_hash")}</label>
                                 <input
-                                    className="!py-2 !px-4"
+                                    className="h-11 !px-4"
                                     value={telegramForm.api_hash}
                                     onChange={(e) => setTelegramForm({ ...telegramForm, api_hash: e.target.value })}
                                     placeholder={t("tg_api_hash_placeholder")}
                                 />
                             </div>
                         </div>
-                        <button className="btn-gradient w-fit px-5 !py-2 !text-[11px]" onClick={handleSaveTelegram} disabled={telegramLoading}>
+                        <button className="btn-gradient px-8 h-10 !text-xs font-bold mb-6" onClick={handleSaveTelegram} disabled={telegramLoading}>
                             {telegramLoading ? <Spinner className="animate-spin" /> : t("apply_api_config")}
                         </button>
-                        <div className="mt-4 p-3.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/30 dark:border-amber-500/20 text-[10px] text-amber-700 dark:text-amber-200/60 leading-relaxed shadow-sm font-medium">
-                            <div className="flex items-center gap-2 mb-1.5">
-                                <Terminal weight="bold" className="text-amber-600 dark:text-amber-400" size={12} />
-                                <span className="font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">{t("warning_notice")}</span>
+                        <div className="p-4 rounded-2xl bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/30 dark:border-amber-500/20 text-[10px] text-amber-700 dark:text-amber-200/60 leading-relaxed shadow-sm font-medium">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Terminal weight="bold" className="text-amber-600 dark:text-amber-400" size={14} />
+                                <span className="font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">{t("warning_notice")}</span>
                             </div>
                             {t("tg_config_warning")}
                         </div>
                     </div>
 
                     {/* 配置导出导入 */}
-                    <div className="glass-panel p-4">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-pink-500/10 rounded-xl text-pink-400">
-                                <DownloadSimple weight="bold" size={18} />
+                    <div className="glass-panel p-6 px-7">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 py-2.5 bg-pink-500/10 rounded-xl text-pink-400">
+                                <DownloadSimple weight="bold" size={20} />
                             </div>
-                            <h2 className="text-lg font-bold">{t("backup_migration")}</h2>
+                            <h2 className="text-xl font-bold tracking-tight">{t("backup_migration")}</h2>
                         </div>
 
-                        <div className="flex flex-col md:flex-row gap-6">
+                        <div className="flex flex-col md:flex-row gap-8">
                             <div className="flex-1">
-                                <label className="mb-2 text-[11px]">{t("export_config")}</label>
-                                <p className="text-[10px] text-[#9496a1] mb-3 leading-relaxed">{t("export_desc")}</p>
-                                <button onClick={handleExport} className="btn-secondary w-full flex items-center justify-center gap-2 h-9 !text-[11px]" disabled={configLoading}>
-                                    {configLoading ? <Spinner className="animate-spin" /> : <FloppyDisk weight="bold" />}
+                                <label className="mb-2 text-[11px] uppercase tracking-wider font-bold text-main/30 block">{t("export_config")}</label>
+                                <p className="text-[10px] text-main/40 mb-4 leading-relaxed italic">{t("export_desc")}</p>
+                                <button onClick={handleExport} className="btn-secondary w-full flex items-center justify-center gap-3 h-10 !text-[11px] font-bold" disabled={configLoading}>
+                                    {configLoading ? <Spinner className="animate-spin" /> : <FloppyDisk weight="bold" size={16} />}
                                     {t("download_json")}
                                 </button>
                             </div>
@@ -1022,8 +1040,8 @@ export default function SettingsPage() {
 
                             <div className="flex-1 flex flex-col">
                                 <div className="flex justify-between items-center mb-2">
-                                    <label className="text-[11px]">{t("import_config")}</label>
-                                    <label className="text-[10px] text-[#8a3ffc] dark:text-[#b57dff] cursor-pointer hover:underline font-bold">
+                                    <label className="text-[11px] uppercase tracking-wider font-bold text-main/30">{t("import_config")}</label>
+                                    <label className="text-[11px] text-[#8a3ffc] dark:text-[#b57dff] cursor-pointer hover:underline font-bold uppercase tracking-widest">
                                         {t("upload_json")}
                                         <input
                                             type="file"
@@ -1044,19 +1062,19 @@ export default function SettingsPage() {
                                     </label>
                                 </div>
                                 <textarea
-                                    className="w-full flex-1 min-h-[80px] bg-white/2 rounded-xl p-3 text-[10px] font-mono text-main/60 border border-white/5 focus:border-[#8a3ffc]/30 outline-none transition-all placeholder:text-main/20 custom-scrollbar"
+                                    className="w-full flex-1 min-h-[100px] bg-white/2 rounded-2xl p-4 text-[10px] font-mono text-main/60 border border-white/5 focus:border-[#8a3ffc]/30 outline-none transition-all placeholder:text-main/10 custom-scrollbar shadow-inner"
                                     placeholder={t("paste_json")}
                                     value={importConfig}
                                     onChange={(e) => setImportConfig(e.target.value)}
                                 ></textarea>
 
-                                <div className="flex items-center gap-3 mt-3 mb-4 group cursor-pointer" onClick={() => setOverwriteConfig(!overwriteConfig)}>
+                                <div className="flex items-center gap-4 mt-4 mb-5 group cursor-pointer" onClick={() => setOverwriteConfig(!overwriteConfig)}>
                                     <div
-                                        className={`w-12 h-7 rounded-full relative transition-all shadow-sm border-2 ${overwriteConfig ? 'bg-[#8a3ffc] border-[#8a3ffc]' : 'bg-black/20 dark:bg-white/10 border-black/10 dark:border-white/30'}`}
+                                        className={`w-10 h-6 rounded-full relative transition-all shadow-input border ${overwriteConfig ? 'bg-[#8a3ffc] border-[#8a3ffc]' : 'bg-white/5 border-white/10 dark:border-white/20'}`}
                                     >
-                                        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all shadow-md ${overwriteConfig ? 'left-6' : 'left-0.5'}`}></div>
+                                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-md ${overwriteConfig ? 'left-5' : 'left-0.5'}`}></div>
                                     </div>
-                                    <span className={`text-[13px] cursor-pointer select-none transition-colors ${overwriteConfig ? 'text-main font-bold' : 'text-main/40'}`}>
+                                    <span className={`text-[12px] cursor-pointer select-none transition-colors ${overwriteConfig ? 'text-main font-bold' : 'text-main/40 group-hover:text-main/60'}`}>
                                         {t("overwrite_conflict")}
                                     </span>
                                 </div>

@@ -129,26 +129,33 @@ body {
   background: rgba(255, 255, 255, 0.06);
 }
 
-/* 输入框 */
+/* 输入框与选择框 */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
   width: 100%;
   padding: 10px 12px;
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: #1A1A1A; /* 使用实色背景而非 rgba 避免浏览器下拉菜单渲染异常 */
   border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--text-main);
   outline: none;
   transition: var(--transition);
   font-size: 14px;
+  color-scheme: dark; /* 强制浏览器使用深色系统 UI */
 }
+
 input:not([type="checkbox"]):not([type="radio"]):focus,
 textarea:focus,
 select:focus {
-  border-color: rgba(255, 255, 255, 0.2);
-  background-color: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+  border-color: var(--accent-glow);
+  background-color: #222222;
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+
+option {
+  background-color: #1A1A1A;
+  color: var(--text-main);
 }
 input::placeholder,
 textarea::placeholder {

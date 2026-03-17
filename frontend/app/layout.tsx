@@ -7,8 +7,8 @@ import { LanguageProvider } from "../context/LanguageContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TG-Pilot",
-  description: "TG-Pilot",
+  title: "TG-Pilot | Control Center",
+  description: "Advanced Telegram Automation & Task Management Dashboard",
 };
 
 export const viewport: Viewport = {

@@ -16,7 +16,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        const savedTheme = localStorage.getItem('tg-signer-theme') as Theme;
+        const savedTheme = localStorage.getItem('tg-pilot-theme') as Theme;
         if (savedTheme) {
             setTheme(savedTheme);
             if (savedTheme === 'light') {
@@ -33,7 +33,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const toggleTheme = () => {
         const newTheme = theme === 'dark' ? 'light' : 'dark';
         setTheme(newTheme);
-        localStorage.setItem('tg-signer-theme', newTheme);
+        localStorage.setItem('tg-pilot-theme', newTheme);
         if (newTheme === 'light') {
             document.documentElement.classList.add('light');
             document.body.setAttribute('data-theme', 'light');

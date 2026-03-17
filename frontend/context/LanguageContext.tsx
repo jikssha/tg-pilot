@@ -322,7 +322,19 @@ const translations: Translations = {
         "switch_to_english": "切换到英文",
         "switch_to_chinese": "切换到中文",
         "switch_to_light": "切换至日间模式",
-        "switch_to_dark": "切换至夜间模式"
+        "switch_to_dark": "切换至夜间模式",
+        "bot_notify": "Bot 通知",
+        "bot_token": "Bot Token",
+        "chat_id": "Chat ID",
+        "bot_token_placeholder": "输入 Telegram Bot Token",
+        "chat_id_placeholder": "输入接收通知的 Chat ID",
+        "bot_token_keep_hint": "留空则保留当前 Token",
+        "enable_notify": "启用通知",
+        "notify_on_success": "仅在成功时通知",
+        "notify_on_failure": "仅在失败时通知",
+        "delete_bot_config": "删除 Bot 通知配置",
+        "daily_summary": "每日汇总报告",
+        "send_time": "发送时间"
     },
     en: {
         "login": "Login",
@@ -630,7 +642,19 @@ const translations: Translations = {
         "switch_to_english": "Switch to English",
         "switch_to_chinese": "Switch to Chinese",
         "switch_to_light": "Switch to Light Mode",
-        "switch_to_dark": "Switch to Dark Mode"
+        "switch_to_dark": "Switch to Dark Mode",
+        "bot_notify": "Bot Notification",
+        "bot_token": "Bot Token",
+        "chat_id": "Chat ID",
+        "bot_token_placeholder": "Enter Telegram Bot Token",
+        "chat_id_placeholder": "Enter receiving Chat ID",
+        "bot_token_keep_hint": "Leave blank to keep current Token",
+        "enable_notify": "Enable Notification",
+        "notify_on_success": "Notify on Success",
+        "notify_on_failure": "Notify on Failure",
+        "delete_bot_config": "Delete Bot Config",
+        "daily_summary": "Daily Summary Report",
+        "send_time": "Send Time"
     }
 };
 
@@ -647,7 +671,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        const savedLang = localStorage.getItem('tg-signer-lang') as Language;
+        const savedLang = localStorage.getItem('tg-pilot-lang') as Language;
         if (savedLang) {
             setLangState(savedLang);
         }
@@ -656,7 +680,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
     const setLanguage = (lang: Language) => {
         setLangState(lang);
-        localStorage.setItem('tg-signer-lang', lang);
+        localStorage.setItem('tg-pilot-lang', lang);
     };
 
     const t = (key: string) => {
