@@ -302,7 +302,7 @@ class TelegramService:
             return {
                 "account_name": account_name,
                 "ok": True,
-                "status": "connected",
+                "status": "valid",
                 "message": "",
                 "code": "OK",
                 "checked_at": checked_at,
@@ -361,7 +361,7 @@ class TelegramService:
                 return {
                     "account_name": account_name,
                     "ok": False,
-                    "status": "invalid",
+                    "status": "error",
                     "message": err_text,
                     "code": "ACCOUNT_SESSION_INVALID",
                     "checked_at": checked_at,
