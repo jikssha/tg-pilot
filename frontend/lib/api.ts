@@ -351,6 +351,29 @@ export const exportAllConfigs = async (token: string) => {
   return res.text();
 };
 
+export const exportSessionsZip = async (token: string) => {
+  const res = await fetch(`${API_BASE}/config/sessions/export`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error("Export failed");
+  return res.blob();
+};
+
+export const importSessionsZip = async (token: string, file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE}/config/sessions/import`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.detail || "Import failed");
+  }
+  return res.json();
+};
+
 export const importAllConfigs = (token: string, configJson: string, overwrite = false) =>
   request<{
     signs_imported: number;
@@ -508,6 +531,7 @@ export interface BotNotifyConfig {
   notify_on_failure: boolean;
   daily_summary: boolean;
   daily_summary_hour: number;
+  daily_summary_minute: number;
 }
 
 export interface BotNotifyConfigSaveRequest {
@@ -518,6 +542,7 @@ export interface BotNotifyConfigSaveRequest {
   notify_on_failure?: boolean;
   daily_summary?: boolean;
   daily_summary_hour?: number;
+  daily_summary_minute?: number;
 }
 
 export const getBotNotifyConfig = (token: string) =>

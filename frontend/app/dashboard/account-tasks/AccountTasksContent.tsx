@@ -225,7 +225,7 @@ export default function AccountTasksContent({
     initialAccountName?: string 
 }) {
     const router = useRouter();
-    const { t, language } = useLanguage();
+    const { t, language, isZh } = useLanguage();
     const searchParams = useSearchParams();
     const accountNameFromUrl = searchParams.get("name") || "";
     const accountName = initialAccountName || accountNameFromUrl;
@@ -621,20 +621,44 @@ export default function AccountTasksContent({
 
     const handleCopyTaskConfig = async () => {
         if (!copyTaskDialog) return;
-        if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
-            addToast(clipboardUnsupported, "error");
-            return;
+        
+        const text = copyTaskDialog.config;
+        let success = false;
+
+        // 优先使用现代化 Clipboard API
+        if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+            try {
+                await navigator.clipboard.writeText(text);
+                success = true;
+            } catch (err) {
+                console.warn("Navigator clipboard failed, trying fallback:", err);
+            }
         }
-        try {
-            setCopyingConfig(true);
-            await navigator.clipboard.writeText(copyTaskDialog.config);
+
+        // 备选方案: document.execCommand('copy')
+        if (!success) {
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                // 防止页面滚动
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                textArea.style.top = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                success = document.execCommand("copy");
+                document.body.removeChild(textArea);
+            } catch (err) {
+                console.error("Fallback copy failed:", err);
+            }
+        }
+
+        if (success) {
             addToast(copyTaskSuccess(copyTaskDialog.taskName), "success");
             setCopyTaskDialog(null);
-        } catch (err: any) {
-            const message = err?.message ? `${copyTaskFailed}: ${err.message}` : copyTaskFailed;
-            addToast(message, "error");
-        } finally {
-            setCopyingConfig(false);
+        } else {
+            addToast(clipboardUnsupported, "error");
         }
     };
 
@@ -927,6 +951,14 @@ export default function AccountTasksContent({
                             title={t("refresh_list")}
                         >
                             <ArrowClockwise weight="bold" className={loading ? 'animate-spin' : ''} />
+                        </button>
+                        <button
+                            onClick={handlePasteTask}
+                            disabled={loading}
+                            className="p-2 text-sky-400 hover:bg-sky-500/10 rounded-md transition-all"
+                            title={pasteTaskTitle}
+                        >
+                            <ClipboardText weight="bold" />
                         </button>
                         <button 
                             className="bg-[#EDEDED] text-[#0A0A0A] px-3.5 py-2 rounded-md text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5"

@@ -143,7 +143,7 @@ async def sync_jobs() -> None:
         existing_ids = {
             job.id
             for job in scheduler.get_jobs()
-            if job.id.startswith("db-") or job.id.startswith("sign-")
+            if job.id.startswith("db-") or job.id.startswith("sign-") or job.id == "notify-summary"
         }
         desired_ids = set()
 
@@ -199,6 +199,32 @@ async def sync_jobs() -> None:
                     )
             except Exception as e:
                 print(f"Error scheduling sign task {st['name']}: {e}")
+
+        # 3. 同步每日汇总 (Bot Notification Summary)
+        from backend.services.bot_notify import get_bot_notify_service
+        bot_notify = get_bot_notify_service()
+        bot_config = bot_notify.get_config() or {}
+        summary_job_id = "notify-summary"
+        
+        if bot_config.get("enabled") and bot_config.get("daily_summary"):
+            desired_ids.add(summary_job_id)
+            hour = bot_config.get("daily_summary_hour", 22)
+            minute = bot_config.get("daily_summary_minute", 0)
+            
+            try:
+                # 每天指定时分运行
+                trigger = CronTrigger.from_crontab(f"{minute} {hour} * * *")
+                if summary_job_id in existing_ids:
+                    scheduler.reschedule_job(summary_job_id, trigger=trigger)
+                else:
+                    scheduler.add_job(
+                        bot_notify.send_daily_summary,
+                        trigger=trigger,
+                        id=summary_job_id,
+                        replace_existing=True,
+                    )
+            except Exception as e:
+                print(f"Error scheduling notify summary: {e}")
 
         # remove obsolete jobs
         for job_id in existing_ids - desired_ids:

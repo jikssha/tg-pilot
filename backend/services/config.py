@@ -6,6 +6,9 @@
 from __future__ import annotations
 
 import json
+import shutil
+import zipfile
+import io
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -732,9 +735,38 @@ class ConfigService:
             return False
 
 
-# 创建全局实例
-_config_service: Optional[ConfigService] = None
+    def export_sessions_zip(self) -> bytes:
+        """
+        将所有会话文件打包成 ZIP 压缩包字节流
+        """
+        session_dir = settings.resolve_session_dir()
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            if session_dir.exists():
+                for file in session_dir.glob("*"):
+                    if file.is_file():
+                        zf.write(file, file.name)
+        return buf.getvalue()
 
+    def import_sessions_zip(self, zip_bytes: bytes) -> bool:
+        """
+        从 ZIP 字节流导入并还原会话文件
+        """
+        session_dir = settings.resolve_session_dir()
+        session_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            # 清空旧会话
+            for file in session_dir.glob("*"):
+                if file.is_file():
+                    file.unlink()
+            with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+                zf.extractall(session_dir)
+            return True
+        except Exception as e:
+            print(f"Error importing sessions zip: {e}")
+            return False
+
+_config_service: Optional[ConfigService] = None
 
 def get_config_service() -> ConfigService:
     global _config_service

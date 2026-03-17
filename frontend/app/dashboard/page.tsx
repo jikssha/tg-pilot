@@ -20,6 +20,7 @@ import {
   clearAccountLogs,
   listSignTasks,
   testProxyConnection,
+  importSignTask,
   AccountInfo,
   AccountStatusItem,
   AccountLog,
@@ -43,7 +44,13 @@ import {
   TerminalWindow,
   Eye,
   EyeClosed,
-  GithubLogo
+  GithubLogo,
+  Checks,
+  ListChecks,
+  CheckSquareOffset,
+  Square,
+  CheckSquare,
+  ClipboardText
 } from "@phosphor-icons/react";
 import { ToastContainer, useToast } from "../../components/ui/toast";
 import { ThemeLanguageToggle } from "../../components/ThemeLanguageToggle";
@@ -65,8 +72,14 @@ export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
   const [show2FAPassword, setShow2FAPassword] = useState(false);
+  // 多选模式状态
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set());
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [bulkImportConfig, setBulkImportConfig] = useState("");
+  const [bulkImportLoading, setBulkImportLoading] = useState(false);
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, isZh } = useLanguage();
   const { toasts, addToast, removeToast } = useToast();
   const [token, setLocalToken] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<AccountInfo[]>([]);
@@ -1026,6 +1039,87 @@ export default function Dashboard() {
     }
   };
 
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    setSelectedAccounts(new Set());
+  };
+
+  const toggleAccountSelection = (name: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const next = new Set(selectedAccounts);
+    if (next.has(name)) {
+      next.delete(name);
+    } else {
+      next.add(name);
+    }
+    setSelectedAccounts(next);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedAccounts.size === accounts.length) {
+      setSelectedAccounts(new Set());
+    } else {
+      setSelectedAccounts(new Set(accounts.map(a => a.name)));
+    }
+  };
+
+  const handleBulkImportSubmit = async () => {
+    if (!token || !bulkImportConfig.trim()) return;
+    try {
+      setBulkImportLoading(true);
+      const accountList = Array.from(selectedAccounts);
+      let successCount = 0;
+      let failCount = 0;
+
+      // 解析导入内容，支持单任务对象或多任务数组
+      let configsToImport: any[] = [];
+      try {
+        const parsed = JSON.parse(bulkImportConfig);
+        configsToImport = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (e) {
+        addToast(isZh ? "JSON 格式错误，请检查配置内容" : "Invalid JSON format", "error");
+        return;
+      }
+
+      for (const accName of accountList) {
+        for (const config of configsToImport) {
+          try {
+            // 如果 config 是字符串则直接使用，否则转为字符串
+            const configStr = typeof config === 'string' ? config : JSON.stringify(config);
+            await importSignTask(token, configStr, undefined, accName);
+            successCount++;
+          } catch (err) {
+            console.error(`Import failed for ${accName}:`, err);
+            failCount++;
+          }
+        }
+      }
+
+      addToast(
+        isZh 
+          ? `批量分发完成！共处理 ${configsToImport.length} 个任务，成功部署 ${successCount} 次` 
+          : `Bulk distribution complete! Handled ${configsToImport.length} tasks, successfully deployed ${successCount} times`,
+        failCount > 0 ? "warning" : "success"
+      );
+      
+      setShowBulkImport(false);
+      setBulkImportConfig("");
+      // 为了方便连续操作，不再自动退出多选模式和清除选中状态
+      // setIsSelectionMode(false);
+      // setSelectedAccounts(new Set());
+      
+      // 刷新数据
+      loadAccounts(token);
+      if (selectedAccountName) {
+         // 可选：触发内部组件刷新
+      }
+    } catch (err: any) {
+      addToast(formatErrorMessage("import_failed", err), "error");
+    } finally {
+      setBulkImportLoading(false);
+    }
+  };
+
   if (!mounted) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
@@ -1053,7 +1147,7 @@ export default function Dashboard() {
                <PaperPlaneRight weight="fill" className="text-xs" />
             </div>
             TG-Pilot
-            <span className="text-[10px] font-mono bg-white/5 border border-white/10 px-1 rounded-sm text-main/30 ml-0.5">v3.3</span>
+            <span className="text-[10px] font-mono bg-white/5 border border-white/10 px-1 rounded-sm text-main/30 ml-0.5">v3.4</span>
           </div>
           <Link href="/dashboard/settings" title={t("sidebar_settings")} className="text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-white/5 p-1 rounded transition-colors">
             <Gear weight="bold" />
@@ -1061,14 +1155,25 @@ export default function Dashboard() {
         </div>
 
         <div className="px-4 pt-4 pb-2 flex justify-between items-center text-[11px] font-semibold text-[#555962] uppercase tracking-wider">
-          账号列表
-          <button 
-            onClick={openAddDialog}
-            className="text-[var(--text-sub)] hover:text-[var(--text-main)] p-1 hover:bg-white/5 rounded transition-colors"
-            title={t("add_account")}
-          >
-            <Plus weight="bold" />
-          </button>
+          {isSelectionMode ? (isZh ? "多选模式" : "Selection") : (isZh ? "账号列表" : "Accounts")}
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={toggleSelectionMode}
+              className={`p-1 rounded transition-colors ${isSelectionMode ? "text-sky-400 bg-sky-400/10" : "text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-white/5"}`}
+              title={isZh ? "切换多选模式" : "Toggle Multi-Selection"}
+            >
+              <ListChecks weight="bold" />
+            </button>
+            {!isSelectionMode && (
+              <button 
+                onClick={openAddDialog}
+                className="text-[var(--text-sub)] hover:text-[var(--text-main)] p-1 hover:bg-white/5 rounded transition-colors"
+                title={t("add_account")}
+              >
+                <Plus weight="bold" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 pb-4 sidebar-scrollbar">
@@ -1085,23 +1190,31 @@ export default function Dashboard() {
               const isOnline = statusInfo?.status === "valid";
               
               const isActive = selectedAccountName === acc.name;
+              const isSelected = selectedAccounts.has(acc.name);
 
               return (
                 <div 
                   key={acc.name}
-                  onClick={() => setSelectedAccountName(acc.name)}
-                  className={`flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer text-[13px] transition-colors mb-[2px] ${
-                    isActive ? "bg-white/10 text-[var(--text-main)] font-medium" : "text-[var(--text-sub)] hover:bg-white/5 hover:text-[var(--text-main)]"
-                  } ${isInvalid ? "opacity-60" : ""}`}
+                  onClick={() => isSelectionMode ? toggleAccountSelection(acc.name) : setSelectedAccountName(acc.name)}
+                  className={`flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer text-[13px] transition-all mb-[2px] relative group/item ${
+                    isActive && !isSelectionMode ? "bg-white/10 text-[var(--text-main)] font-medium" : "text-[var(--text-sub)] hover:bg-white/5 hover:text-[var(--text-main)]"
+                  } ${isInvalid ? "opacity-60" : ""} ${isSelected && isSelectionMode ? "bg-sky-500/10 !text-sky-400" : ""}`}
                 >
+                  {isSelectionMode && (
+                    <div className="shrink-0 text-sky-400/60 group-hover/item:text-sky-400 transition-colors">
+                      {isSelected ? <CheckSquare weight="fill" size={16} /> : <Square weight="bold" size={16} />}
+                    </div>
+                  )}
                   <div className={`w-2 h-2 rounded-full shrink-0 ${
                     isChecking ? "bg-amber-400/50 animate-pulse" :
                     isOnline ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.3)]" : 
                     "border border-rose-500/50 bg-transparent"
                   }`}></div>
                   <div className="flex-1 truncate">{acc.name}</div>
-                  <div className="text-[10px] text-[#555962] font-mono shrink-0">{getAccountTaskCount(acc.name)}</div>
-                  {isInvalid && <div className="text-rose-500 shrink-0 text-xs"><Warning weight="bold" /></div>}
+                  {!isSelectionMode && (
+                    <div className="text-[10px] text-[#555962] font-mono shrink-0 group-hover/item:hidden">{getAccountTaskCount(acc.name)}</div>
+                  )}
+                  {isInvalid && !isSelectionMode && <div className="text-rose-500 shrink-0 text-xs"><Warning weight="bold" /></div>}
                 </div>
               );
             })
@@ -1593,6 +1706,87 @@ export default function Dashboard() {
       )}
 
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+
+      {/* 批量操作悬浮条 */}
+      {isSelectionMode && selectedAccounts.size > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-float-up">
+          <div className="glass-panel !bg-black/60 !backdrop-blur-xl border border-white/20 px-6 py-3 rounded-full flex items-center gap-6 shadow-2xl">
+            <div className="flex items-center gap-3 pr-6 border-r border-white/10">
+              <button 
+                 onClick={toggleSelectAll}
+                 className="w-5 h-5 rounded border border-white/20 flex items-center justify-center hover:border-sky-400 transition-colors"
+              >
+                {selectedAccounts.size === accounts.length ? <Checks weight="bold" className="text-sky-400" /> : null}
+              </button>
+              <div className="text-xs font-bold whitespace-nowrap">
+                {isZh ? `已选中 ${selectedAccounts.size} 个` : `Selected ${selectedAccounts.size}`}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button 
+                className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 active:scale-95"
+                onClick={() => setShowBulkImport(true)}
+              >
+                <ClipboardText weight="bold" />
+                {isZh ? "一键导入任务" : "Bulk Import"}
+              </button>
+              <button 
+                className="text-main/40 hover:text-white px-3 py-1.5 rounded-full text-xs font-bold transition-all"
+                onClick={toggleSelectionMode}
+              >
+                {isZh ? "取消" : "Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 批量导入弹窗 */}
+      {showBulkImport && (
+        <div className="modal-overlay active">
+          <div className="glass-panel modal-content !max-w-3xl flex flex-col animate-scale-in" onClick={(e) => e.stopPropagation()}>
+            <header className="modal-header border-b border-white/5 pb-3 mb-0">
+              <div className="modal-title flex items-center gap-2 !text-base">
+                <ClipboardText weight="bold" size={18} className="text-sky-400" />
+                {isZh ? "批量导入任务配置" : "Bulk Import Config"}
+              </div>
+              <button onClick={() => setShowBulkImport(false)} className="modal-close" disabled={bulkImportLoading}>
+                <X weight="bold" />
+              </button>
+            </header>
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-main/60 leading-relaxed">
+                {isZh 
+                  ? "支持粘贴单个任务对象 或 多个任务组成的数组 [{}, {}]。系统将自动为每个选中账号分发包内所有任务。" 
+                  : "Paste a single task object or an array of tasks [{}, {}]. All tasks will be distributed to each selected account."}
+              </p>
+              <textarea
+                className="w-full h-80 !mb-0 font-mono text-[11px] bg-black/20 border-white/5 focus:border-sky-500/30 transition-all rounded-xl p-4"
+                placeholder={isZh ? "[ {\"task_name\": \"任务1\", ...}, {\"task_name\": \"任务2\", ...} ]" : "[ {\"task_name\": \"Task 1\", ...}, ... ]"}
+                value={bulkImportConfig}
+                onChange={(e) => setBulkImportConfig(e.target.value)}
+              />
+            </div>
+            <footer className="p-5 border-t border-white/5 flex gap-3">
+              <button
+                className="btn-secondary flex-1"
+                onClick={() => setShowBulkImport(false)}
+                disabled={bulkImportLoading}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                className="bg-sky-500 hover:bg-sky-600 text-white flex-[2] rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                onClick={handleBulkImportSubmit}
+                disabled={bulkImportLoading || !bulkImportConfig.trim()}
+              >
+                {bulkImportLoading ? <Spinner className="animate-spin" /> : <><ClipboardText weight="bold" /> {isZh ? `立即分发至 ${selectedAccounts.size} 个账号` : `Distribute to ${selectedAccounts.size} accounts`}</>}
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

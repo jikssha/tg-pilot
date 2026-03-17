@@ -4,7 +4,7 @@
 
 ** Telegram 多账号自动化批量签到任务管理面板**
 
-[![Version](https://img.shields.io/badge/version-v3.3-purple.svg)](https://github.com/jikssha/tg-pilot)
+[![Version](https://img.shields.io/badge/version-v3.4-purple.svg)](https://github.com/jikssha/tg-pilot)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 [![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
@@ -28,6 +28,8 @@
 - **📈 实时任务雷达**：集成化任务卡片，支持一键执行、历史日志筛选（仅看失败）、快捷配置复制。
 - **🧠 原生 AI 驱动**：遇到验证码、计算题？配置好 API 即可让大模型在任务流中全自动帮你解决。
 - **🛡️ 极致维稳架构**：严格的并发控制、原生应对 `429 Too Many Requests`，告别内存泄漏与进程僵死。
+- **⚡ 会话物理同步 (v3.4)**：新增高能“会话迁移终端”，一键导出全量 ZIP 凭证。换机部署无需扫码，物理级克隆满血复活。
+- **🚀 批量任务分发 (v3.4)**：支持多账号勾选与“任务包”批量分发。一次点击，即可让矩阵内所有账号同步拉齐任务序列。
 - **📦 现代化容器部署**：提供高定制化的 Docker 镜像，只需一行命令即可跨平台开箱即用。
 
 ## 🚀 一键部署 (Docker Compose)

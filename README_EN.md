@@ -4,7 +4,7 @@
 
 **The Next-Generation Telegram Automation & Account Manager**
 
-[![Version](https://img.shields.io/badge/version-v3.3-purple.svg)](https://github.com/jikssha/tg-pilot)
+[![Version](https://img.shields.io/badge/version-v3.4-purple.svg)](https://github.com/jikssha/tg-pilot)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 [![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
@@ -28,6 +28,8 @@ Built with **native AI integration (Vision & Computation)**, TG-Pilot handles co
 - **📈 Real-time Task Radar**: Integrated task cards with one-click run, history log filtering (failures only), and config cloning.
 - **🧠 Native AI-Driven**: Encountering puzzles? Configure the LLM API to bypass them entirely on autopilot.
 - **🛡️ Rock-Solid Architecture**: Built with strict concurrency limits and built-in protections against `429 Too Many Requests`.
+- **⚡ Session Clone Engine (v3.4)**: New migration terminal to export/import physical session ZIPs. Move between machines without ever needing to re-login.
+- **🚀 Bulk Task Distribution (v3.4)**: Multi-select accounts and distribute "Task Packages" (JSON arrays) instantly across your entire fleet.
 - **📦 Modern Containerization**: Deploy effortlessly with a highly customizable, ready-to-run Docker image.
  
 

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import io
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status, UploadFile, File
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from backend.core.auth import get_current_user
@@ -112,46 +114,53 @@ def export_sign_task(
         )
 
 
-@router.post("/import/sign", response_model=ImportTaskResponse)
-async def import_sign_task(
-    request: ImportTaskRequest, current_user: User = Depends(get_current_user)
-):
+@router.get("/sessions/export")
+async def export_sessions_zip(current_user: User = Depends(get_current_user)):
+    """
+    导出所有账号会话为 ZIP 压缩包
+    """
     try:
         service = get_config_service()
-        if not is_writable_dir(service.signs_dir):
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Data directory is not writable: {service.signs_dir}",
-            )
-
-        success = service.import_sign_task(
-            request.config_json, request.task_name, request.account_name
+        zip_data = service.export_sessions_zip()
+        
+        return StreamingResponse(
+            io.BytesIO(zip_data),
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": 'attachment; filename="tg_pilot_sessions.zip"'
+            }
         )
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid task config",
-            )
-
-        data = json.loads(request.config_json)
-        final_task_name = request.task_name or data.get("task_name", "imported_task")
-
-        from backend.scheduler import sync_jobs
-
-        _clear_sign_task_cache()
-        await sync_jobs()
-
-        return ImportTaskResponse(
-            success=True,
-            task_name=final_task_name,
-            message=f"Task {final_task_name} imported",
-        )
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to import task: {str(e)}",
+            detail=f"Failed to export sessions: {str(e)}"
+        )
+
+
+@router.post("/sessions/import")
+async def import_sessions_zip(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    通过上传 ZIP 还原会话状态
+    """
+    try:
+        content = await file.read()
+        service = get_config_service()
+        success = service.import_sessions_zip(content)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to import sessions. Invalid zip file or data error."
+            )
+            
+        return {"success": True, "message": "Sessions imported successfully"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to import sessions: {str(e)}"
         )
 
 
@@ -486,6 +495,7 @@ class BotNotifyConfigRequest(BaseModel):
     notify_on_failure: bool = True
     daily_summary: bool = True
     daily_summary_hour: int = 22
+    daily_summary_minute: int = 0
 
 
 class BotNotifyConfigResponse(BaseModel):
@@ -499,6 +509,7 @@ class BotNotifyConfigResponse(BaseModel):
     notify_on_failure: bool = True
     daily_summary: bool = True
     daily_summary_hour: int = 22
+    daily_summary_minute: int = 0
 
 
 class BotNotifyTestResponse(BaseModel):
@@ -537,6 +548,7 @@ def get_bot_notify_config(current_user: User = Depends(get_current_user)):
             notify_on_failure=config.get("notify_on_failure", True),
             daily_summary=config.get("daily_summary", True),
             daily_summary_hour=config.get("daily_summary_hour", 22),
+            daily_summary_minute=config.get("daily_summary_minute", 0),
         )
     except Exception as e:
         raise HTTPException(
@@ -546,12 +558,13 @@ def get_bot_notify_config(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/bot-notify", response_model=AIConfigSaveResponse)
-def save_bot_notify_config(
+async def save_bot_notify_config(
     request: BotNotifyConfigRequest, current_user: User = Depends(get_current_user)
 ):
     """保存 Bot 通知配置"""
     try:
         from backend.services.bot_notify import get_bot_notify_service
+        from backend.scheduler import sync_jobs
 
         get_bot_notify_service().save_config(
             bot_token=request.bot_token,
@@ -561,7 +574,9 @@ def save_bot_notify_config(
             notify_on_failure=request.notify_on_failure,
             daily_summary=request.daily_summary,
             daily_summary_hour=request.daily_summary_hour,
+            daily_summary_minute=request.daily_summary_minute,
         )
+        await sync_jobs()
         return AIConfigSaveResponse(success=True, message="Bot notify config saved")
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -573,12 +588,14 @@ def save_bot_notify_config(
 
 
 @router.delete("/bot-notify", response_model=AIConfigSaveResponse)
-def delete_bot_notify_config(current_user: User = Depends(get_current_user)):
+async def delete_bot_notify_config(current_user: User = Depends(get_current_user)):
     """删除 Bot 通知配置"""
     try:
         from backend.services.bot_notify import get_bot_notify_service
+        from backend.scheduler import sync_jobs
 
         get_bot_notify_service().delete_config()
+        await sync_jobs()
         return AIConfigSaveResponse(success=True, message="Bot notify config deleted")
     except Exception as e:
         raise HTTPException(

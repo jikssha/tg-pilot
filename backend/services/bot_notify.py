@@ -56,6 +56,7 @@ class BotNotifyService:
         notify_on_failure: bool = True,
         daily_summary: bool = True,
         daily_summary_hour: int = 22,
+        daily_summary_minute: int = 0,
     ) -> bool:
         """保存通知配置"""
         existing = self.get_config() or {}
@@ -77,6 +78,7 @@ class BotNotifyService:
             "notify_on_failure": notify_on_failure,
             "daily_summary": daily_summary,
             "daily_summary_hour": max(0, min(23, daily_summary_hour)),
+            "daily_summary_minute": max(0, min(59, daily_summary_minute)),
         }
 
         config_file = self._get_config_file()

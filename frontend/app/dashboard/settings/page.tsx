@@ -12,8 +12,8 @@ import {
     getTOTPQRCode,
     enableTOTP,
     disableTOTP,
-    exportAllConfigs,
-    importAllConfigs,
+    exportSessionsZip,
+    importSessionsZip,
     getAIConfig,
     saveAIConfig,
     testAIConnection,
@@ -40,6 +40,9 @@ import {
     Gear,
     Cpu,
     DownloadSimple,
+    CloudArrowUp,
+    FileArchive,
+    Shield,
     SignOut,
     Spinner,
     ArrowUDownLeft,
@@ -60,7 +63,7 @@ import { useLanguage } from "../../../context/LanguageContext";
 
 export default function SettingsPage() {
     const router = useRouter();
-    const { t } = useLanguage();
+    const { t, isZh } = useLanguage();
     const { toasts, addToast, removeToast } = useToast();
     const [token, setLocalToken] = useState<string | null>(null);
     const [userLoading, setUserLoading] = useState(false);
@@ -89,9 +92,6 @@ export default function SettingsPage() {
     const [totpCode, setTotpCode] = useState("");
     const [showTotpSetup, setShowTotpSetup] = useState(false);
 
-    // 配置导入导出
-    const [importConfig, setImportConfig] = useState("");
-    const [overwriteConfig, setOverwriteConfig] = useState(false);
 
     // AI 配置
     const [aiConfig, setAIConfigState] = useState<AIConfig | null>(null);
@@ -124,6 +124,7 @@ export default function SettingsPage() {
         notify_on_failure: true,
         daily_summary: true,
         daily_summary_hour: 22,
+        daily_summary_minute: 0,
     });
     const [botNotifyTestResult, setBotNotifyTestResult] = useState<string | null>(null);
     const [botNotifyTestStatus, setBotNotifyTestStatus] = useState<"success" | "error" | null>(null);
@@ -288,41 +289,40 @@ export default function SettingsPage() {
         }
     };
 
-    const handleExport = async () => {
+    const handleExportSessions = async () => {
         if (!token) return;
         try {
             setConfigLoading(true);
-            const config = await exportAllConfigs(token);
-            const blob = new Blob([config], { type: "application/json" });
+            const blob = await exportSessionsZip(token);
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "tg-signer-config.json";
+            a.download = `tg_pilot_sessions_${new Date().toISOString().split('T')[0]}.zip`;
             a.click();
-            addToast(t("export_success"), "success");
+            URL.revokeObjectURL(url);
+            addToast(isZh ? "会话压缩包导出成功" : "Sessions exported successfully", "success");
         } catch (err: any) {
-            addToast(formatErrorMessage("export_failed", err), "error");
+            addToast(isZh ? "导出失败: " + err.message : "Export failed: " + err.message, "error");
         } finally {
             setConfigLoading(false);
         }
     };
 
-    const handleImport = async () => {
-        if (!token) return;
-        if (!importConfig) {
-            addToast(t("import_empty"), "error");
-            return;
-        }
+    const handleImportSessions = async (file: File) => {
+        if (!token || !file) return;
+        const confirmMsg = isZh 
+            ? "导入将覆盖当前所有账号会话，确定继续吗？" 
+            : "Importing will overwrite all current sessions. Continue?";
+        if (!confirm(confirmMsg)) return;
+
         try {
             setConfigLoading(true);
-            await importAllConfigs(token, importConfig, overwriteConfig);
-            addToast(t("import_success"), "success");
-            setImportConfig("");
-            loadAIConfig(token);
-            loadGlobalSettings(token);
-            loadTelegramConfig(token);
+            await importSessionsZip(token, file);
+            addToast(isZh ? "会话导入并重载成功" : "Sessions imported and reloaded", "success");
+            // 可以在此处强制刷新页面或重新加载账号列表
+            setTimeout(() => window.location.reload(), 1500);
         } catch (err: any) {
-            addToast(formatErrorMessage("import_failed", err), "error");
+            addToast(isZh ? "导入失败: " + err.message : "Import failed: " + err.message, "error");
         } finally {
             setConfigLoading(false);
         }
@@ -452,6 +452,7 @@ export default function SettingsPage() {
                     notify_on_failure: config.notify_on_failure,
                     daily_summary: config.daily_summary,
                     daily_summary_hour: config.daily_summary_hour,
+                    daily_summary_minute: config.daily_summary_minute || 0,
                 });
             }
         } catch (err) { }
@@ -469,6 +470,7 @@ export default function SettingsPage() {
                 notify_on_failure: botNotifyForm.notify_on_failure,
                 daily_summary: botNotifyForm.daily_summary,
                 daily_summary_hour: botNotifyForm.daily_summary_hour,
+                daily_summary_minute: botNotifyForm.daily_summary_minute,
             });
             addToast("Bot 通知配置已保存", "success");
             loadBotNotifyConfig(token);
@@ -884,7 +886,15 @@ export default function SettingsPage() {
                                             value={botNotifyForm.daily_summary_hour}
                                             onChange={(e) => setBotNotifyForm({ ...botNotifyForm, daily_summary_hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
                                         />
-                                        <span className="text-[11px] font-bold text-main/40 tracking-widest">:00</span>
+                                        <span className="text-[11px] font-bold text-main/40 tracking-widest">:</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="59"
+                                            className="!py-1 !px-2 !w-12 text-center !bg-transparent !border-none !shadow-none font-mono text-xs"
+                                            value={botNotifyForm.daily_summary_minute.toString().padStart(2, '0')}
+                                            onChange={(e) => setBotNotifyForm({ ...botNotifyForm, daily_summary_minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
+                                        />
                                     </div>
                                 </div>
                             )}
@@ -1020,71 +1030,73 @@ export default function SettingsPage() {
                         </div>
                     </div>
 
-                    {/* 配置导出导入 */}
-                    <div className="glass-panel p-6 px-7">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 py-2.5 bg-pink-500/10 rounded-xl text-pink-400">
-                                <DownloadSimple weight="bold" size={20} />
+                    {/* 会话批量迁移引擎 */}
+                    <div className="glass-panel p-6 px-7 border-l-4 border-l-emerald-500">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="p-2 py-2.5 bg-emerald-500/10 rounded-xl text-emerald-400">
+                                <FileArchive weight="bold" size={20} />
                             </div>
-                            <h2 className="text-xl font-bold tracking-tight">{t("backup_migration")}</h2>
+                            <div>
+                                <h2 className="text-xl font-bold tracking-tight">{isZh ? "高级会话克隆与同步" : "Session Migration Engine"}</h2>
+                                <p className="text-[10px] text-main/30 uppercase tracking-[0.2em] font-mono mt-0.5">Physical Level Data Sync</p>
+                            </div>
                         </div>
 
-                        <div className="flex flex-col md:flex-row gap-8">
-                            <div className="flex-1">
-                                <label className="mb-2 text-[11px] uppercase tracking-wider font-bold text-main/30 block">{t("export_config")}</label>
-                                <p className="text-[10px] text-main/40 mb-4 leading-relaxed italic">{t("export_desc")}</p>
-                                <button onClick={handleExport} className="btn-secondary w-full flex items-center justify-center gap-3 h-10 !text-[11px] font-bold" disabled={configLoading}>
-                                    {configLoading ? <Spinner className="animate-spin" /> : <FloppyDisk weight="bold" size={16} />}
-                                    {t("download_json")}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                            {/* 导出端 */}
+                            <div className="flex flex-col bg-white/2 rounded-3xl p-6 border border-white/5 hover:border-emerald-500/20 transition-colors group">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                                        <CloudArrowUp weight="bold" size={20} />
+                                    </div>
+                                    <h3 className="text-sm font-bold">{isZh ? "克隆出口 (Clone Out)" : "Export Sessions"}</h3>
+                                </div>
+                                <p className="text-xs text-main/40 leading-relaxed mb-8">
+                                    {isZh 
+                                        ? "将本机器所有已登录账号的物理 Session 文件打包成二进制压缩包。包含该包的机器无需扫码即可满血复活。" 
+                                        : "Pack all active login sessions into a binary ZIP. Any machine with this package can resume accounts without login."}
+                                </p>
+                                <button 
+                                    onClick={handleExportSessions} 
+                                    className="mt-auto bg-emerald-500 hover:bg-emerald-600 text-white h-11 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                                    disabled={configLoading}
+                                >
+                                    {configLoading ? <Spinner className="animate-spin" /> : <><FileArchive weight="bold" size={18} /> {isZh ? "生成物理迁移压缩包" : "Generate Migration ZIP"}</>}
                                 </button>
+                                <div className="mt-4 flex items-center gap-2 px-3 py-2 bg-rose-500/5 rounded-xl border border-rose-500/10 text-rose-500/60 text-[10px] italic leading-tight">
+                                    <Shield weight="bold" size={14} />
+                                    注意：压缩包包含账号完全控制权，严禁泄露。
+                                </div>
                             </div>
 
-                            <div className="w-px bg-white/5 self-stretch hidden md:block"></div>
-
-                            <div className="flex-1 flex flex-col">
-                                <div className="flex justify-between items-center mb-2">
-                                    <label className="text-[11px] uppercase tracking-wider font-bold text-main/30">{t("import_config")}</label>
-                                    <label className="text-[11px] text-[#8a3ffc] dark:text-[#b57dff] cursor-pointer hover:underline font-bold uppercase tracking-widest">
-                                        {t("upload_json")}
-                                        <input
-                                            type="file"
-                                            accept=".json"
-                                            className="hidden"
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    const reader = new FileReader();
-                                                    reader.onload = (ev) => {
-                                                        const content = ev.target?.result as string;
-                                                        setImportConfig(content);
-                                                    };
-                                                    reader.readAsText(file);
-                                                }
-                                            }}
-                                        />
-                                    </label>
-                                </div>
-                                <textarea
-                                    className="w-full flex-1 min-h-[100px] bg-white/2 rounded-2xl p-4 text-[10px] font-mono text-main/60 border border-white/5 focus:border-[#8a3ffc]/30 outline-none transition-all placeholder:text-main/10 custom-scrollbar shadow-inner"
-                                    placeholder={t("paste_json")}
-                                    value={importConfig}
-                                    onChange={(e) => setImportConfig(e.target.value)}
-                                ></textarea>
-
-                                <div className="flex items-center gap-4 mt-4 mb-5 group cursor-pointer" onClick={() => setOverwriteConfig(!overwriteConfig)}>
-                                    <div
-                                        className={`w-10 h-6 rounded-full relative transition-all shadow-input border ${overwriteConfig ? 'bg-[#8a3ffc] border-[#8a3ffc]' : 'bg-white/5 border-white/10 dark:border-white/20'}`}
-                                    >
-                                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-md ${overwriteConfig ? 'left-5' : 'left-0.5'}`}></div>
+                            {/* 导入端 */}
+                            <div className="flex flex-col bg-white/2 rounded-3xl p-6 border border-white/5 hover:border-sky-500/20 transition-colors group">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-10 h-10 rounded-2xl bg-sky-500/10 flex items-center justify-center text-sky-400 group-hover:scale-110 transition-transform">
+                                        <DownloadSimple weight="bold" size={20} />
                                     </div>
-                                    <span className={`text-[12px] cursor-pointer select-none transition-colors ${overwriteConfig ? 'text-main font-bold' : 'text-main/40 group-hover:text-main/60'}`}>
-                                        {t("overwrite_conflict")}
-                                    </span>
+                                    <h3 className="text-sm font-bold">{isZh ? "克隆入口 (Clone In)" : "Import Sessions"}</h3>
                                 </div>
-
-                                <button onClick={handleImport} className="btn-gradient w-full h-10 !text-xs" disabled={configLoading}>
-                                    {configLoading ? <Spinner className="animate-spin" /> : t("execute_import")}
-                                </button>
+                                <p className="text-xs text-main/40 leading-relaxed mb-8">
+                                    {isZh 
+                                        ? "从外部上传会话压缩包。系统会自动解压并替换本地会话目录，随后立即更新账号状态库。" 
+                                        : "Upload a session ZIP from outside. The system will automatically extract and replace local sessions."}
+                                </p>
+                                <label className={`mt-auto cursor-pointer h-11 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border-2 border-dashed border-white/10 hover:border-sky-500/40 hover:bg-sky-500/5 transition-all active:scale-95 ${configLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+                                    {configLoading ? <Spinner className="animate-spin" /> : <><CloudArrowUp weight="bold" size={18} /> {isZh ? "上传并还原物理会话" : "Upload & Restore Sessions"}</>}
+                                    <input 
+                                        type="file" 
+                                        accept=".zip" 
+                                        className="hidden" 
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleImportSessions(file);
+                                        }}
+                                    />
+                                </label>
+                                <p className="mt-4 text-[10px] text-main/20 text-center uppercase tracking-widest font-mono">
+                                    Accepts .zip backup only
+                                </p>
                             </div>
                         </div>
                     </div>
