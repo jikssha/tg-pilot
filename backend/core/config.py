@@ -14,14 +14,14 @@ except ImportError:
 
 # 生成或获取持久化的密钥
 def get_default_secret_key() -> str:
-    """获取默认密钥，优先使用环境变量，否则使用固定默认值"""
-    # 如果设置了环境变量，使用环境变量
+    """获取默认密钥,优先使用环境变量,否则使用固定默认值"""
+    # 如果设置了环境变量,使用环境变量
     env_secret = os.getenv("APP_SECRET_KEY")
     if env_secret and env_secret.strip():
         return env_secret.strip()
 
-    # 否则使用固定的默认值（生产环境应该设置环境变量）
-    # 这个默认值确保应用能启动，但不够安全
+    # 否则使用固定的默认值(生产环境应该设置环境变量)
+    # 这个默认值确保应用能启动,但不够安全
     return "tg-pilot-default-secret-key-please-change-in-production-2024"
 
 

@@ -74,13 +74,13 @@ class OpenAIConfigManager:
 
         base_url = (
             input_(
-                "请输入 OPENAI_BASE_URL (可选，直接回车使用默认OpenAI地址): "
+                "请输入 OPENAI_BASE_URL (可选,直接回车使用默认OpenAI地址): "
             ).strip()
             or None
         )
         model = (
             input_(
-                f"请输入 OPENAI_MODEL (可选，直接回车使用默认模型({DEFAULT_MODEL})): "
+                f"请输入 OPENAI_MODEL (可选,直接回车使用默认模型({DEFAULT_MODEL})): "
             ).strip()
             or None
         )
@@ -118,16 +118,16 @@ class AITools:
         model: str = None,
         temperature=0.1,
     ) -> int:
-        sys_prompt = """你是一个**图片识别助手**，可以根据提供的图片和问题选择出**唯一正确**的选项，如果你觉得每个都不对，也要给出一个你认为最符合的答案，以如下JSON格式输出你的回复：
+        sys_prompt = """你是一个**图片识别助手**,可以根据提供的图片和问题选择出**唯一正确**的选项,如果你觉得每个都不对,也要给出一个你认为最符合的答案,以如下JSON格式输出你的回复:
     {
-      "option": 1,  // 整数，表示选项的序号，从0开始。
-      "reason": "这么选择的原因，30字以内"
+      "option": 1,  // 整数,表示选项的序号,从0开始。
+      "reason": "这么选择的原因,30字以内"
     }
     option字段表示你选择的选项。
     """
         client = client or self.client
         model = model or self.default_model
-        text_query = f"问题为：{query}, 选项为：{json.dumps(options)}。"
+        text_query = f"问题为:{query}, 选项为:{json.dumps(options)}。"
         messages = [
             {"role": "system", "content": sys_prompt},
             {
@@ -200,10 +200,10 @@ class AITools:
         model: str = None,
         temperature=0.1,
     ) -> str:
-        sys_prompt = """你是一个**答题助手**，可以根据用户的问题给出正确的回答，只需要回复答案，不要解释，不要输出任何其他内容。"""
+        sys_prompt = """你是一个**答题助手**,可以根据用户的问题给出正确的回答,只需要回复答案,不要解释,不要输出任何其他内容。"""
         model = model or self.default_model
         client = client or self.client
-        text = f"问题是: {query}\n\n只需要给出答案，不要解释，不要输出任何其他内容。The answer is:"
+        text = f"问题是: {query}\n\n只需要给出答案,不要解释,不要输出任何其他内容。The answer is:"
         # noinspection PyTypeChecker
         completion = await client.chat.completions.create(
             messages=[

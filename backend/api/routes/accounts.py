@@ -1,6 +1,6 @@
 """
-账号管理 API 路由（重构版）
-基于原项目逻辑，使用手机号登录
+账号管理 API 路由(重构版)
+基于原项目逻辑,使用手机号登录
 """
 
 from __future__ import annotations
@@ -205,7 +205,7 @@ async def start_account_login(
     request: LoginStartRequest, current_user: User = Depends(get_current_user)
 ):
     """
-    开始账号登录流程（发送验证码）
+    开始账号登录流程(发送验证码)
 
     1. 用户输入账号名和手机号
     2. 系统发送验证码到手机
@@ -234,11 +234,11 @@ async def verify_account_login(
     request: LoginVerifyRequest, current_user: User = Depends(get_current_user)
 ):
     """
-    验证账号登录（输入验证码和可选的2FA密码）
+    验证账号登录(输入验证码和可选的2FA密码)
 
     1. 用户输入验证码
-    2. 如果启用了2FA，还需要输入2FA密码
-    3. 验证成功后，生成 session 文件
+    2. 如果启用了2FA,还需要输入2FA密码
+    3. 验证成功后,生成 session 文件
     """
     try:
         result = await get_telegram_service().verify_login(
@@ -279,7 +279,7 @@ async def test_proxy_connection(
         import asyncio
         import socks
         
-        # 为了不阻塞异步事件循环，将 socket 测试放入线程池
+        # 为了不阻塞异步事件循环,将 socket 测试放入线程池
         def _test_connection():
             try:
                 proxy_dict = build_proxy_dict(request.proxy)
@@ -448,9 +448,9 @@ async def check_accounts_status(
     """
     批量检测账号状态。
 
-    说明：
+    说明:
     - 默认按当前账号列表检测；
-    - 顺序检测并做轻微节流，避免刷新页面时触发请求洪峰。
+    - 顺序检测并做轻微节流,避免刷新页面时触发请求洪峰。
     """
     service = get_telegram_service()
     try:
@@ -501,9 +501,9 @@ async def delete_account(
     account_name: str, current_user: User = Depends(get_current_user)
 ):
     """
-    删除账号（删除 session 文件）
+    删除账号(删除 session 文件)
 
-    注意：删除后无法恢复，需要重新登录
+    注意:删除后无法恢复,需要重新登录
     """
     try:
         success = await get_telegram_service().delete_account(account_name)
@@ -543,7 +543,7 @@ def update_account(
     current_user: User = Depends(get_current_user),
 ):
     """
-    更新账号备注/代理（不影响登录状态）
+    更新账号备注/代理(不影响登录状态)
     """
     if not get_telegram_service().account_exists(account_name):
         raise HTTPException(

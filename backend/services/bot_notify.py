@@ -61,7 +61,7 @@ class BotNotifyService:
         """保存通知配置"""
         existing = self.get_config() or {}
 
-        # 保留现有 token（如果新值为空）
+        # 保留现有 token(如果新值为空)
         final_token = (bot_token or "").strip() or existing.get("bot_token", "")
         final_chat_id = (chat_id or "").strip() or existing.get("chat_id", "")
 
@@ -246,7 +246,7 @@ class BotNotifyService:
             total = total_success + total_failure
 
             if total == 0:
-                logger.info("今日没有任务执行结果，跳过发送汇总报告")
+                logger.info("今日没有任务执行结果,跳过发送汇总报告")
                 return
 
             # 构建汇总消息

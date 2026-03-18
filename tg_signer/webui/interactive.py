@@ -105,7 +105,7 @@ class InteractiveSignerConfig:
         self.chats_container.clear()
         with self.chats_container:
             if not self.chats:
-                ui.label("暂无任务，请点击右上角添加").classes(
+                ui.label("暂无任务,请点击右上角添加").classes(
                     "text-gray-500 italic w-full text-center py-4"
                 )
                 return

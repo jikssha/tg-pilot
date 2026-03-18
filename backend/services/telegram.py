@@ -51,7 +51,7 @@ _DEVICE_PROFILES = [
 
 
 def _get_device_fingerprint(account_name: str) -> dict:
-    """根据账号名确定性生成设备指纹，保证同一账号每次使用相同的虚假设备信息"""
+    """根据账号名确定性生成设备指纹,保证同一账号每次使用相同的虚假设备信息"""
     rnd = random.Random(account_name)
     model, sys_ver, app_ver = rnd.choice(_DEVICE_PROFILES)
     return {
@@ -71,14 +71,14 @@ class TelegramService:
 
     def list_accounts(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
         """
-        获取所有账号列表（基于 session 文件）
+        获取所有账号列表(基于 session 文件)
 
         Returns:
-            账号列表，每个账号包含：
+            账号列表,每个账号包含:
             - name: 账号名称
             - session_file: session 文件路径
             - exists: session 文件是否存在
-            - size: 文件大小（字节）
+            - size: 文件大小(字节)
         """
         if self._accounts_cache is not None and not force_refresh:
             return self._accounts_cache
@@ -140,7 +140,7 @@ class TelegramService:
                     )
             else:
                 for session_file in self.session_dir.glob("*.session"):
-                    account_name = session_file.stem  # 文件名（不含扩展名）
+                    account_name = session_file.stem  # 文件名(不含扩展名)
                     profile = get_account_profile(account_name)
 
                     if account_name in pending_accounts:
@@ -189,10 +189,10 @@ class TelegramService:
             for acc in self._accounts_cache:
                 if acc["name"] == account_name:
                     return True
-            # 如果缓存里没有，可能是缓存过期，也可是真的没有
-            # 保险起见，如果没有找到，还是查一下文件，或者信任缓存？
-            # 考虑到 start_login 会更新缓存，应该可以信任。
-            # 但为了稳妥，如果缓存没命中，再查文件
+            # 如果缓存里没有,可能是缓存过期,也可是真的没有
+            # 保险起见,如果没有找到,还是查一下文件,或者信任缓存?
+            # 考虑到 start_login 会更新缓存,应该可以信任。
+            # 但为了稳妥,如果缓存没命中,再查文件
             pass
 
         if is_string_session_mode():
@@ -211,10 +211,10 @@ class TelegramService:
         """
         检测账号 session 是否可用。
 
-        设计目标：
-        1. 复用共享 Client，不主动关闭正在运行中的任务连接。
-        2. 使用单次 get_me 探活，避免执行重操作。
-        3. 将“会话失效”与“临时网络错误”分开，前端可据此决定是否引导重新登录。
+        设计目标:
+        1. 复用共享 Client,不主动关闭正在运行中的任务连接。
+        2. 使用单次 get_me 探活,避免执行重操作。
+        3. 将“会话失效”与“临时网络错误”分开,前端可据此决定是否引导重新登录。
         """
         from tg_signer.core import get_client
 
@@ -281,15 +281,15 @@ class TelegramService:
             }
 
         try:
-            # 状态检查使用非阻塞模式：如果锁已被任务占用，直接尝试复用已连接的 client
+            # 状态检查使用非阻塞模式:如果锁已被任务占用,直接尝试复用已连接的 client
             # 避免状态检查与任务执行互相饥饿等待
             lock = get_account_lock(account_name)
             acquired = False
             try:
-                # 非阻塞尝试获取锁，超时 2 秒
+                # 非阻塞尝试获取锁,超时 2 秒
                 acquired = await asyncio.wait_for(lock.acquire(), timeout=2.0)
             except asyncio.TimeoutError:
-                # 锁被占用（有任务在执行），直接尝试复用已连接的 client
+                # 锁被占用(有任务在执行),直接尝试复用已连接的 client
                 pass
 
             try:
@@ -419,7 +419,7 @@ class TelegramService:
 
     async def delete_account(self, account_name: str) -> bool:
         """
-        删除账号（删除 session 文件）
+        删除账号(删除 session 文件)
 
         Args:
             account_name: 账号名称
@@ -508,17 +508,17 @@ class TelegramService:
         self, account_name: str, phone_number: str, proxy: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        开始登录流程（发送验证码）
+        开始登录流程(发送验证码)
 
-        这个方法会：
+        这个方法会:
         1. 创建 Pyrogram 客户端
         2. 发送验证码到手机
         3. 返回 phone_code_hash 用于后续验证
 
         Args:
             account_name: 账号名称
-            phone_number: 手机号（国际格式，如 +8613800138000）
-            proxy: 代理地址（可选）
+            phone_number: 手机号(国际格式,如 +8613800138000)
+            proxy: 代理地址(可选)
 
         Returns:
             包含 phone_code_hash 的字典
@@ -553,7 +553,7 @@ class TelegramService:
         for key in keys_to_remove:
             _login_sessions.pop(key, None)
 
-        # 获取账号锁，避免与任务并发写 session
+        # 获取账号锁,避免与任务并发写 session
         await account_lock.acquire()
 
         def _release_account_lock() -> None:
@@ -566,7 +566,7 @@ class TelegramService:
         except Exception as e:
             print(f"DEBUG: start_login 清理后台客户端失败: {e}")
 
-        # 3. 强制垃圾回收，释放可能的未关闭文件句柄 (Windows 特性)
+        # 3. 强制垃圾回收,释放可能的未关闭文件句柄 (Windows 特性)
         gc.collect()
 
         # 获取 API credentials
@@ -598,8 +598,8 @@ class TelegramService:
 
         proxy_dict = build_proxy_dict(proxy) if proxy else None
 
-        # 4. 如果是重新登录，尝试先清理旧的 session 文件 (避免 SQLite 锁或损坏)
-        # 注意: 如果 session 有效但用户只是想重登，删除也没问题，因为反正要重新验证
+        # 4. 如果是重新登录,尝试先清理旧的 session 文件 (避免 SQLite 锁或损坏)
+        # 注意: 如果 session 有效但用户只是想重登,删除也没问题,因为反正要重新验证
         if session_mode == "file":
             session_file = self.session_dir / f"{account_name}.session"
             if session_file.exists():
@@ -612,14 +612,14 @@ class TelegramService:
                         if aux_file.exists():
                             aux_file.unlink()
                 except OSError as e:
-                    # 如果删除失败，说明真的被锁得很死，或者权限问题
+                    # 如果删除失败,说明真的被锁得很死,或者权限问题
                     print(f"DEBUG: 删除旧 Session 文件失败: {e} - 可能文件仍被占用")
-                    # 这里不抛出异常，尝试继续，也许 Pyrogram 能处理?
+                    # 这里不抛出异常,尝试继续,也许 Pyrogram 能处理?
                     # 但通常 "unable to open database file" 就是因为这个。
                     pass
 
         session_path = str(self.session_dir / account_name)
-        # 设备指纹伪装：与 tg_signer/core.py 保持一致的确定性设备分配
+        # 设备指纹伪装:与 tg_signer/core.py 保持一致的确定性设备分配
         device_fp = _get_device_fingerprint(account_name)
         client_kwargs = {
             "name": session_path,
@@ -627,7 +627,7 @@ class TelegramService:
             "api_hash": api_hash,
             "proxy": proxy_dict,
             "in_memory": session_mode == "string",
-            # 手机号验证码登录不依赖 updates，关闭可减少 flood/timeout 噪音
+            # 手机号验证码登录不依赖 updates,关闭可减少 flood/timeout 噪音
             "no_updates": True,
             **device_fp,
         }
@@ -657,8 +657,8 @@ class TelegramService:
                 "account_name": account_name,
             }
 
-            # 保持连接，避免 session 变化导致验证码失效 (PhoneCodeExpired)
-            # 断开连接会导致服务端重新分配 Session ID，从而使之前的 hash 失效
+            # 保持连接,避免 session 变化导致验证码失效 (PhoneCodeExpired)
+            # 断开连接会导致服务端重新分配 Session ID,从而使之前的 hash 失效
             # try:
             #     await client.disconnect()
             # except Exception:
@@ -676,14 +676,14 @@ class TelegramService:
             except Exception:
                 pass
             _release_account_lock()
-            raise ValueError("手机号格式无效，请使用国际格式（如 +8613800138000）")
+            raise ValueError("手机号格式无效,请使用国际格式(如 +8613800138000)")
         except FloodWait as e:
             try:
                 await client.disconnect()
             except Exception:
                 pass
             _release_account_lock()
-            raise ValueError(f"请求过于频繁，请等待 {e.value} 秒后重试")
+            raise ValueError(f"请求过于频繁,请等待 {e.value} 秒后重试")
         except Exception as e:
             import traceback
 
@@ -700,7 +700,7 @@ class TelegramService:
                 or "unable to open database file" in error_details
             ):
                 raise ValueError(
-                    f"会话文件被占用，请稍后重试或重启程序。错误: {error_details}"
+                    f"会话文件被占用,请稍后重试或重启程序。错误: {error_details}"
                 )
 
             raise ValueError(f"发送验证码失败: {error_details}")
@@ -715,15 +715,15 @@ class TelegramService:
         proxy: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        验证登录（输入验证码和可选的2FA密码）
+        验证登录(输入验证码和可选的2FA密码)
 
         Args:
             account_name: 账号名称
             phone_number: 手机号
             phone_code: 验证码
             phone_code_hash: 从 start_login 返回的 hash
-            password: 2FA 密码（可选）
-            proxy: 代理地址（可选）
+            password: 2FA 密码(可选)
+            proxy: 代理地址(可选)
 
         Returns:
             登录结果
@@ -740,7 +740,7 @@ class TelegramService:
         session_data = _login_sessions.get(session_key)
 
         if not session_data:
-            raise ValueError("登录会话已过期，请重新发送验证码")
+            raise ValueError("登录会话已过期,请重新发送验证码")
 
         client = session_data["client"]
         session_mode = get_session_mode()
@@ -784,7 +784,7 @@ class TelegramService:
                 try:
                     await client.sign_in(phone_number, phone_code_hash, phone_code)
 
-                    # 登录成功，获取用户信息
+                    # 登录成功,获取用户信息
                     me = await client.get_me()
                     await _persist_session_string()
                     _persist_proxy_setting()
@@ -804,8 +804,8 @@ class TelegramService:
                 except SessionPasswordNeeded:
                     # 需要 2FA 密码
                     if not password:
-                        # 不断开连接，等待用户输入 2FA 密码
-                        raise ValueError("此账号启用了两步验证，请输入 2FA 密码")
+                        # 不断开连接,等待用户输入 2FA 密码
+                        raise ValueError("此账号启用了两步验证,请输入 2FA 密码")
 
                     # 使用 2FA 密码登录
                     try:
@@ -836,7 +836,7 @@ class TelegramService:
                 pass
             _login_sessions.pop(session_key, None)
             _release_account_lock()
-            raise ValueError("验证码错误，请检查验证码是否正确")
+            raise ValueError("验证码错误,请检查验证码是否正确")
         except PhoneCodeExpired:
             # 清理 session
             try:
@@ -845,9 +845,9 @@ class TelegramService:
                 pass
             _login_sessions.pop(session_key, None)
             _release_account_lock()
-            raise ValueError("验证码已过期，请重新获取")
+            raise ValueError("验证码已过期,请重新获取")
         except ValueError as e:
-            # 如果是 2FA 错误，不清理 session
+            # 如果是 2FA 错误,不清理 session
             if "两步验证" not in str(e):
                 try:
                     await client.disconnect()
@@ -868,11 +868,11 @@ class TelegramService:
             # 更详细的错误信息
             error_msg = str(e)
             if "PHONE_CODE_INVALID" in error_msg:
-                raise ValueError("验证码错误，请检查验证码是否正确")
+                raise ValueError("验证码错误,请检查验证码是否正确")
             elif "PHONE_CODE_EXPIRED" in error_msg:
-                raise ValueError("验证码已过期，请重新获取")
+                raise ValueError("验证码已过期,请重新获取")
             elif "SESSION_PASSWORD_NEEDED" in error_msg:
-                raise ValueError("此账号启用了两步验证，请输入 2FA 密码")
+                raise ValueError("此账号启用了两步验证,请输入 2FA 密码")
             else:
                 raise ValueError(f"登录失败: {error_msg}")
 
@@ -887,7 +887,7 @@ class TelegramService:
             set_account_session_string(account_name, session_string)
             save_session_string_file(self.session_dir, account_name, session_string)
         else:
-            # 即使在 file 模式，也尝试保存 session_string 作为降级方案
+            # 即使在 file 模式,也尝试保存 session_string 作为降级方案
             try:
                 session_string = await client.export_session_string()
             except Exception:
@@ -1062,7 +1062,7 @@ class TelegramService:
 
         proxy_dict = build_proxy_dict(proxy) if proxy else None
 
-        # 清理旧 session 文件（与手机号登录保持一致）
+        # 清理旧 session 文件(与手机号登录保持一致)
         if session_mode == "file":
             session_file = self.session_dir / f"{account_name}.session"
             if session_file.exists():
@@ -1076,7 +1076,7 @@ class TelegramService:
                     pass
 
         session_path = str(self.session_dir / account_name)
-        # 设备指纹伪装：与 tg_signer/core.py 保持一致的确定性设备分配
+        # 设备指纹伪装:与 tg_signer/core.py 保持一致的确定性设备分配
         device_fp = _get_device_fingerprint(account_name)
         client_kwargs = {
             "name": session_path,
@@ -1086,7 +1086,7 @@ class TelegramService:
             "in_memory": session_mode == "string",
             **device_fp,
         }
-        # QR 登录依赖 UpdateLoginToken，必须启用 updates（无论 session 模式）
+        # QR 登录依赖 UpdateLoginToken,必须启用 updates(无论 session 模式)
         client_kwargs["no_updates"] = False
         client = Client(**client_kwargs)
 
@@ -1140,7 +1140,7 @@ class TelegramService:
 
             # 监听扫码更新
             try:
-                # 初始化 updates/dispatcher，确保后续 stop 能完整关闭
+                # 初始化 updates/dispatcher,确保后续 stop 能完整关闭
                 try:
                     if not getattr(client, "is_initialized", False):
                         await client.initialize()
@@ -1189,7 +1189,7 @@ class TelegramService:
             except Exception:
                 pass
             _release_account_lock()
-            raise ValueError(f"请求过于频繁，请等待 {e.value} 秒后重试")
+            raise ValueError(f"请求过于频繁,请等待 {e.value} 秒后重试")
         except Exception as e:
             try:
                 await client.disconnect()
@@ -1226,12 +1226,12 @@ class TelegramService:
                 "message": "需要 2FA 密码",
             }
 
-        # 扫码后状态保持，避免回退到 waiting_scan
+        # 扫码后状态保持,避免回退到 waiting_scan
         if data.get("status") == "scanned_wait_confirm":
             data["scan_seen"] = True
             self._extend_qr_expires(data)
 
-        # 未扫码时不要调用 ImportLoginToken，避免服务端轮转 token 导致二维码失效
+        # 未扫码时不要调用 ImportLoginToken,避免服务端轮转 token 导致二维码失效
         if not data.get("scan_seen") and data.get("status") == "waiting_scan":
             self._log_qr_state(login_id, "waiting_scan", data)
             return {
@@ -1317,7 +1317,7 @@ class TelegramService:
                 await client.connect()
 
             result = None
-            # 扫码确认后应再次调用 ExportLoginToken（官方流程）
+            # 扫码确认后应再次调用 ExportLoginToken(官方流程)
             if data.get("status") == "scanned_wait_confirm":
                 now = time.time()
                 last_import_ts = data.get("last_import_ts", 0)
@@ -1387,7 +1387,7 @@ class TelegramService:
                         data["token"] = result.token
                     data["status"] = "scanned_wait_confirm"
 
-                # fallback: 再次调用 ExportLoginToken 获取最终状态（符合官方流程）
+                # fallback: 再次调用 ExportLoginToken 获取最终状态(符合官方流程)
                 if result is None or isinstance(result, raw.types.auth.LoginToken):
                     last_export_ts = data.get("last_export_ts", 0)
                     if now - last_export_ts >= 3:
@@ -1477,7 +1477,7 @@ class TelegramService:
             await self._cleanup_qr_login(login_id)
             return {
                 "status": "failed",
-                "message": f"请求过于频繁，请等待 {e.value} 秒后重试",
+                "message": f"请求过于频繁,请等待 {e.value} 秒后重试",
             }
         except SessionPasswordNeeded:
             data = _qr_login_sessions.get(login_id)
@@ -1497,14 +1497,14 @@ class TelegramService:
             await self._cleanup_qr_login(login_id)
             return {
                 "status": "failed",
-                "message": "登录失败，请重试",
+                "message": "登录失败,请重试",
             }
         except Exception:
             self._log_qr_state(login_id, "failed", data)
             await self._cleanup_qr_login(login_id)
             return {
                 "status": "failed",
-                "message": "登录失败，请重试",
+                "message": "登录失败,请重试",
             }
 
     async def submit_qr_password(self, login_id: str, password: str) -> Dict[str, Any]:
@@ -1877,21 +1877,21 @@ class TelegramService:
 
         except FloodWait as e:
             await self._cleanup_qr_login(login_id)
-            raise ValueError(f"请求过于频繁，请等待 {e.value} 秒后重试")
+            raise ValueError(f"请求过于频繁,请等待 {e.value} 秒后重试")
         except Unauthorized:
             if data and data.get("status") in {"password_required", "scanned_wait_confirm"}:
                 self._extend_qr_expires(data)
                 raise ValueError("请先在手机端确认登录")
             await self._cleanup_qr_login(login_id)
-            raise ValueError("登录失败，请重试")
+            raise ValueError("登录失败,请重试")
         except ValueError:
             raise
         except Exception:
             if data and data.get("status") in {"password_required", "scanned_wait_confirm"}:
                 self._extend_qr_expires(data)
-                raise ValueError("登录失败，请重试")
+                raise ValueError("登录失败,请重试")
             await self._cleanup_qr_login(login_id)
-            raise ValueError("登录失败，请重试")
+            raise ValueError("登录失败,请重试")
 
     async def cancel_qr_login(self, login_id: str) -> bool:
         data = _qr_login_sessions.get(login_id)
@@ -1911,10 +1911,10 @@ class TelegramService:
         proxy: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        同步版本的登录方法（用于 FastAPI）
+        同步版本的登录方法(用于 FastAPI)
 
-        如果只提供 phone_number，则发送验证码
-        如果提供了 phone_code，则验证登录
+        如果只提供 phone_number,则发送验证码
+        如果提供了 phone_code,则验证登录
         """
 
         try:
@@ -1951,7 +1951,7 @@ class TelegramService:
 
             return result
         except Exception as e:
-            # 重新抛出异常，保留原始错误信息
+            # 重新抛出异常,保留原始错误信息
             raise e
 
 

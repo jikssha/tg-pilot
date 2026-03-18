@@ -13,7 +13,7 @@ logger = logging.getLogger("backend.users")
 def ensure_admin(db: Session, username: str = "admin", password: str = None):
     """
     仅在用户表为空时创建一个默认管理员。
-    防止用户修改用户名后，系统又自动创建一个默认的 admin 账号。
+    防止用户修改用户名后,系统又自动创建一个默认的 admin 账号。
     """
     # 检查是否已有任何用户存在
     first_user = db.query(User).first()
@@ -31,7 +31,7 @@ def ensure_admin(db: Session, username: str = "admin", password: str = None):
                 "Please change it immediately or set ADMIN_PASSWORD environment variable."
             )
 
-    # 如果没有任何用户，则创建默认管理员
+    # 如果没有任何用户,则创建默认管理员
     new_user = User(username=username, password_hash=hash_password(password))
     db.add(new_user)
     db.commit()

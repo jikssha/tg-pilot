@@ -6,7 +6,7 @@ from httpx import AsyncClient
 async def sc_send(sendkey, title, desp="", options=None):
     if options is None:
         options = {}
-    # 判断 sendkey 是否以 'sctp' 开头，并提取数字构造 URL
+    # 判断 sendkey 是否以 'sctp' 开头,并提取数字构造 URL
     if sendkey.startswith("sctp"):
         match = re.match(r"sctp(\d+)t", sendkey)
         if match:

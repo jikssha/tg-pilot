@@ -112,7 +112,7 @@ def _create_log_file(task: Task) -> Path:
 
 async def run_task_once(db: Session, task: Task) -> TaskLog:
     if is_task_running(task.id):
-        # 如果已经在运行，返回最新的运行记录（或者抛出异常）
+        # 如果已经在运行,返回最新的运行记录(或者抛出异常)
         last_log = (
             db.query(TaskLog)
             .filter(TaskLog.task_id == task.id)
@@ -143,7 +143,7 @@ async def run_task_once(db: Session, task: Task) -> TaskLog:
             _active_logs[task.id].pop(0)
 
     try:
-        # 使用异步执行调用，并注入回调
+        # 使用异步执行调用,并注入回调
         returncode, stdout, stderr = await async_run_task_cli(
             account_name=account.account_name,
             task_name=task.name,
@@ -152,7 +152,7 @@ async def run_task_once(db: Session, task: Task) -> TaskLog:
 
         full_output = (stdout or "") + "\n" + (stderr or "")
 
-        # 写入日志文件（完整内容）
+        # 写入日志文件(完整内容)
         with open(log_file, "w", encoding="utf-8") as fp:
             fp.write(full_output)
 

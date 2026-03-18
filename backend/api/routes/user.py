@@ -58,7 +58,7 @@ class ChangeUsernameResponse(BaseModel):
 class EnableTOTPRequest(BaseModel):
     """启用2FA请求"""
 
-    totp_code: str  # 用户输入的验证码，用于验证
+    totp_code: str  # 用户输入的验证码,用于验证
 
 
 class EnableTOTPResponse(BaseModel):
@@ -159,7 +159,7 @@ def change_username(
     current_user.username = new_username
     db.commit()
 
-    # 生成新 Token，因为原来的 Token 基于旧用户名
+    # 生成新 Token,因为原来的 Token 基于旧用户名
     from backend.core.auth import create_access_token
 
     new_token = create_access_token(data={"sub": new_username})
@@ -181,7 +181,7 @@ def get_totp_status(current_user: User = Depends(get_current_user)):
 
 
 # 临时存储待验证的 TOTP secrets (用户ID -> secret)
-# 注意：在生产环境中应该使用 Redis 或其他持久化缓存
+# 注意:在生产环境中应该使用 Redis 或其他持久化缓存
 _pending_totp_secrets: dict[int, str] = {}
 
 
@@ -190,21 +190,21 @@ def setup_totp(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
-    设置2FA（生成密钥）
+    设置2FA(生成密钥)
 
-    返回 secret，用户需要用此 secret 生成二维码
-    注意：此时 TOTP 尚未启用，需要调用 /totp/enable 验证后才会启用
+    返回 secret,用户需要用此 secret 生成二维码
+    注意:此时 TOTP 尚未启用,需要调用 /totp/enable 验证后才会启用
     """
     if current_user.totp_secret:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="2FA 已启用，如需重新设置请先禁用",
+            detail="2FA 已启用,如需重新设置请先禁用",
         )
 
     # 生成新的 TOTP secret
     secret = pyotp.random_base32()
 
-    # 暂存到内存缓存（不保存到数据库），等待用户验证
+    # 暂存到内存缓存(不保存到数据库),等待用户验证
     _pending_totp_secrets[current_user.id] = secret
 
     return TOTPStatusResponse(enabled=False, secret=secret)
@@ -219,8 +219,8 @@ def get_totp_qrcode(
     """
     获取2FA二维码
 
-    返回二维码图片（PNG 格式）
-    支持通过 query parameter 传递 token（用于 img src）
+    返回二维码图片(PNG 格式)
+    支持通过 query parameter 传递 token(用于 img src)
     """
     from jose import JWTError, jwt
 
@@ -228,7 +228,7 @@ def get_totp_qrcode(
 
     settings = get_settings()
 
-    # 如果没有通过 header 获取用户，尝试从 query param 获取
+    # 如果没有通过 header 获取用户,尝试从 query param 获取
     if current_user is None and token:
         try:
             payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
@@ -241,7 +241,7 @@ def get_totp_qrcode(
     if current_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="认证失败")
 
-    # 优先使用待验证的 secret，否则使用已启用的 secret
+    # 优先使用待验证的 secret,否则使用已启用的 secret
     secret = _pending_totp_secrets.get(current_user.id) or current_user.totp_secret
 
     if not secret:
@@ -296,7 +296,7 @@ def enable_totp(
             status_code=status.HTTP_400_BAD_REQUEST, detail="验证码错误"
         )
 
-    # 验证通过，将 secret 保存到数据库
+    # 验证通过,将 secret 保存到数据库
     current_user.totp_secret = pending_secret
     db.commit()
 
@@ -311,7 +311,7 @@ def cancel_totp_setup(current_user: User = Depends(get_current_user)):
     """
     取消 TOTP 设置
 
-    如果用户在 setup 后不想继续，可以调用此接口取消
+    如果用户在 setup 后不想继续,可以调用此接口取消
     """
     if current_user.id in _pending_totp_secrets:
         del _pending_totp_secrets[current_user.id]
@@ -354,10 +354,10 @@ def reset_totp(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
-    强制重置 TOTP（不需要验证码）
+    强制重置 TOTP(不需要验证码)
 
     用于解决用户无法登录的问题
-    注意：此接口只有在用户已登录时才能调用
+    注意:此接口只有在用户已登录时才能调用
     """
     # 清除数据库中的 TOTP secret
     current_user.totp_secret = None

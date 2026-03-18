@@ -32,7 +32,7 @@ settings = get_settings()
 
 class TaskLogHandler(logging.Handler):
     """
-    自定义日志处理器，将日志实时写入到内存列表中
+    自定义日志处理器,将日志实时写入到内存列表中
     """
 
     def __init__(self, log_list: List[str]):
@@ -43,7 +43,7 @@ class TaskLogHandler(logging.Handler):
         try:
             msg = self.format(record)
             self.log_list.append(msg)
-            # 保持日志长度，避免内存占用过大
+            # 保持日志长度,避免内存占用过大
             if len(self.log_list) > 1000:
                 self.log_list.pop(0)
         except Exception:
@@ -52,7 +52,7 @@ class TaskLogHandler(logging.Handler):
 
 class BackendUserSigner(UserSigner):
     """
-    后端专用的 UserSigner，适配后端目录结构并禁止交互式输入
+    后端专用的 UserSigner,适配后端目录结构并禁止交互式输入
     """
 
     @property
@@ -63,12 +63,12 @@ class BackendUserSigner(UserSigner):
 
     def ask_for_config(self):
         raise ValueError(
-            f"任务配置文件不存在: {self.config_file}，且后端模式下禁止交互式输入。"
+            f"任务配置文件不存在: {self.config_file},且后端模式下禁止交互式输入。"
         )
 
     def reconfig(self):
         raise ValueError(
-            f"任务配置文件不存在: {self.config_file}，且后端模式下禁止交互式输入。"
+            f"任务配置文件不存在: {self.config_file},且后端模式下禁止交互式输入。"
         )
 
     def ask_one(self):
@@ -261,7 +261,7 @@ class SignTaskService:
         if not self.run_history_dir.exists():
             return []
 
-        # 优化：先获取该账号下的任务列表，只读取相关任务的日志
+        # 优化:先获取该账号下的任务列表,只读取相关任务的日志
         # 避免扫描整个 history 目录并读取所有文件
         tasks = self.list_tasks(account_name=account_name)
 
@@ -282,7 +282,7 @@ class SignTaskService:
                     if not isinstance(data_list, list):
                         data_list = [data_list]
 
-                    # 再次确认 account_name (虽然是从 task 列表来的，但以防万一)
+                    # 再次确认 account_name (虽然是从 task 列表来的,但以防万一)
                     for data in data_list:
                         if data.get("account_name") == account_name:
                             data["task_name"] = task_name
@@ -295,7 +295,7 @@ class SignTaskService:
         return all_history
 
     def clear_account_history_logs(self, account_name: str) -> Dict[str, int]:
-        """清理某账号的历史日志，不影响其他账号"""
+        """清理某账号的历史日志,不影响其他账号"""
         removed_files = 0
         removed_entries = 0
 
@@ -377,7 +377,7 @@ class SignTaskService:
                     pass
                 continue
 
-            # legacy 文件可能没有 account_name，是旧版单账号场景
+            # legacy 文件可能没有 account_name,是旧版单账号场景
             has_account_field = any(
                 isinstance(item, dict) and "account_name" in item for item in data_list
             )
@@ -418,7 +418,7 @@ class SignTaskService:
         self, task_dir: Path, account_name: str = ""
     ) -> Optional[Dict[str, Any]]:
         """
-        # 兼容性处理：task_dir 可能是 Path 对象也可能是字符串 task_name
+        # 兼容性处理:task_dir 可能是 Path 对象也可能是字符串 task_name
         task_name = task_dir.name if hasattr(task_dir, 'name') else str(task_dir)
         history_file = self._history_file_path(task_name, account_name)
         legacy_file = self.run_history_dir / f"{task_name}.json"
@@ -490,11 +490,11 @@ class SignTaskService:
             # 1. 更新磁盘上的 config.json
             task = self.get_task(task_name, account_name)
             if task:
-                # 注意 get_task 返回的是 dict，我们需要路径
+                # 注意 get_task 返回的是 dict,我们需要路径
                 # 重新构建路径或复用逻辑
-                # 这里为了简单，再次查找路径有点低效，但比全量扫描好
+                # 这里为了简单,再次查找路径有点低效,但比全量扫描好
                 # 我们可以利用 self.signs_dir / account_name / task_name
-                # 但考虑到兼容性，还是得稍微判断下
+                # 但考虑到兼容性,还是得稍微判断下
                 task_dir = self.signs_dir / account_name / task_name
                 if not task_dir.exists():
                     task_dir = self.signs_dir / task_name
@@ -510,7 +510,7 @@ class SignTaskService:
                     except Exception as e:
                         print(f"DEBUG: 更新任务配置 last_run 失败: {e}")
 
-            # 2. 更新内存缓存 (关键优化：避免置空 self._tasks_cache)
+            # 2. 更新内存缓存 (关键优化:避免置空 self._tasks_cache)
             if self._tasks_cache is not None:
                 for t in self._tasks_cache:
                     if t["name"] == task_name and t.get("account_name") == account_name:
@@ -555,7 +555,7 @@ class SignTaskService:
             # 扫描所有子目录 (账号名)
             for account_path in base_dir.iterdir():
                 if not account_path.is_dir():
-                    # 兼容旧路径：直接在 signs 目录下的任务
+                    # 兼容旧路径:直接在 signs 目录下的任务
                     if (account_path / "config.json").exists():
                         task_info = self._load_task_config(account_path)
                         if task_info:
@@ -858,11 +858,11 @@ class SignTaskService:
         task_dir = None
         if account_name:
             task_dir = self.signs_dir / account_name / task_name
-            # 如果指定了账号但任务不存在，直接返回失败，不进行搜索
+            # 如果指定了账号但任务不存在,直接返回失败,不进行搜索
             if not task_dir.exists():
                 return False
         else:
-            # 未指定账号，尝试搜索 (兼容旧逻辑，但不推荐)
+            # 未指定账号,尝试搜索 (兼容旧逻辑,但不推荐)
             task_dir = self.signs_dir / task_name
             if not task_dir.exists():
                 for acc_dir in self.signs_dir.iterdir():
@@ -873,7 +873,7 @@ class SignTaskService:
         if not task_dir or not task_dir.exists():
             return False
 
-        # 确定真实的 account_name，以便移除调度
+        # 确定真实的 account_name,以便移除调度
         real_account_name = account_name
         if not real_account_name:
             # 尝试从路径推断
@@ -921,7 +921,7 @@ class SignTaskService:
             except Exception:
                 pass
 
-        # 如果没有缓存或强制刷新，执行刷新逻辑
+        # 如果没有缓存或强制刷新,执行刷新逻辑
         return await self.refresh_account_chats(account_name)
 
     def search_account_chats(
@@ -933,7 +933,7 @@ class SignTaskService:
         offset: int = 0,
     ) -> Dict[str, Any]:
         """
-        通过缓存搜索账号的 Chat 列表（不触发全量 get_dialogs）
+        通过缓存搜索账号的 Chat 列表(不触发全量 get_dialogs)
         """
         cache_file = self.signs_dir / account_name / "chats_cache.json"
 
@@ -1012,7 +1012,7 @@ class SignTaskService:
         except Exception as e:
             print(f"DEBUG: 清理无效 Session 失败: {e}")
 
-        # 清理 chats 缓存，避免后续误用旧数据
+        # 清理 chats 缓存,避免后续误用旧数据
         try:
             cache_file = self.signs_dir / account_name / "chats_cache.json"
             if cache_file.exists():
@@ -1044,7 +1044,7 @@ class SignTaskService:
                 or load_session_string_file(session_dir, account_name)
             )
             if not session_string:
-                raise ValueError(f"账号 {account_name} 登录已失效，请重新登录")
+                raise ValueError(f"账号 {account_name} 登录已失效,请重新登录")
         else:
             fallback_session_string = (
                 get_account_session_string(account_name)
@@ -1055,7 +1055,7 @@ class SignTaskService:
                     session_string = fallback_session_string
                     used_fallback_session = True
                 else:
-                    raise ValueError(f"账号 {account_name} 登录已失效，请重新登录")
+                    raise ValueError(f"账号 {account_name} 登录已失效,请重新登录")
 
         config_service = get_config_service()
         tg_config = config_service.get_telegram_config()
@@ -1073,7 +1073,7 @@ class SignTaskService:
         if not api_id or not api_hash:
             raise ValueError("未配置 Telegram API ID 或 API Hash")
 
-        # 使用 get_client 获取（可能共享的）客户端实例
+        # 使用 get_client 获取(可能共享的)客户端实例
         proxy_dict = None
         proxy_value = get_account_proxy(account_name)
         if proxy_value:
@@ -1093,7 +1093,7 @@ class SignTaskService:
         chats: List[Dict[str, Any]] = []
         logger = logging.getLogger("backend")
         try:
-            # 初始化账号锁（跨服务共享）
+            # 初始化账号锁(跨服务共享)
             if account_name not in self._account_locks:
                 self._account_locks[account_name] = get_account_lock(account_name)
 
@@ -1101,15 +1101,15 @@ class SignTaskService:
             
             async def _fetch_chats(active_client) -> List[Dict[str, Any]]:
                 local_chats: List[Dict[str, Any]] = []
-                # 带超时获取账号锁，避免无限等待
+                # 带超时获取账号锁,避免无限等待
                 try:
                     await asyncio.wait_for(account_lock.acquire(), timeout=30.0)
                 except asyncio.TimeoutError:
-                    raise RuntimeError(f"账号 {account_name} 锁等待超时，可能有其他任务正在执行")
+                    raise RuntimeError(f"账号 {account_name} 锁等待超时,可能有其他任务正在执行")
                 try:
                     async with get_global_semaphore():
                         async with active_client:
-                            # 尝试获取用户信息，如果失败说明 session 无效
+                            # 尝试获取用户信息,如果失败说明 session 无效
                             await active_client.get_me()
 
                             try:
@@ -1118,13 +1118,13 @@ class SignTaskService:
                                         chat = getattr(dialog, "chat", None)
                                         if chat is None:
                                             logger.warning(
-                                                "get_dialogs 返回空 chat，已跳过"
+                                                "get_dialogs 返回空 chat,已跳过"
                                             )
                                             continue
                                         chat_id = getattr(chat, "id", None)
                                         if chat_id is None:
                                             logger.warning(
-                                                "get_dialogs 返回 chat.id 为空，已跳过"
+                                                "get_dialogs 返回 chat.id 为空,已跳过"
                                             )
                                             continue
 
@@ -1145,13 +1145,13 @@ class SignTaskService:
                                         local_chats.append(chat_info)
                                     except Exception as e:
                                         logger.warning(
-                                            f"处理 dialog 失败，已跳过: {type(e).__name__}: {e}"
+                                            f"处理 dialog 失败,已跳过: {type(e).__name__}: {e}"
                                         )
                                         continue
                             except Exception as e:
-                                # Pyrogram 边界异常：保留已获取结果
+                                # Pyrogram 边界异常:保留已获取结果
                                 logger.warning(
-                                    f"get_dialogs 中断，返回已获取结果: {type(e).__name__}: {e}"
+                                    f"get_dialogs 中断,返回已获取结果: {type(e).__name__}: {e}"
                                 )
                     return local_chats
                 finally:
@@ -1187,7 +1187,7 @@ class SignTaskService:
                             e,
                         )
                         await self._cleanup_invalid_session(account_name)
-                        raise ValueError(f"账号 {account_name} 登录已失效，请重新登录")
+                        raise ValueError(f"账号 {account_name} 登录已失效,请重新登录")
                 else:
                     raise
 
@@ -1205,12 +1205,12 @@ class SignTaskService:
             return chats
 
         except Exception as e:
-            # client 上下文管理器会自动处理 disconnect/stop，这里只需要处理业务异常
+            # client 上下文管理器会自动处理 disconnect/stop,这里只需要处理业务异常
             raise e
 
     async def run_task(self, account_name: str, task_name: str) -> Dict[str, Any]:
         """
-        运行签到任务 (兼容接口，内部调用 run_task_with_logs)
+        运行签到任务 (兼容接口,内部调用 run_task_with_logs)
         """
         return await self.run_task_with_logs(account_name, task_name)
 
@@ -1226,7 +1226,7 @@ class SignTaskService:
         """获取正在运行任务的日志"""
         if account_name:
             return self._active_logs.get(self._task_key(account_name, task_name), [])
-        # 兼容旧接口：返回第一个同名任务的日志
+        # 兼容旧接口:返回第一个同名任务的日志
         for key in self._find_task_keys(task_name):
             return self._active_logs.get(key, [])
         return []
@@ -1245,15 +1245,15 @@ class SignTaskService:
         if self.is_task_running(task_name, account_name):
             return {"success": False, "error": "任务已经在运行中", "output": ""}
 
-        # 初始化账号锁（跨服务共享）
+        # 初始化账号锁(跨服务共享)
         if account_name not in self._account_locks:
             self._account_locks[account_name] = get_account_lock(account_name)
 
         account_lock = self._account_locks[account_name]
 
-        # 检查是否能获取锁 (非阻塞检查，如果已被锁定则说明该账号有其他任务在运行)
-        # 这里我们希望排队等待，还是直接报错？
-        # 考虑到定时任务同时触发，应该排队执行。
+        # 检查是否能获取锁 (非阻塞检查,如果已被锁定则说明该账号有其他任务在运行)
+        # 这里我们希望排队等待,还是直接报错?
+        # 考虑到定时任务同时触发,应该排队执行。
         print(f"DEBUG: 等待获取账号锁 {account_name}...")
 
         task_key = self._task_key(account_name, task_name)
@@ -1283,7 +1283,7 @@ class SignTaskService:
                         )
                         await asyncio.sleep(wait_seconds)
 
-                print(f"DEBUG: 已获取账号锁 {account_name}，开始执行任务 {task_name}")
+                print(f"DEBUG: 已获取账号锁 {account_name},开始执行任务 {task_name}")
                 self._active_logs[task_key].append(
                     f"开始执行任务: {task_name} (账号: {account_name})"
                 )
@@ -1355,7 +1355,7 @@ class SignTaskService:
                     no_updates=signer_no_updates,
                 )
 
-                # 执行任务（数据库锁冲突时重试，含指数退避和随机抖动）
+                # 执行任务(数据库锁冲突时重试,含指数退避和随机抖动)
                 async with get_global_semaphore():
                     import random as _rnd
                     max_retries = 5
@@ -1368,7 +1368,7 @@ class SignTaskService:
                                 if attempt < max_retries - 1:
                                     delay = min((attempt + 1) * 3, 12) + _rnd.uniform(0, 1.5)
                                     self._active_logs[task_key].append(
-                                        f"Session 被锁定，{delay:.0f} 秒后重试... ({attempt + 1}/{max_retries})"
+                                        f"Session 被锁定,{delay:.0f} 秒后重试... ({attempt + 1}/{max_retries})"
                                     )
                                     await asyncio.sleep(delay)
                                     continue
@@ -1377,7 +1377,7 @@ class SignTaskService:
                 success = True
                 self._active_logs[task_key].append("任务执行完成")
 
-                # 增加缓冲时间，防止同账号连续执行任务时，Session文件锁尚未完全释放导致 "database is locked"
+                # 增加缓冲时间,防止同账号连续执行任务时,Session文件锁尚未完全释放导致 "database is locked"
                 await asyncio.sleep(2)
 
         except Exception as e:
@@ -1404,7 +1404,7 @@ class SignTaskService:
                 flow_logs=final_logs,
             )
 
-            # 触发 Bot 通知（异步，不阻塞主流程）
+            # 触发 Bot 通知(异步,不阻塞主流程)
             try:
                 from backend.services.bot_notify import get_bot_notify_service
 
@@ -1416,7 +1416,7 @@ class SignTaskService:
             except Exception:
                 pass
 
-            # 延迟清理日志（同一 task_key 仅保留一个 cleanup 协程）
+            # 延迟清理日志(同一 task_key 仅保留一个 cleanup 协程)
             old_cleanup_task = self._cleanup_tasks.get(task_key)
             if old_cleanup_task and not old_cleanup_task.done():
                 old_cleanup_task.cancel()

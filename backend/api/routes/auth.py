@@ -17,7 +17,7 @@ router = APIRouter()
 
 
 class ResetTOTPRequest(BaseModel):
-    """重置 TOTP 请求（通过密码验证）"""
+    """重置 TOTP 请求(通过密码验证)"""
 
     username: str
     password: str
@@ -65,7 +65,7 @@ def me(current_user: User = Depends(auth_core.get_current_user)):
 @router.post("/reset-totp", response_model=ResetTOTPResponse)
 def reset_totp(request: ResetTOTPRequest, db: Session = Depends(get_db)):
     """
-    强制重置 TOTP（不需要 TOTP 验证码，只需要密码）
+    强制重置 TOTP(不需要 TOTP 验证码,只需要密码)
 
     用于解决用户启用了 TOTP 但无法登录的问题。
     需要提供正确的用户名和密码。
@@ -82,12 +82,12 @@ def reset_totp(request: ResetTOTPRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED, detail="用户名或密码错误"
         )
 
-    # 如果没有启用 TOTP，提示无需重置
+    # 如果没有启用 TOTP,提示无需重置
     if not user.totp_secret:
-        return ResetTOTPResponse(success=True, message="该用户未启用两步验证，无需重置")
+        return ResetTOTPResponse(success=True, message="该用户未启用两步验证,无需重置")
 
     # 清除 TOTP secret
     user.totp_secret = None
     db.commit()
 
-    return ResetTOTPResponse(success=True, message="两步验证已重置，现在可以正常登录")
+    return ResetTOTPResponse(success=True, message="两步验证已重置,现在可以正常登录")

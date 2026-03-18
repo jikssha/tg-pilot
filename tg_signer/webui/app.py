@@ -406,7 +406,7 @@ class SignRecordBlock:
             self.status.update()
             for record in records:
                 user_text = record.user_id or "默认"
-                header = f"{record.task} / {user_text}（{len(record.records)}条）"
+                header = f"{record.task} / {user_text}({len(record.records)}条)"
                 with ui.expansion(header, icon="event").classes("shadow-sm"):
                     ui.label(f"文件: {record.path}").classes("text-gray-500")
                     if not record.records:
@@ -428,7 +428,7 @@ class SignRecordBlock:
 def log_block() -> Callable[[], None]:
     with ui.card().classes("w-full shadow-sm"):
         ui.label("日志查看").classes("text-md font-semibold")
-        ui.label("查看最新日志行，可自定义文件路径和行数。").classes(
+        ui.label("查看最新日志行,可自定义文件路径和行数。").classes(
             "text-sm text-gray-500 mb-1"
         )
 
@@ -441,12 +441,12 @@ def log_block() -> Callable[[], None]:
                 format="%d",
             ).classes("w-32")
             log_select = ui.select(
-                label=f"选择日志文件（{LOG_DIR}/）",
+                label=f"选择日志文件({LOG_DIR}/)",
                 options=[],
                 on_change=lambda e: select_log_file(e.value),
             ).classes("min-w-[220px]")
             log_path_input = ui.input(
-                label="日志路径（可自定义）", value=str(state.log_path)
+                label="日志路径(可自定义)", value=str(state.log_path)
             ).classes("w-full")
         log_area = ui.scroll_area().classes(
             "w-full bg-gray-50 rounded-lg border border-gray-200"
@@ -575,7 +575,7 @@ def _build_dashboard(container) -> None:
         with ui.tab_panels(tabs, value=tab_configs).classes("w-full"):
             with ui.tab_panel(tab_configs):
                 ui.label(
-                    "管理 signer 和 monitor 的配置文件，支持查看、编辑和删除。"
+                    "管理 signer 和 monitor 的配置文件,支持查看、编辑和删除。"
                 ).classes("text-gray-600")
                 with ui.tabs().classes("mt-2") as sub_tabs:
                     tab_signer = ui.tab("Signer")
@@ -611,13 +611,13 @@ def _auth_gate(container, auth_code: str, on_success: Callable[[], None]) -> Non
         ui.label("TG Signer Web 控制台").classes(
             "text-2xl font-semibold tracking-wide mb-2"
         )
-        ui.label("已启用访问控制，请输入 Auth Code 继续使用 Web 控制台。").classes(
+        ui.label("已启用访问控制,请输入 Auth Code 继续使用 Web 控制台。").classes(
             "text-gray-600"
         )
         with ui.column().classes("w-full items-center"):
             with ui.card().classes("w-full max-w-xl shadow-md"):
                 ui.label("Auth Code 验证").classes("text-lg font-semibold")
-                ui.label("检测到auth_code环境变量已配置，首次访问需验证。").classes(
+                ui.label("检测到auth_code环境变量已配置,首次访问需验证。").classes(
                     "text-sm text-gray-500"
                 )
                 code_input = ui.input(
@@ -637,7 +637,7 @@ def _auth_gate(container, auth_code: str, on_success: Callable[[], None]) -> Non
                         ui.notify("请输入授权码", type="warning")
                         return
                     if code != auth_code:
-                        status.text = "授权码错误，请重试"
+                        status.text = "授权码错误,请重试"
                         status.update()
                         code_input.set_value("")
                         ui.notify("认证失败", type="negative")

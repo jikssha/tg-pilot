@@ -158,7 +158,7 @@ async def task_logs_ws(
             # 获取当前所有日志
             active_logs = task_service.get_active_logs(task_id)
 
-            # 如果有新内容，则推送
+            # 如果有新内容,则推送
             if len(active_logs) > last_idx:
                 new_logs = active_logs[last_idx:]
                 await websocket.send_json(

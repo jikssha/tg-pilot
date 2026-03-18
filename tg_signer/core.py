@@ -121,9 +121,9 @@ logger = logging.getLogger("tg-signer")
 
 DICE_EMOJIS = ("🎲", "🎯", "🏀", "⚽", "🎳", "🎰")
 
-Session.START_TIMEOUT = 5  # 原始超时时间为2秒，但一些代理访问会超时，所以这里调大一点
+Session.START_TIMEOUT = 5  # 原始超时时间为2秒,但一些代理访问会超时,所以这里调大一点
 
-OPENAI_USE_PROMPT = "当前任务需要配置大模型，请确保运行前正确设置`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`等环境变量，或通过`tg-signer llm-config`持久化配置。"
+OPENAI_USE_PROMPT = "当前任务需要配置大模型,请确保运行前正确设置`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`等环境变量,或通过`tg-signer llm-config`持久化配置。"
 
 
 def readable_message(message: Message):
@@ -184,7 +184,7 @@ class Client(BaseClient):
         async with lock:
             _CLIENT_REFS[self.key] += 1
             if _CLIENT_REFS[self.key] == 1:
-                # 数据库锁重试循环，使用指数退避策略
+                # 数据库锁重试循环,使用指数退避策略
                 max_retries = 5
                 for attempt in range(max_retries):
                     try:
@@ -222,7 +222,7 @@ class Client(BaseClient):
                             except Exception:
                                 pass
                             
-                            # 指数退避：1s, 2s, 4s, 6s（含随机抖动）
+                            # 指数退避:1s, 2s, 4s, 6s(含随机抖动)
                             wait_time = min((attempt + 1) * 2, 8) + random.uniform(0, 1)
                             logger.warning(f"Database locked when starting client {self.name}, retrying in {wait_time:.1f}s... ({attempt + 1}/{max_retries})")
                             await asyncio.sleep(wait_time)
@@ -338,7 +338,7 @@ def get_client(
         ("Mac mini", "macOS 13.5.2", "10.10.1"),
         ("iPad Pro", "iPadOS 17.4.1", "10.11.1"),
     ]
-    # 使用账号名称作为随机数种子，确保某个确切的账号每次生成的虚假设备固定，防止频繁跳换设备被封
+    # 使用账号名称作为随机数种子,确保某个确切的账号每次生成的虚假设备固定,防止频繁跳换设备被封
     rnd = random.Random(name)
     model, sys_ver, app_ver = rnd.choice(device_models)
     
@@ -557,7 +557,7 @@ class BaseUserWorker(Generic[ConfigT]):
         return signs
 
     def list_(self):
-        print_to_user("已配置的任务：")
+        print_to_user("已配置的任务:")
         for d in self.get_task_list():
             print_to_user(d)
 
@@ -580,11 +580,11 @@ class BaseUserWorker(Generic[ConfigT]):
                     try:
                         chat = getattr(dialog, "chat", None)
                         if chat is None:
-                            self.log("get_dialogs 返回空 chat，已跳过", level="WARNING")
+                            self.log("get_dialogs 返回空 chat,已跳过", level="WARNING")
                             continue
                         chat_id = getattr(chat, "id", None)
                         if chat_id is None:
-                            self.log("get_dialogs 返回 chat.id 为空，已跳过", level="WARNING")
+                            self.log("get_dialogs 返回 chat.id 为空,已跳过", level="WARNING")
                             continue
                         latest_chats.append(
                             {
@@ -600,13 +600,13 @@ class BaseUserWorker(Generic[ConfigT]):
                             print_to_user(readable_chat(chat))
                     except Exception as e:
                         self.log(
-                            f"处理 dialog 失败，已跳过: {type(e).__name__}: {e}",
+                            f"处理 dialog 失败,已跳过: {type(e).__name__}: {e}",
                             level="WARNING",
                         )
                         continue
             except Exception as e:
                 self.log(
-                    f"get_dialogs 中断，返回已获取结果: {type(e).__name__}: {e}",
+                    f"get_dialogs 中断,返回已获取结果: {type(e).__name__}: {e}",
                     level="WARNING",
                 )
 
@@ -639,7 +639,7 @@ class BaseUserWorker(Generic[ConfigT]):
         发送文本消息
         :param chat_id:
         :param text:
-        :param delete_after: 秒, 发送消息后进行删除，``None`` 表示不删除, ``0`` 表示立即删除.
+        :param delete_after: 秒, 发送消息后进行删除,``None`` 表示不删除, ``0`` 表示立即删除.
         :param kwargs:
         :return:
         """
@@ -842,7 +842,7 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
     def _ask_actions(
         self, input_: UserInput, available_actions: List[SupportAction] = None
     ) -> List[ActionT]:
-        print_to_user(f"{input_.index_str}开始配置<动作>，请按照实际签到顺序配置。")
+        print_to_user(f"{input_.index_str}开始配置<动作>,请按照实际签到顺序配置。")
         available_actions = available_actions or list(SupportAction)
         actions = []
         while True:
@@ -867,14 +867,14 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
                     text = local_input_("输入要发送的文本: ")
                     actions.append(SendTextAction(text=text))
                 elif action == SupportAction.SEND_DICE:
-                    dice = local_input_("输入要发送的骰子（如 🎲, 🎯）: ")
+                    dice = local_input_("输入要发送的骰子(如 🎲, 🎯): ")
                     actions.append(SendDiceAction(dice=dice))
                 elif action == SupportAction.CLICK_KEYBOARD_BY_TEXT:
                     text_of_btn_to_click = local_input_("键盘中需要点击的按钮文本: ")
                     actions.append(ClickKeyboardByTextAction(text=text_of_btn_to_click))
                 elif action == SupportAction.CHOOSE_OPTION_BY_IMAGE:
                     print_to_user(
-                        "图片识别将使用大模型回答，请确保大模型支持图片识别。"
+                        "图片识别将使用大模型回答,请确保大模型支持图片识别。"
                     )
                     actions.append(ChooseOptionByImageAction())
                 elif action == SupportAction.REPLY_BY_CALCULATION_PROBLEM:
@@ -888,7 +888,7 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
                     actions.append(ClickButtonByCalculationProblemAction())
                 else:
                     raise ValueError(f"不支持的动作: {action}")
-                if local_input_("是否继续添加动作？(y/N)：").strip().lower() != "y":
+                if local_input_("是否继续添加动作?(y/N):").strip().lower() != "y":
                     break
             except (ValueError, ValidationError) as e:
                 print_to_user("错误: ")
@@ -898,12 +898,12 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
 
     def ask_one(self) -> SignChatV3:
         input_ = UserInput(numbering_lang="chinese_simple")
-        chat_id = int(input_("Chat ID（登录时最近对话输出中的ID）: "))
-        name = input_("Chat名称（可选）: ")
+        chat_id = int(input_("Chat ID(登录时最近对话输出中的ID): "))
+        name = input_("Chat名称(可选): ")
         actions = self._ask_actions(input_)
         delete_after = (
             input_(
-                "等待N秒后删除消息（发送消息后等待进行删除, '0'表示立即删除, 不需要删除直接回车）, N: "
+                "等待N秒后删除消息(发送消息后等待进行删除, '0'表示立即删除, 不需要删除直接回车), N: "
             )
             or None
         )
@@ -932,17 +932,17 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
                 print_to_user(e)
                 print_to_user("配置失败")
                 i -= 1
-            continue_ = input("继续配置任务？(y/N)：")
+            continue_ = input("继续配置任务?(y/N):")
             if continue_.strip().lower() != "y":
                 break
             i += 1
-        sign_at_prompt = "签到时间（time或crontab表达式，如'06:00:00'或'0 6 * * *'）: "
+        sign_at_prompt = "签到时间(time或crontab表达式,如'06:00:00'或'0 6 * * *'): "
         sign_at_str = input(sign_at_prompt) or "06:00:00"
         while not (sign_at := self._validate_sign_at(sign_at_str)):
             print_to_user("请输入正确的时间格式")
             sign_at_str = input(sign_at_prompt) or "06:00:00"
 
-        random_seconds_str = input("签到时间误差随机秒数（默认为0）: ") or "0"
+        random_seconds_str = input("签到时间误差随机秒数(默认为0): ") or "0"
         random_seconds = int(float(random_seconds_str))
         config = SignConfigV3.parse_obj(
             {
@@ -957,7 +957,7 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
 
     @classmethod
     def _validate_sign_at(cls, sign_at_str: str) -> Optional[str]:
-        sign_at_str = sign_at_str.replace("：", ":").strip()
+        sign_at_str = sign_at_str.replace(":", ":").strip()
 
         try:
             sign_at = dt_time.fromisoformat(sign_at_str)
@@ -989,10 +989,10 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
         chat: SignChatV3,
     ):
         try:
-            # 预热会话，确保 peer/access_hash 可用
+            # 预热会话,确保 peer/access_hash 可用
             await self.app.get_chat(chat.chat_id)
         except Exception as e:
-            # 兼容历史配置：部分会话可能保存了缺失负号的 chat_id
+            # 兼容历史配置:部分会话可能保存了缺失负号的 chat_id
             try:
                 from pyrogram.errors import ChannelInvalid, PeerIdInvalid
                 is_peer_invalid = isinstance(e, (PeerIdInvalid, ChannelInvalid))
@@ -1133,7 +1133,7 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
             _cron_it = croniter(self._validate_sign_at(config.sign_at), _last_sign_at)
             _next_run: datetime = _cron_it.next(datetime)
             if _next_run > now:
-                self.log("当前未到下次执行时间，无需执行")
+                self.log("当前未到下次执行时间,无需执行")
                 return False
             return True
 
@@ -1224,9 +1224,9 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
 
     async def on_edited_message(self, client, message: Message):
         self.log(
-            f"收到来自「{message.from_user.username or message.from_user.id}」对消息的更新，消息: {readable_message(message)}"
+            f"收到来自「{message.from_user.username or message.from_user.id}」对消息的更新,消息: {readable_message(message)}"
         )
-        # 避免更新正在处理的消息，等待处理完成
+        # 避免更新正在处理的消息,等待处理完成
         while (
             self.context.waiting_message
             and self.context.waiting_message.id == message.id
@@ -1283,7 +1283,7 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
         self, action: ReplyByCalculationProblemAction, message
     ):
         if message.text:
-            self.log("检测到文本回复，尝试调用大模型进行计算题回答")
+            self.log("检测到文本回复,尝试调用大模型进行计算题回答")
             self.log(f"问题: \n{message.text}")
             answer = await self.get_ai_tools().calculate_problem(message.text)
             answer = (answer or "").strip()
@@ -1300,7 +1300,7 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
     ):
         if not message.photo:
             return False
-        self.log("检测到图片，尝试识别并发送文本")
+        self.log("检测到图片,尝试识别并发送文本")
         image_buffer: BinaryIO = await self.app.download_media(
             message.photo.file_id, in_memory=True
         )
@@ -1320,7 +1320,7 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
     ):
         if not message.text:
             return False
-        self.log("检测到计算题，尝试计算并点击按钮")
+        self.log("检测到计算题,尝试计算并点击按钮")
         answer = await self.get_ai_tools().calculate_problem(message.text)
         answer = (answer or "").strip()
         if not answer:
@@ -1335,7 +1335,7 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
             if isinstance(reply_markup, InlineKeyboardMarkup) and message.photo:
                 flat_buttons = (b for row in reply_markup.inline_keyboard for b in row)
                 option_to_btn = {btn.text: btn for btn in flat_buttons if btn.text}
-                self.log("检测到图片，尝试调用大模型进行图片识别并选择选项")
+                self.log("检测到图片,尝试调用大模型进行图片识别并选择选项")
                 image_buffer: BinaryIO = await self.app.download_media(
                     message.photo.file_id, in_memory=True
                 )
@@ -1409,7 +1409,7 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
                     elif isinstance(action, ClickButtonByCalculationProblemAction):
                         ok = await self._click_button_by_calculation_problem(action, message)
                     if ok:
-                        # 将消息ID对应value置为None，保证收到消息的编辑时消息所处的顺序
+                        # 将消息ID对应value置为None,保证收到消息的编辑时消息所处的顺序
                         self.context.chat_messages[chat.chat_id][message.id] = None
                         return None
                     self.log(f"忽略消息: {readable_message(message)}")
@@ -1425,7 +1425,7 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
                 ),
             ):
                 try:
-                    self.log("等待超时，尝试从历史消息中查找按钮", level="WARNING")
+                    self.log("等待超时,尝试从历史消息中查找按钮", level="WARNING")
                     async for message in self.app.get_chat_history(chat.chat_id, limit=5):
                         if isinstance(action, ClickKeyboardByTextAction):
                             ok = await self._click_keyboard_by_text(action, message)
@@ -1476,7 +1476,7 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
             except errors.FloodWait as e:
                 wait_seconds = max(int(getattr(e, "value", 1) or 1), 1)
                 self.log(
-                    f"触发 FloodWait，{wait_seconds}s 后重试 ({attempt}/{max_retries})",
+                    f"触发 FloodWait,{wait_seconds}s 后重试 ({attempt}/{max_retries})",
                     level="WARNING",
                 )
                 if attempt >= max_retries:
@@ -1486,7 +1486,7 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
             except TimeoutError as e:
                 backoff = min(2**attempt, 8)
                 self.log(
-                    f"回调超时，{backoff}s 后重试 ({attempt}/{max_retries})",
+                    f"回调超时,{backoff}s 后重试 ({attempt}/{max_retries})",
                     level="WARNING",
                 )
                 if attempt >= max_retries:
@@ -1522,8 +1522,8 @@ class UserSigner(BaseUserWorker[SignConfigV3]):
                     schedule_date=next_dt,
                 )
                 await asyncio.sleep(0.1)
-                print_to_user(f"已配置次数：{n + 1}")
-        self.log(f"已配置定时发送消息，次数{next_times}")
+                print_to_user(f"已配置次数:{n + 1}")
+        self.log(f"已配置定时发送消息,次数{next_times}")
         return results
 
     async def get_schedule_messages(self, chat_id):
@@ -1543,7 +1543,7 @@ class UserMonitor(BaseUserWorker[MonitorConfig]):
 
     def ask_one(self):
         input_ = UserInput()
-        chat_id = (input_("Chat ID（登录时最近对话输出中的ID）: ")).strip()
+        chat_id = (input_("Chat ID(登录时最近对话输出中的ID): ")).strip()
         if not chat_id.startswith("@"):
             chat_id = int(chat_id)
         rules = ["exact", "contains", "regex", "all"]
@@ -1553,27 +1553,27 @@ class UserMonitor(BaseUserWorker[MonitorConfig]):
             print_to_user("不存在的规则, 请重新输入!")
         rule_value = None
         if rule != "all":
-            while not (rule_value := input_("规则值（不可为空）: ")):
+            while not (rule_value := input_("规则值(不可为空): ")):
                 print_to_user("不可为空！")
                 continue
         from_user_ids = (
             input_(
-                "只匹配来自特定用户ID的消息（多个用逗号隔开, 匹配所有用户直接回车）: "
+                "只匹配来自特定用户ID的消息(多个用逗号隔开, 匹配所有用户直接回车): "
             )
             or None
         )
-        always_ignore_me = input_("总是忽略自己发送的消息（y/N）: ").lower() == "y"
+        always_ignore_me = input_("总是忽略自己发送的消息(y/N): ").lower() == "y"
         if from_user_ids:
             from_user_ids = [
                 i if i.startswith("@") else int(i) for i in from_user_ids.split(",")
             ]
-        default_send_text = input_("默认发送文本（不需要则回车）: ") or None
+        default_send_text = input_("默认发送文本(不需要则回车): ") or None
         ai_reply = False
         ai_prompt = None
         use_ai_reply = input_("是否使用AI进行回复(y/N): ") or "n"
         if use_ai_reply.lower() == "y":
             ai_reply = True
-            while not (ai_prompt := input_("输入你的提示词（作为`system prompt`）: ")):
+            while not (ai_prompt := input_("输入你的提示词(作为`system prompt`): ")):
                 print_to_user("不可为空！")
                 continue
             print_to_user(OPENAI_USE_PROMPT)
@@ -1581,20 +1581,20 @@ class UserMonitor(BaseUserWorker[MonitorConfig]):
         send_text_search_regex = None
         if not ai_reply:
             send_text_search_regex = (
-                input_("从消息中提取发送文本的正则表达式（不需要则直接回车）: ") or None
+                input_("从消息中提取发送文本的正则表达式(不需要则直接回车): ") or None
             )
 
         if default_send_text or ai_reply or send_text_search_regex:
             delete_after = (
                 input_(
-                    "发送消息后等待N秒进行删除（'0'表示立即删除, 不需要删除直接回车）， N: "
+                    "发送消息后等待N秒进行删除('0'表示立即删除, 不需要删除直接回车), N: "
                 )
                 or None
             )
             if delete_after:
                 delete_after = int(delete_after)
             forward_to_chat_id = (
-                input_("转发消息到该聊天ID，默认为消息来源：")
+                input_("转发消息到该聊天ID,默认为消息来源:")
             ).strip()
             if forward_to_chat_id and not forward_to_chat_id.startswith("@"):
                 forward_to_chat_id = int(forward_to_chat_id)
@@ -1609,19 +1609,19 @@ class UserMonitor(BaseUserWorker[MonitorConfig]):
         if push_via_server_chan:
             server_chan_send_key = (
                 input_(
-                    "Server酱的SendKey（不填将从环境变量`SERVER_CHAN_SEND_KEY`读取）: "
+                    "Server酱的SendKey(不填将从环境变量`SERVER_CHAN_SEND_KEY`读取): "
                 )
                 or None
             )
 
         forward_to_external = (
-            input_("是否需要转发到外部（UDP, Http）(y/N): ").lower() == "y"
+            input_("是否需要转发到外部(UDP, Http)(y/N): ").lower() == "y"
         )
         external_forwards = None
         if forward_to_external:
             external_forwards = []
             if input_("是否需要转发到UDP(y/N): ").lower() == "y":
-                addr = input_("请输入UDP服务器地址和端口（形如`127.0.0.1:1234`）: ")
+                addr = input_("请输入UDP服务器地址和端口(形如`127.0.0.1:1234`): ")
                 host, port = addr.split(":")
                 external_forwards.append(
                     {
@@ -1631,7 +1631,7 @@ class UserMonitor(BaseUserWorker[MonitorConfig]):
                 )
 
             if input_("是否需要转发到Http(y/N): ").lower() == "y":
-                url = input_("请输入Http地址（形如`http://127.0.0.1:1234`）: ")
+                url = input_("请输入Http地址(形如`http://127.0.0.1:1234`): ")
                 external_forwards.append(
                     {
                         "url": url,
@@ -1661,7 +1661,7 @@ class UserMonitor(BaseUserWorker[MonitorConfig]):
         i = 1
         print_to_user(f"开始配置任务<{self.task_name}>")
         print_to_user(
-            "聊天chat id和用户user id均同时支持整数id和字符串username, username必须以@开头，如@neo"
+            "聊天chat id和用户user id均同时支持整数id和字符串username, username必须以@开头,如@neo"
         )
         match_cfgs = []
         while True:
@@ -1672,7 +1672,7 @@ class UserMonitor(BaseUserWorker[MonitorConfig]):
                 print_to_user(e)
                 print_to_user("配置失败")
                 i -= 1
-            continue_ = input("继续配置？(y/N)：")
+            continue_ = input("继续配置?(y/N):")
             if continue_.strip().lower() != "y":
                 break
             i += 1
@@ -1730,7 +1730,7 @@ class UserMonitor(BaseUserWorker[MonitorConfig]):
         for match_cfg in self.config.match_cfgs:
             if not match_cfg.match(message):
                 continue
-            self.log(f"匹配到监控项：{match_cfg}")
+            self.log(f"匹配到监控项:{match_cfg}")
             await self.forward_to_external(match_cfg, message)
             try:
                 send_text = await self.get_send_text(match_cfg, message)
@@ -1738,7 +1738,7 @@ class UserMonitor(BaseUserWorker[MonitorConfig]):
                     self.log("发送内容为空", level="WARNING")
                 else:
                     forward_to_chat_id = match_cfg.forward_to_chat_id or message.chat.id
-                    self.log(f"发送文本：{send_text}至{forward_to_chat_id}")
+                    self.log(f"发送文本:{send_text}至{forward_to_chat_id}")
                     await self.send_message(
                         forward_to_chat_id,
                         send_text,
@@ -1755,7 +1755,7 @@ class UserMonitor(BaseUserWorker[MonitorConfig]):
                     else:
                         await sc_send(
                             server_chan_send_key,
-                            f"匹配到监控项：{match_cfg.chat_id}",
+                            f"匹配到监控项:{match_cfg.chat_id}",
                             f"消息内容为:\n\n{message.text}",
                         )
             except IndexError as e:

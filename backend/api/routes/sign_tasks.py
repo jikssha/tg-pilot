@@ -40,34 +40,34 @@ class ActionBase(BaseModel):
 class SendTextAction(ActionBase):
     """发送文本动作"""
 
-    action: int = Field(1, description="动作类型：1=发送文本")
+    action: int = Field(1, description="动作类型:1=发送文本")
     text: str = Field(..., description="要发送的文本")
 
 
 class SendDiceAction(ActionBase):
     """发送骰子动作"""
 
-    action: int = Field(2, description="动作类型：2=发送骰子")
+    action: int = Field(2, description="动作类型:2=发送骰子")
     dice: str = Field(..., description="骰子表情")
 
 
 class ClickKeyboardAction(ActionBase):
     """点击键盘按钮动作"""
 
-    action: int = Field(3, description="动作类型：3=点击按钮")
+    action: int = Field(3, description="动作类型:3=点击按钮")
     text: str = Field(..., description="按钮文本")
 
 
 class ChooseOptionByImageAction(ActionBase):
     """AI 图片识别动作"""
 
-    action: int = Field(4, description="动作类型：4=AI 图片识别")
+    action: int = Field(4, description="动作类型:4=AI 图片识别")
 
 
 class ReplyByCalculationAction(ActionBase):
     """AI 计算题动作"""
 
-    action: int = Field(5, description="动作类型：5=AI 计算题")
+    action: int = Field(5, description="动作类型:5=AI 计算题")
 
 
 class ChatConfig(BaseModel):
@@ -76,8 +76,8 @@ class ChatConfig(BaseModel):
     chat_id: int = Field(..., description="Chat ID")
     name: str = Field("", description="Chat 名称")
     actions: List[Dict[str, Any]] = Field(..., description="动作列表")
-    delete_after: Optional[int] = Field(None, description="删除延迟（秒）")
-    action_interval: int = Field(10, description="动作间隔（秒）")
+    delete_after: Optional[int] = Field(None, description="删除延迟(秒)")
+    action_interval: int = Field(10, description="动作间隔(秒)")
 
 
 class SignTaskCreate(BaseModel):
@@ -85,11 +85,11 @@ class SignTaskCreate(BaseModel):
 
     name: str = Field(..., description="任务名称")
     account_name: str = Field(..., description="关联的账号名称")
-    sign_at: str = Field(..., description="签到时间（CRON 表达式）")
+    sign_at: str = Field(..., description="签到时间(CRON 表达式)")
     chats: List[ChatConfig] = Field(..., description="Chat 配置列表")
     random_seconds: int = Field(0, description="随机延迟秒数")
     sign_interval: Optional[int] = Field(
-        None, description="签到间隔秒数，留空使用全局配置或随机 1-120 秒"
+        None, description="签到间隔秒数,留空使用全局配置或随机 1-120 秒"
     )
     execution_mode: Optional[str] = Field("fixed", description="执行模式: fixed/range")
     range_start: Optional[str] = Field(None, description="随机范围开始时间")
@@ -111,7 +111,7 @@ class SignTaskCreate(BaseModel):
 class SignTaskUpdate(BaseModel):
     """更新签到任务请求"""
 
-    sign_at: Optional[str] = Field(None, description="签到时间（CRON 表达式）")
+    sign_at: Optional[str] = Field(None, description="签到时间(CRON 表达式)")
     chats: Optional[List[ChatConfig]] = Field(None, description="Chat 配置列表")
     random_seconds: Optional[int] = Field(None, description="随机延迟秒数")
     sign_interval: Optional[int] = Field(None, description="签到间隔秒数")
@@ -181,8 +181,8 @@ class TaskHistoryItem(BaseModel):
 
 
 # API 路由
-# 注意：具体路径路由（如 /chats/）必须定义在参数化路由（如 /{task_name}）之前，
-# 否则 FastAPI 会把 "chats" 当作 task_name 匹配，导致 404。
+# 注意:具体路径路由(如 /chats/)必须定义在参数化路由(如 /{task_name})之前,
+# 否则 FastAPI 会把 "chats" 当作 task_name 匹配,导致 404。
 
 
 @router.get("", response_model=List[SignTaskOut])
@@ -193,7 +193,7 @@ def list_sign_tasks(
     获取所有签到任务列表
 
     Args:
-        account_name: 可选，按账号名筛选任务
+        account_name: 可选,按账号名筛选任务
     """
     tasks = get_sign_task_service().list_tasks(account_name=account_name)
     return tasks
@@ -237,7 +237,7 @@ def search_account_chats(
     offset: int = 0,
     current_user=Depends(get_current_user),
 ):
-    """搜索账号的 Chat 列表（使用缓存）"""
+    """搜索账号的 Chat 列表(使用缓存)"""
     try:
         return get_sign_task_service().search_account_chats(
             account_name, q, limit=limit, offset=offset
@@ -406,7 +406,7 @@ def get_sign_task_history(
     )
 
 
-# /chats/ 路由已移至文件顶部（/{task_name} 之前），避免路由遮蔽问题
+# /chats/ 路由已移至文件顶部(/{task_name} 之前),避免路由遮蔽问题
 
 
 @router.websocket("/ws/{task_name}")
@@ -440,7 +440,7 @@ async def sign_task_logs_ws(
                 task_name, account_name=account_name
             )
 
-            # 如果有新内容，则推送
+            # 如果有新内容,则推送
             if len(active_logs) > last_idx:
                 new_logs = active_logs[last_idx:]
                 await websocket.send_json(

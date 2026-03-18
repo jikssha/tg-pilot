@@ -75,7 +75,7 @@ def reconfig(obj, task_name):
 
 
 @tg_monitor.command(
-    help="""导出配置，默认为输出到终端。\n\n e.g.\n\n  tg-monitor export -O config.json mytask\n\n  tg-monitor export mytask > config.json"""
+    help="""导出配置,默认为输出到终端。\n\n e.g.\n\n  tg-monitor export -O config.json mytask\n\n  tg-monitor export mytask > config.json"""
 )
 @click.argument("task_name")
 @click.option(
@@ -94,7 +94,7 @@ def export(obj, task_name: str, file: str = None):
 
 @tg_monitor.command(
     name="import",
-    help="""导入配置，默认为从终端读取。\n\n e.g.\n\n  tg-monitor import -I config.json mytask\n\n  cat config.json | tg-monitor import mytask""",
+    help="""导入配置,默认为从终端读取。\n\n e.g.\n\n  tg-monitor import -I config.json mytask\n\n  cat config.json | tg-monitor import mytask""",
 )
 @click.argument("task_name")
 @click.option(

@@ -109,7 +109,7 @@ def get_signer(
     show_default=True,
     show_envvar=True,
     envvar="TG_ACCOUNT",
-    help="自定义账号名称，对应session文件名为<account>.session",
+    help="自定义账号名称,对应session文件名为<account>.session",
 )
 @click.option(
     "--workdir",
@@ -118,7 +118,7 @@ def get_signer(
     default=".signer",
     show_default=True,
     type=click.Path(),
-    help="tg-signer工作目录，用于存储配置和签到记录等",
+    help="tg-signer工作目录,用于存储配置和签到记录等",
 )
 @click.option(
     "--session-string",
@@ -134,7 +134,7 @@ def get_signer(
     "in_memory",
     default=False,
     is_flag=True,
-    help="是否将session存储在内存中，默认为False，存储在文件",
+    help="是否将session存储在内存中,默认为False,存储在文件",
 )
 @click.pass_context
 def tg_signer(
@@ -189,7 +189,7 @@ def list_(obj):
     return UserSigner(workdir=obj["workdir"]).list_()
 
 
-@tg_signer.command(help="登录账号（用于获取session）")
+@tg_signer.command(help="登录账号(用于获取session)")
 @click.option(
     "--num-of-dialogs",
     "-n",
@@ -234,7 +234,7 @@ def run(obj, task_names, num_of_dialogs):
     loop.run_until_complete(asyncio.gather(*coros))
 
 
-@tg_signer.command(help="运行一次签到任务，即使该签到任务今日已执行过")
+@tg_signer.command(help="运行一次签到任务,即使该签到任务今日已执行过")
 @click.argument("task_name", default="my_sign")
 @click.option(
     "--num-of-dialogs",
@@ -272,7 +272,7 @@ def send_text(obj, chat_id, text, delete_after=None):
 
 
 @tg_signer.command(
-    help="发送一次DICE消息, 请确保当前会话已经\"见过\"该`chat_id`。\n注意，`emoji`应该是'🎲', '🎯', '🏀', '⚽', '🎳'或'🎰'之一"
+    help="发送一次DICE消息, 请确保当前会话已经\"见过\"该`chat_id`。\n注意,`emoji`应该是'🎲', '🎯', '🏀', '⚽', '🎳'或'🎰'之一"
 )
 @click.argument(
     "chat_id",
@@ -301,7 +301,7 @@ def reconfig(obj, task_name):
     return signer.reconfig()
 
 
-@tg_signer.command(help="查询聊天（群或频道）的成员, 频道需要管理员权限")
+@tg_signer.command(help="查询聊天(群或频道)的成员, 频道需要管理员权限")
 @click.option(
     "--chat_id",
     "chat_id",
@@ -332,7 +332,7 @@ def list_members(obj, chat_id: str, query: str, admin, limit):
 
 
 @tg_signer.command(
-    help="""导出配置，默认为输出到终端。\n\n e.g.\n\n  tg-signer export -O config.json mytask\n\n  tg-signer export mytask > config.json"""
+    help="""导出配置,默认为输出到终端。\n\n e.g.\n\n  tg-signer export -O config.json mytask\n\n  tg-signer export mytask > config.json"""
 )
 @click.argument("task_name")
 @click.option(
@@ -351,7 +351,7 @@ def export(obj, task_name: str, file: str = None):
 
 @tg_signer.command(
     name="import",
-    help="""导入配置，默认为从终端读取。\n\n e.g.\n\n  tg-signer import -I config.json mytask\n\n  cat config.json | tg-signer import mytask""",
+    help="""导入配置,默认为从终端读取。\n\n e.g.\n\n  tg-signer import -I config.json mytask\n\n  cat config.json | tg-signer import mytask""",
 )
 @click.argument("task_name")
 @click.option(
@@ -390,7 +390,7 @@ def import_(obj, task_name: str, file: str = None):
     type=int,
     default=1,
     show_default=True,
-    help="配置定时发送消息时的次数，如通过crontab配置了'每天0点发送消息'，则'30'表示将定时任务排30次，即未来30天每天0点发送消息",
+    help="配置定时发送消息时的次数,如通过crontab配置了'每天0点发送消息',则'30'表示将定时任务排30次,即未来30天每天0点发送消息",
 )
 @click.option(
     "--random-seconds",
@@ -399,7 +399,7 @@ def import_(obj, task_name: str, file: str = None):
     type=int,
     default=0,
     show_default=True,
-    help="加入随机秒数，会应用于每个定时消息",
+    help="加入随机秒数,会应用于每个定时消息",
 )
 @click.pass_obj
 def schedule_messages(obj, chat_id, text, crontab, next_times, random_seconds):
@@ -428,7 +428,7 @@ def list_schedule_messages(obj, chat_id):
     "accounts",
     required=True,
     multiple=True,
-    help="多个account，每个account是一个自定义账号名称，对应session文件名为<account>.session",
+    help="多个account,每个account是一个自定义账号名称,对应session文件名为<account>.session",
 )
 @click.option(
     "--num-of-dialogs",
@@ -463,7 +463,7 @@ def llm_config(obj):
 
 @tg_signer.command(
     name="webgui",
-    help="启动一个WebGUI（需要通过`pip install tg-signer[gui]`安装相关依赖）",
+    help="启动一个WebGUI(需要通过`pip install tg-signer[gui]`安装相关依赖)",
 )
 @click.option("--host", "-H", "host", default="127.0.0.1", help="监听地址")
 @click.option("--port", "-P", "port", default=9987, help="监听端口")
@@ -473,7 +473,7 @@ def llm_config(obj):
     "storage_secret",
     default=None,
     show_default=True,
-    help="存储密钥，若不输入则每次启动会使用随机字符串",
+    help="存储密钥,若不输入则每次启动会使用随机字符串",
 )
 @click.option(
     "--auth-code",
@@ -481,7 +481,7 @@ def llm_config(obj):
     default=None,
     show_default=True,
     envvar="TG_SIGNER_GUI_AUTHCODE",
-    help="授权码，也可通过环境变量`TG_SIGNER_GUI_AUTHCODE`设置。若存在则访问界面时需要正确输入。",
+    help="授权码,也可通过环境变量`TG_SIGNER_GUI_AUTHCODE`设置。若存在则访问界面时需要正确输入。",
 )
 def webgui(
     host: str = None,

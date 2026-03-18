@@ -25,7 +25,7 @@ def time_to_cron(time_str: str) -> str:
 async def _job_run_task(task_id: int) -> None:
     db: Session = get_session_local()()
     try:
-        # 这里的查询是同步的，对于 SQLite 且任务量不大可以接受
+        # 这里的查询是同步的,对于 SQLite 且任务量不大可以接受
         task = db.query(Task).filter(Task.id == task_id).first()
         if not task or not task.enabled:
             return
@@ -48,7 +48,7 @@ async def _job_run_sign_task(account_name: str, task_name: str) -> None:
     try:
         logger.info(f"Scheduler: 正在运行签到任务 {task_name} (账号: {account_name})")
 
-        # 获取任务配置，检查是否为随机时间段模式
+        # 获取任务配置,检查是否为随机时间段模式
         sign_task_service = get_sign_task_service()
         task_config = sign_task_service.get_task(task_name, account_name)
         if task_config and task_config.get("execution_mode") == "range":
@@ -77,7 +77,7 @@ async def _job_run_sign_task(account_name: str, task_name: str) -> None:
                         microsecond=0,
                     )
 
-                    # 如果结束时间小于开始时间，假设是第二天（虽然CRON触发通常在开始时间，这里做个防御）
+                    # 如果结束时间小于开始时间,假设是第二天(虽然CRON触发通常在开始时间,这里做个防御)
                     if end_dt < start_dt:
                         end_dt += timedelta(days=1)
 
@@ -97,9 +97,9 @@ async def _job_run_sign_task(account_name: str, task_name: str) -> None:
                         await asyncio.sleep(delay_seconds)
 
                 except Exception as e:
-                    logger.error(f"Scheduler: 计算随机时间段延迟失败: {e}，将立即执行")
+                    logger.error(f"Scheduler: 计算随机时间段延迟失败: {e},将立即执行")
 
-        # run_task_with_logs 是 async 的，我们使用它
+        # run_task_with_logs 是 async 的,我们使用它
         sign_task_service = get_sign_task_service()
         result = await sign_task_service.run_task_with_logs(account_name, task_name)
         if result.get("success"):
@@ -111,7 +111,7 @@ async def _job_run_sign_task(account_name: str, task_name: str) -> None:
 
 
 async def _job_maintenance() -> None:
-    """每日维护任务：清理旧日志等"""
+    """每日维护任务:清理旧日志等"""
     db: Session = get_session_local()()
     try:
         from backend.services.sign_tasks import get_sign_task_service
@@ -167,14 +167,14 @@ async def sync_jobs() -> None:
                 print(f"Error scheduling DB task {task.id}: {e}")
 
         # 2. 同步签到任务 (SignTask)
-        # 使用缓存的任务列表，减少 I/O
+        # 使用缓存的任务列表,减少 I/O
         sign_task_service = get_sign_task_service()
         sign_tasks = sign_task_service.list_tasks(force_refresh=False)
         for st in sign_tasks:
             job_id = f"sign-{st['account_name']}-{st['name']}"
             desired_ids.add(job_id)
 
-            # SignTask 目前默认都是启用的，或者根据 st['enabled']
+            # SignTask 目前默认都是启用的,或者根据 st['enabled']
             if not st.get("enabled", True):
                 if job_id in existing_ids:
                     scheduler.remove_job(job_id)
@@ -248,7 +248,7 @@ async def init_scheduler(sync_on_startup: bool = True) -> AsyncIOScheduler:
             job_defaults={
                 "misfire_grace_time": 3600,  # 允许任务延迟 1 小时执行
                 "coalesce": True,  # 合并积压的执行
-                "max_instances": 10,  # 增加并发实例数，避免多账号任务相互阻塞
+                "max_instances": 10,  # 增加并发实例数,避免多账号任务相互阻塞
             },
         )
         scheduler.start()

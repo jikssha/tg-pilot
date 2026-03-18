@@ -19,10 +19,10 @@ from typing_extensions import Self, TypeAlias
 
 
 def get_display_width(text: str) -> int:
-    """计算文本在终端中的显示宽度（考虑中文字符占2个字符位）"""
+    """计算文本在终端中的显示宽度(考虑中文字符占2个字符位)"""
     width = 0
     for char in text:
-        if ord(char) > 127:  # 非ASCII字符（包括中文）
+        if ord(char) > 127:  # 非ASCII字符(包括中文)
             width += 2
         else:
             width += 1
@@ -129,9 +129,9 @@ class SignConfigV2(BaseJSONConfig):
     is_current: ClassVar = False
 
     chats: List[SignChatV2]
-    sign_at: str  # 签到时间，time或crontab表达式
+    sign_at: str  # 签到时间,time或crontab表达式
     random_seconds: int = 0
-    sign_interval: int = 1  # 连续签到的间隔时间，单位秒
+    sign_interval: int = 1  # 连续签到的间隔时间,单位秒
 
     @classmethod
     def to_current(cls, obj: Union["SignConfigV2", "SignConfigV1"]):
@@ -251,7 +251,7 @@ class SignChatV3(BaseJSONConfig):
     name: Optional[str] = None
     delete_after: Optional[int] = None
     actions: List[ActionT]
-    action_interval: float = 10  # actions的间隔时间，单位秒
+    action_interval: float = 10  # actions的间隔时间,单位秒
 
     def __repr__(self) -> str:
         return (
@@ -262,7 +262,7 @@ class SignChatV3(BaseJSONConfig):
         )
 
     def __str__(self) -> str:
-        # 设置总宽度（不包括边框字符）
+        # 设置总宽度(不包括边框字符)
         content_width = 48
 
         # 构建边框
@@ -357,9 +357,9 @@ class SignConfigV3(BaseJSONConfig):
 
     _version: Literal[3] = 3
     chats: List[SignChatV3]
-    sign_at: str  # 签到时间，time或crontab表达式
+    sign_at: str  # 签到时间,time或crontab表达式
     random_seconds: int = 0
-    sign_interval: int = 1  # 连续签到的间隔时间，单位秒
+    sign_interval: int = 1  # 连续签到的间隔时间,单位秒
 
     @property
     def requires_ai(self) -> bool:
@@ -391,7 +391,7 @@ class MatchConfig(BaseJSONConfig):
     rule: MatchRuleT = "exact"  # 匹配规则
     rule_value: Optional[str] = None  # 规则值
     from_user_ids: Optional[List[Union[int, str]]] = (
-        None  # 发送者id或username，为空时，匹配所有人
+        None  # 发送者id或username,为空时,匹配所有人
     )
     always_ignore_me: bool = False  # 总是忽略自己发送的消息
     default_send_text: Optional[str] = None  # 默认发送内容
@@ -401,7 +401,7 @@ class MatchConfig(BaseJSONConfig):
     delete_after: Optional[int] = None
     ignore_case: bool = True  # 忽略大小写
     forward_to_chat_id: Optional[Union[int, str]] = (
-        None  # 转发消息到该聊天，默认为消息来源
+        None  # 转发消息到该聊天,默认为消息来源
     )
     external_forwards: Optional[List[Union[UDPForward, HttpCallback]]] = (
         None  # 转发到外部

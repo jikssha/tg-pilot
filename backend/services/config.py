@@ -94,10 +94,10 @@ class ConfigService:
 
         Args:
             task_name: 任务名称
-            account_name: 账号名称（可选）
+            account_name: 账号名称(可选)
 
         Returns:
-            配置字典，如果不存在则返回 None
+            配置字典,如果不存在则返回 None
         """
         if account_name:
             task_dir = self.signs_dir / account_name / task_name
@@ -109,7 +109,7 @@ class ConfigService:
             if not matches:
                 return None
             if len(matches) > 1:
-                raise ValueError(f"任务 {task_name} 存在于多个账号中，请指定 account_name")
+                raise ValueError(f"任务 {task_name} 存在于多个账号中,请指定 account_name")
             task_dir = matches[0]
             config_file = task_dir / "config.json"
 
@@ -157,7 +157,7 @@ class ConfigService:
 
         Args:
             task_name: 任务名称
-            account_name: 账号名称（可选）
+            account_name: 账号名称(可选)
 
         Returns:
             是否成功删除
@@ -171,7 +171,7 @@ class ConfigService:
             if not matches:
                 return False
             if len(matches) > 1:
-                raise ValueError(f"任务 {task_name} 存在于多个账号中，请指定 account_name")
+                raise ValueError(f"任务 {task_name} 存在于多个账号中,请指定 account_name")
             task_dir = matches[0]
 
         try:
@@ -186,8 +186,8 @@ class ConfigService:
                 record_file.unlink()
 
             # 删除目录
-            # 注意：如果是嵌套结构，这里只删除了任务目录，没有删除可能变空的账号目录
-            # 这通常是可以接受的，或者我们可以检查父目录是否为空并删除
+            # 注意:如果是嵌套结构,这里只删除了任务目录,没有删除可能变空的账号目录
+            # 这通常是可以接受的,或者我们可以检查父目录是否为空并删除
             import shutil
             shutil.rmtree(task_dir)
             
@@ -203,10 +203,10 @@ class ConfigService:
 
         Args:
             task_name: 任务名称
-            account_name: 账号名称（可选）
+            account_name: 账号名称(可选)
 
         Returns:
-            JSON 字符串，如果任务不存在则返回 None
+            JSON 字符串,如果任务不存在则返回 None
         """
         config = self.get_sign_config(task_name, account_name=account_name)
 
@@ -238,8 +238,8 @@ class ConfigService:
 
         Args:
             json_str: JSON 字符串
-            task_name: 新任务名称（可选，如果不提供则使用原名称）
-            account_name: 新账号名称（可选，如果不提供则使用原名称）
+            task_name: 新任务名称(可选,如果不提供则使用原名称)
+            account_name: 新账号名称(可选,如果不提供则使用原名称)
 
         Returns:
             是否成功导入
@@ -413,9 +413,9 @@ class ConfigService:
             if "ai" in settings_data and settings_data["ai"]:
                 try:
                     ai_conf = settings_data["ai"]
-                    # 注意：如果 masking 处理过 api_key (e.g. ****)，这里需要处理吗？
-                    # 当前 export_ai_config 直接读取文件，应该包含完整 key（文件里是明文）。前端展示才 mask。
-                    # 所以这里导出的是完整 key，可以直接导入。
+                    # 注意:如果 masking 处理过 api_key (e.g. ****),这里需要处理吗?
+                    # 当前 export_ai_config 直接读取文件,应该包含完整 key(文件里是明文)。前端展示才 mask。
+                    # 所以这里导出的是完整 key,可以直接导入。
                     if ai_conf.get("api_key"):
                         self.save_ai_config(ai_conf["api_key"], ai_conf.get("base_url"), ai_conf.get("model"))
                         result["settings_imported"] += 1
@@ -432,18 +432,18 @@ class ConfigService:
                 except Exception as e:
                     result["errors"].append(f"Failed to import Telegram config: {e}")
 
-            # 关键修复：清除 SignTaskService 缓存，否则前端刷新也看不到新任务
+            # 关键修复:清除 SignTaskService 缓存,否则前端刷新也看不到新任务
             try:
                 from backend.services.sign_tasks import get_sign_task_service
                 get_sign_task_service()._tasks_cache = None
                 
-                # 可选：触发调度同步？
-                # 如果导入了新任务，调度器并不知道。
-                # 只有 _tasks_cache 清除后，下次调用 list_tasks 才会读文件，但调度器是内存常驻的。
+                # 可选:触发调度同步?
+                # 如果导入了新任务,调度器并不知道。
+                # 只有 _tasks_cache 清除后,下次调用 list_tasks 才会读文件,但调度器是内存常驻的。
                 # 我们应该调用 sync_jobs!
                 
-                # 由于 sync_jobs 是 async 的，而这里是同步方法，可能不太好直接调。
-                # 但 FastAPI 路由是 async 的，我们可以在路由层调用 sync_jobs。
+                # 由于 sync_jobs 是 async 的,而这里是同步方法,可能不太好直接调。
+                # 但 FastAPI 路由是 async 的,我们可以在路由层调用 sync_jobs。
                 # 这里的职责主要是文件操作。清理 cache 是必须的。
                 pass
             except Exception as e:
@@ -465,7 +465,7 @@ class ConfigService:
         获取 AI 配置
 
         Returns:
-            配置字典，如果不存在则返回 None
+            配置字典,如果不存在则返回 None
         """
         config_file = self._get_ai_config_file()
 
@@ -489,8 +489,8 @@ class ConfigService:
 
         Args:
             api_key: OpenAI API Key
-            base_url: API Base URL（可选）
-            model: 模型名称（可选）
+            base_url: API Base URL(可选)
+            model: 模型名称(可选)
 
         Returns:
             是否成功保存
@@ -572,7 +572,7 @@ class ConfigService:
         except ImportError:
             return {
                 "success": False,
-                "message": "未安装 openai 库，请运行: pip install openai",
+                "message": "未安装 openai 库,请运行: pip install openai",
             }
         except Exception as e:
             return {"success": False, "message": f"连接失败: {str(e)}"}
@@ -665,7 +665,7 @@ class ConfigService:
         获取 Telegram API 配置
 
         Returns:
-            配置字典，包含 api_id, api_hash, is_custom (是否为自定义配置)
+            配置字典,包含 api_id, api_hash, is_custom (是否为自定义配置)
         """
         config_file = self._get_telegram_config_file()
 
@@ -682,7 +682,7 @@ class ConfigService:
         try:
             with open(config_file, "r", encoding="utf-8") as f:
                 config = json.load(f)
-                # 如果有自定义配置，标记为自定义
+                # 如果有自定义配置,标记为自定义
                 if config.get("api_id") and config.get("api_hash"):
                     config["is_custom"] = True
                     return config
@@ -718,7 +718,7 @@ class ConfigService:
 
     def reset_telegram_config(self) -> bool:
         """
-        重置 Telegram API 配置（恢复默认）
+        重置 Telegram API 配置(恢复默认)
 
         Returns:
             是否成功重置

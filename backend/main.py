@@ -65,7 +65,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API 路由必须在静态文件挂载之前注册，并使用 /api 前缀
+# API 路由必须在静态文件挂载之前注册,并使用 /api 前缀
 app.include_router(api_router, prefix="/api")
 
 
@@ -90,11 +90,11 @@ def ready_check(response: Response) -> dict[str, str]:
 # 静态前端托管逻辑优化
 web_dir = Path("/web")
 
-# 1. 优先挂载 _next 静态目录（Next.js 核心资源）
+# 1. 优先挂载 _next 静态目录(Next.js 核心资源)
 if (web_dir / "_next").exists():
     app.mount("/_next", StaticFiles(directory=str(web_dir / "_next"), html=False), name="next_assets")
 
-# 2. 挂载其他顶级静态文件夹（如果存在）
+# 2. 挂载其他顶级静态文件夹(如果存在)
 for folder in ["static", "images", "assets"]:
     if (web_dir / folder).exists():
         app.mount(f"/{folder}", StaticFiles(directory=str(web_dir / folder)), name=f"static_{folder}")
@@ -102,7 +102,7 @@ for folder in ["static", "images", "assets"]:
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
     """
-    强化版 SPA 逻辑：
+    强化版 SPA 逻辑:
     1. 优先检查精确文件路径
     2. 尝试 .html 映射
     3. 最后回退到 index.html
@@ -114,15 +114,15 @@ async def serve_spa(full_path: str):
     # 构造完整路径
     file_path = web_dir / full_path
 
-    # 如果是文件且存在，直接返回
+    # 如果是文件且存在,直接返回
     if file_path.exists() and file_path.is_file():
-        # 为静态资源添加缓存控制 (max-age 1年，因为 _next 资源带哈希)
+        # 为静态资源添加缓存控制 (max-age 1年,因为 _next 资源带哈希)
         headers = {}
         if "/_next/static/" in str(file_path):
             headers["Cache-Control"] = "public, max-age=31536000, immutable"
         return FileResponse(file_path, headers=headers)
 
-    # 尝试 .html 映射（Next.js 静态路由习惯）
+    # 尝试 .html 映射(Next.js 静态路由习惯)
     html_path = web_dir / f"{full_path}.html"
     if html_path.exists() and html_path.is_file():
         return FileResponse(html_path)

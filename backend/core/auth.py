@@ -90,7 +90,7 @@ def get_current_user_optional(
     token: Optional[str] = Depends(oauth2_scheme_optional),
     db: Session = Depends(get_db),
 ) -> Optional[User]:
-    """获取当前用户，如果无法认证则返回 None（不抛出异常）"""
+    """获取当前用户,如果无法认证则返回 None(不抛出异常)"""
     if not token:
         return None
     return verify_token(token, db)
