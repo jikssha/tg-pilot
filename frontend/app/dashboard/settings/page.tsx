@@ -91,7 +91,7 @@ export default function SettingsPage() {
         { id: "telegram", icon: TelegramLogo, label: isZh ? "Telegram API" : "Telegram API" },
         { id: "notification", icon: Bell, label: isZh ? "通知服务中心" : "Notifications" },
         { id: "ai", icon: Cpu, label: isZh ? "AI 辅助增强" : "AI Enrichment" },
-        { id: "backup", icon: Database, label: isZh ? "备份、迁移与引擎" : "Backup & Engine" },
+        { id: "backup", icon: Database, label: isZh ? "备份与系统设置" : "Backup & Settings" },
     ] as const;
 
     return (

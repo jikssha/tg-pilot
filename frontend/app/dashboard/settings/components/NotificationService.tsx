@@ -122,8 +122,8 @@ export default function NotificationService({ token, botNotifyConfig, globalSett
                         <Bell weight="bold" size={24} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black tracking-tight uppercase italic">Broadcast Center</h2>
-                        <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">{isZh ? "Notification Hub Protocol" : "Notification Hub Protocol"}</p>
+                        <h2 className="text-xl font-bold tracking-tight uppercase">通知服务中心</h2>
+                        <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">{isZh ? "消息推送协议配置" : "Notification Hub Protocol"}</p>
                     </div>
                 </div>
 
@@ -135,25 +135,25 @@ export default function NotificationService({ token, botNotifyConfig, globalSett
                                 <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-white/40 shadow-inner">
                                     <PaperPlaneTilt weight="bold" size={20} />
                                 </div>
-                                <h3 className="text-sm font-bold tracking-tight">Access Credentials</h3>
+                                <h3 className="text-sm font-bold tracking-tight">{isZh ? "机器人访问凭据" : "Access Credentials"}</h3>
                             </div>
                             <div className="grid grid-cols-1 gap-8">
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-white/20 uppercase tracking-widest ml-1">Secure Bot Token</label>
+                                    <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">{isZh ? "机器人令牌 (Bot Token)" : "Secure Bot Token"}</label>
                                     <input
                                         type="password"
                                         className="!h-12 bg-black/40 border-white/5 focus:border-indigo-500/30 transition-all rounded-xl px-5 font-mono"
-                                        placeholder="e.g. 123456:ABC-DEF..."
+                                        placeholder="例如 123456:ABC-DEF..."
                                         value={form.bot_token}
                                         onChange={(e) => setForm({ ...form, bot_token: e.target.value })}
                                     />
                                 </div>
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-white/20 uppercase tracking-widest ml-1">Target Chat Identity (ID)</label>
+                                    <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">{isZh ? "目标聊天 ID (Chat ID)" : "Target Chat Identity (ID)"}</label>
                                     <input
                                         type="text"
                                         className="!h-12 bg-black/40 border-white/5 focus:border-indigo-500/30 transition-all rounded-xl px-5 font-mono"
-                                        placeholder="e.g. 123456789"
+                                        placeholder="例如 123456789"
                                         value={form.chat_id}
                                         onChange={(e) => setForm({ ...form, chat_id: e.target.value })}
                                     />
@@ -163,11 +163,11 @@ export default function NotificationService({ token, botNotifyConfig, globalSett
 
                         {/* Event Toggles */}
                         <div className="rounded-3xl bg-white/[0.02] border border-white/5 p-8 space-y-8 shadow-inner">
-                            <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] pl-1">Execution Triggers</h3>
+                            <h3 className="text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] pl-1">{isZh ? "事件触发提醒" : "Execution Triggers"}</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <label className="flex flex-col gap-3 p-5 rounded-2xl bg-black/20 border border-white/5 hover:border-white/10 transition-all cursor-pointer group">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white/60">Service</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 group-hover:text-white/60">{isZh ? "总开关" : "Service"}</span>
                                         <input 
                                             type="checkbox" 
                                             className="!w-5 !h-5 accent-indigo-500" 
@@ -175,11 +175,11 @@ export default function NotificationService({ token, botNotifyConfig, globalSett
                                             onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
                                         />
                                     </div>
-                                    <span className="text-sm font-bold">{isZh ? "总服务开关" : "Main Switch"}</span>
+                                    <span className="text-sm font-bold">{isZh ? "启用通知" : "Main Switch"}</span>
                                 </label>
                                 <label className="flex flex-col gap-3 p-5 rounded-2xl bg-black/20 border border-white/5 hover:border-white/10 transition-all cursor-pointer group text-emerald-400">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40 group-hover:opacity-60 text-emerald-400">Log</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-40 group-hover:opacity-60 text-emerald-400">{isZh ? "成功" : "Success"}</span>
                                         <input 
                                             type="checkbox" 
                                             className="!w-5 !h-5 accent-emerald-500" 
@@ -191,7 +191,7 @@ export default function NotificationService({ token, botNotifyConfig, globalSett
                                 </label>
                                 <label className="flex flex-col gap-3 p-5 rounded-2xl bg-black/20 border border-white/5 hover:border-white/10 transition-all cursor-pointer group text-rose-400">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40 group-hover:opacity-60 text-rose-400">Alert</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-40 group-hover:opacity-60 text-rose-400">{isZh ? "警报" : "Alert"}</span>
                                         <input 
                                             type="checkbox" 
                                             className="!w-5 !h-5 accent-rose-500" 
@@ -212,11 +212,11 @@ export default function NotificationService({ token, botNotifyConfig, globalSett
                                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shadow-inner">
                                     <FloppyDisk weight="bold" size={20} />
                                 </div>
-                                <h3 className="text-sm font-bold tracking-tight">{isZh ? "每日结算报告" : "Daily Abstract"}</h3>
+                                <h3 className="text-sm font-bold tracking-tight">{isZh ? "每日推送报告" : "Daily Summary"}</h3>
                             </div>
                             <div className="flex-1 space-y-10">
                                 <label className="flex items-center justify-between p-5 rounded-2xl bg-black/20 border border-white/5 hover:border-white/10 transition-all cursor-pointer group">
-                                    <span className="text-xs font-bold text-white/40 group-hover:text-white/60">{isZh ? "开启报告推送" : "Enable Protocol"}</span>
+                                    <span className="text-xs font-bold text-white/40 group-hover:text-white/60">{isZh ? "开启简报提醒" : "Enable Protocol"}</span>
                                     <input 
                                         type="checkbox" 
                                         className="!w-5 !h-5 accent-amber-500" 
@@ -225,7 +225,7 @@ export default function NotificationService({ token, botNotifyConfig, globalSett
                                     />
                                 </label>
                                 <div className="space-y-6">
-                                    <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] ml-1">{isZh ? "Scheduled Window" : "Scheduled Window"}</p>
+                                    <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-1">{isZh ? "预定推送时间" : "Scheduled Window"}</p>
                                     <div className="flex items-center gap-3">
                                         <select 
                                             className="flex-1 !h-12 !bg-black/40 !border-white/5 !rounded-xl !px-4 font-mono text-center text-lg font-bold hover:!bg-black/60 transition-all"
@@ -236,7 +236,7 @@ export default function NotificationService({ token, botNotifyConfig, globalSett
                                                 <option key={i} value={i}>{i.toString().padStart(2, '0')}</option>
                                             ))}
                                         </select>
-                                        <span className="text-white/10 font-black text-xl">:</span>
+                                        <span className="text-white/10 font-bold text-xl">:</span>
                                         <select 
                                             className="flex-1 !h-12 !bg-black/40 !border-white/5 !rounded-xl !px-4 font-mono text-center text-lg font-bold hover:!bg-black/60 transition-all"
                                             value={form.daily_summary_minute}
@@ -267,22 +267,22 @@ export default function NotificationService({ token, botNotifyConfig, globalSett
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-10 border-t border-white/5">
                     <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
                         <button 
-                            className="h-12 px-8 rounded-xl border border-white/5 bg-white/[0.02] text-white/40 text-[11px] font-black uppercase tracking-widest hover:bg-white/[0.05] hover:text-white transition-all flex items-center justify-center gap-3" 
+                            className="h-12 px-8 rounded-xl border border-white/5 bg-white/[0.02] text-white/40 text-[11px] font-bold uppercase tracking-widest hover:bg-white/[0.05] hover:text-white transition-all flex items-center justify-center gap-3" 
                             onClick={handleTest} 
                             disabled={testing}
                         >
-                            {testing ? <Spinner className="animate-spin" /> : <><PaperPlaneTilt size={18} weight="bold" className="text-indigo-400" /> {isZh ? "Execute Test" : "Execute Test"}</>}
+                            {testing ? <Spinner className="animate-spin" /> : <><PaperPlaneTilt size={18} weight="bold" className="text-indigo-400" /> {isZh ? "发送测试消息" : "Execute Test"}</>}
                         </button>
                         <button 
-                            className="h-12 px-8 rounded-xl border border-rose-500/10 bg-rose-500/[0.02] text-rose-500/40 text-[11px] font-black uppercase tracking-widest hover:bg-rose-500/10 hover:text-rose-400 transition-all flex items-center justify-center gap-3" 
+                            className="h-12 px-8 rounded-xl border border-rose-500/10 bg-rose-500/[0.02] text-rose-400/40 text-[11px] font-bold uppercase tracking-widest hover:bg-rose-500/10 hover:text-rose-400 transition-all flex items-center justify-center gap-3" 
                             onClick={handleDelete} 
                             disabled={loading}
                         >
-                            <Trash size={18} weight="bold" /> {isZh ? "Purge Configuration" : "Purge Configuration"}
+                            <Trash size={18} weight="bold" /> {isZh ? "清除配置" : "Purge Configuration"}
                         </button>
                     </div>
                     <button 
-                        className="w-full md:w-auto linear-btn-primary px-12 h-12 font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(255,255,255,0.1)]" 
+                        className="w-full md:w-auto linear-btn-primary px-12 h-12 font-bold uppercase tracking-widest text-[11px] flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(255,255,255,0.1)]" 
                         onClick={handleSave} 
                         disabled={loading}
                     >
@@ -300,7 +300,7 @@ export default function NotificationService({ token, botNotifyConfig, globalSett
                                     <Trash weight="bold" size={20} />
                                 </div>
                                 <h3 className="text-sm font-bold tracking-tight">
-                                    {isZh ? "确认删除配置" : "Purge Configuration"}
+                                    {isZh ? "确认清除配置" : "Purge Configuration"}
                                 </h3>
                             </div>
                             <button onClick={() => setShowDeleteConfirm(false)} className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]">
@@ -309,28 +309,28 @@ export default function NotificationService({ token, botNotifyConfig, globalSett
                         </header>
                         <div className="p-8 space-y-4 text-center">
                             <p className="text-[13px] text-white/80 leading-relaxed font-medium">
-                                {isZh ? "确定要删除 Bot 通知配置吗？此操作将立即停止所有电报频道的消息同步。" : "Are you sure you want to delete the Bot notification configuration? This will immediately stop all message synchronization to Telegram channels."}
+                                {isZh ? "确定要清除通知配置吗？清除后将不再收到任务运行提醒。" : "Are you sure you want to delete the Bot notification configuration? This will immediately stop all message synchronization to Telegram channels."}
                             </p>
-                            <div className="flex items-center justify-center gap-2 text-[9px] text-rose-400/50 uppercase tracking-[0.2em] font-black italic">
+                            <div className="flex items-center justify-center gap-2 text-[9px] text-rose-500/50 uppercase tracking-[0.2em] font-bold italic">
                                 <Warning size={12} weight="bold" />
-                                Destruction Protocol Initiated
+                                {isZh ? "通知服务将被禁用" : "Destruction Protocol Initiated"}
                             </div>
                         </div>
                         <footer className="p-6 border-t border-white/5 flex gap-3 bg-white/[0.01]">
                             <button
-                                className="linear-btn-secondary flex-1 h-11 text-[11px] font-black uppercase tracking-widest"
+                                className="linear-btn-secondary flex-1 h-11 text-[11px] font-bold uppercase tracking-widest"
                                 onClick={() => setShowDeleteConfirm(false)}
                                 disabled={loading}
                             >
                                 {t("cancel")}
                             </button>
                             <button
-                                className="flex-1 h-11 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white rounded-xl font-black uppercase tracking-widest text-[11px] shadow-[0_4px_20px_rgba(244,63,94,0.3)] transition-all flex items-center justify-center gap-2"
+                                className="flex-1 h-11 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-[0_4px_20px_rgba(244,63,94,0.3)] transition-all flex items-center justify-center gap-2"
                                 onClick={confirmDelete}
                                 disabled={loading}
                             >
                                 {loading ? <Spinner className="animate-spin text-white" /> : <Trash weight="bold" size={16} />}
-                                {isZh ? "立即移除" : "Removal Now"}
+                                {isZh ? "立即清除" : "Removal Now"}
                             </button>
                         </footer>
                     </div>

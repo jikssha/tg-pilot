@@ -361,7 +361,11 @@ export default function Dashboard() {
         listAccounts(tokenStr),
         listSignTasks(tokenStr),
       ]);
-      setAccounts(accountsData.accounts);
+      // 对账号名称进行自然排序
+      const sortedAccounts = [...accountsData.accounts].sort((a, b) => 
+        a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+      );
+      setAccounts(sortedAccounts);
       setTasks(tasksData);
     } catch (err: any) {
       addToastRef.current(formatErrorMessage("load_failed", err), "error");
@@ -1093,7 +1097,9 @@ export default function Dashboard() {
     if (!token || !bulkImportConfig.trim()) return;
     try {
       setBulkImportLoading(true);
-      const accountList = Array.from(selectedAccounts);
+      const accountList = Array.from(selectedAccounts).sort((a, b) => 
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+      );
       let successCount = 0;
       let failCount = 0;
 

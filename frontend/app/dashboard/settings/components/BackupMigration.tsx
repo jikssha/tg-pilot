@@ -113,8 +113,8 @@ export default function BackupMigration({ token, globalSettings, loadGlobalSetti
                         <Database weight="bold" size={24} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black tracking-tight uppercase italic">Vault & Logistics</h2>
-                        <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">{isZh ? "Data Management Protocol" : "Data Management Protocol"}</p>
+                        <h2 className="text-xl font-bold tracking-tight uppercase">数据管理与系统设置</h2>
+                        <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">{isZh ? "数据安全与系统参数配置" : "Data Management Protocol"}</p>
                     </div>
                 </div>
 
@@ -126,30 +126,30 @@ export default function BackupMigration({ token, globalSettings, loadGlobalSetti
                                 <FileArchive weight="bold" size={20} />
                             </div>
                             <div>
-                                <h3 className="text-sm font-bold tracking-tight">{isZh ? "快速迁移 / 克隆引擎" : "Neural Migration"}</h3>
-                                <p className="text-[10px] text-white/20 uppercase tracking-widest font-black mt-0.5">{isZh ? "Binary Export" : "Binary Export"}</p>
+                                <h3 className="text-sm font-bold tracking-tight">{isZh ? "数据备份与快速恢复" : "Data Backup"}</h3>
+                                <p className="text-[10px] text-white/20 uppercase tracking-widest font-bold mt-0.5">{isZh ? "会话与配置导出" : "Binary Export"}</p>
                             </div>
                         </div>
                         
                         <div className="space-y-4 flex-1">
                             <div className="p-5 rounded-2xl bg-black/40 border border-white/5 shadow-inner">
                                 <p className="text-[11px] text-white/40 leading-relaxed font-medium">
-                                    {isZh ? "导出的 ZIP 压缩包包含所有 Session 存储和代理链配置。在新机器导入后可立即恢复所有账号的登录状态。" : "Exported ZIP contains all session storage and proxy chains. Restore login status instantly on new devices."}
+                                    {isZh ? "导出的文件包含所有账号的登录会话（Session）和代理配置。您可以将其下载到本地，或在更换服务器时快速导入恢复。" : "Exported ZIP contains all session storage and proxy chains. Restore login status instantly on new devices."}
                                 </p>
                             </div>
                         </div>
 
                         <div className="flex gap-4">
                             <button 
-                                className="flex-1 h-12 rounded-xl border border-white/5 bg-white/[0.02] text-white/40 text-[11px] font-black uppercase tracking-widest hover:bg-white/[0.05] hover:text-white transition-all flex items-center justify-center gap-3"
+                                className="flex-1 h-12 rounded-xl border border-white/5 bg-white/[0.02] text-white/40 text-[11px] font-bold uppercase tracking-widest hover:bg-white/[0.05] hover:text-white transition-all flex items-center justify-center gap-3"
                                 onClick={handleExport} 
                                 disabled={exporting}
                             >
-                                {exporting ? <Spinner className="animate-spin" /> : <><CloudArrowUp size={18} weight="bold" className="text-indigo-400" /> {isZh ? "Export Archive" : "Export Archive"}</>}
+                                {exporting ? <Spinner className="animate-spin" /> : <><CloudArrowUp size={18} weight="bold" className="text-indigo-400" /> {isZh ? "点击下载备份" : "Download Backup"}</>}
                             </button>
                             <label className="flex-1">
-                                <div className={`h-12 rounded-xl border border-white/5 bg-white/[0.02] text-white/40 text-[11px] font-black uppercase tracking-widest hover:bg-white/[0.05] hover:text-white transition-all flex items-center justify-center gap-3 cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
-                                    {importing ? <Spinner className="animate-spin" /> : <><ArrowUDownLeft size={18} weight="bold" className="text-emerald-400" /> {isZh ? "Inject & Sync" : "Inject & Sync"}</>}
+                                <div className={`h-12 rounded-xl border border-white/5 bg-white/[0.02] text-white/40 text-[11px] font-bold uppercase tracking-widest hover:bg-white/[0.05] hover:text-white transition-all flex items-center justify-center gap-3 cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
+                                    {importing ? <Spinner className="animate-spin" /> : <><ArrowUDownLeft size={18} weight="bold" className="text-emerald-400" /> {isZh ? "上传备份文件" : "Upload & Restore"}</>}
                                 </div>
                                 <input type="file" accept=".zip" className="hidden" onChange={handleImportFileChanged} disabled={importing} />
                             </label>
@@ -163,31 +163,31 @@ export default function BackupMigration({ token, globalSettings, loadGlobalSetti
                                 <Clock weight="bold" size={20} />
                             </div>
                             <div>
-                                <h3 className="text-sm font-bold tracking-tight">{isZh ? "系统底层参数" : "Core Runtime Params"}</h3>
-                                <p className="text-[10px] text-white/20 uppercase tracking-widest font-black mt-0.5">{isZh ? "System Engine" : "System Engine"}</p>
+                                <h3 className="text-sm font-bold tracking-tight">{isZh ? "系统参数设置" : "System Settings"}</h3>
+                                <p className="text-[10px] text-white/20 uppercase tracking-widest font-bold mt-0.5">{isZh ? "运行频率与存储周期" : "Runtime Parameters"}</p>
                             </div>
                         </div>
 
                         <div className="space-y-8 flex-1">
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center ml-1">
-                                    <label className="text-[10px] font-black text-white/20 uppercase tracking-widest">{isZh ? "日志保留周期" : "Log Cycle"}</label>
-                                    <span className="text-[10px] font-black text-indigo-400 uppercase">{settings.log_retention_days || 7} Days</span>
+                                    <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest">{isZh ? "日志保留天数" : "Log Retention"}</label>
+                                    <span className="text-[10px] font-bold text-indigo-400 uppercase">{settings.log_retention_days || 7} 天 (Days)</span>
                                 </div>
                                 <input 
                                     type="number" 
                                     className="!h-12 bg-black/40 border-white/5 focus:border-indigo-500/30 transition-all rounded-xl px-5 font-mono"
-                                    placeholder="Def: 7 Days"
+                                    placeholder="默认 7 天"
                                     value={settings.log_retention_days || ""}
                                     onChange={(e) => setSettings({ ...settings, log_retention_days: parseInt(e.target.value) || 0 })}
                                 />
                             </div>
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-white/20 uppercase tracking-widest ml-1">{isZh ? "全局签到频率 (SEC)" : "Global Burst Delay (SEC)"}</label>
+                                <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">{isZh ? "全局签到频率 (秒)" : "Global Sign Internal (SEC)"}</label>
                                 <input 
                                     type="number" 
                                     className="!h-12 bg-black/40 border-white/5 focus:border-indigo-500/30 transition-all rounded-xl px-5 font-mono"
-                                    placeholder="Leave empty for auto"
+                                    placeholder="留空即使用自动步进频率"
                                     value={settings.sign_interval || ""}
                                     onChange={(e) => setSettings({ ...settings, sign_interval: parseInt(e.target.value) || null })}
                                 />
@@ -196,7 +196,7 @@ export default function BackupMigration({ token, globalSettings, loadGlobalSetti
 
                         <div className="">
                             <button 
-                                className="w-full linear-btn-primary h-12 font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-3"
+                                className="w-full linear-btn-primary h-12 font-bold uppercase tracking-widest text-[11px] flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
                                 onClick={handleSaveGlobal} 
                                 disabled={loading}
                             >
@@ -216,7 +216,7 @@ export default function BackupMigration({ token, globalSettings, loadGlobalSetti
                                     <CloudArrowUp weight="bold" size={20} />
                                 </div>
                                 <h3 className="text-sm font-bold tracking-tight">
-                                    {isZh ? "确认导入数据" : "Neural sync sequence"}
+                                    {isZh ? "确认导入数据" : "Restore Data Confirmation"}
                                 </h3>
                             </div>
                             <button onClick={() => setShowImportConfirm(false)} className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]">
@@ -225,28 +225,28 @@ export default function BackupMigration({ token, globalSettings, loadGlobalSetti
                         </header>
                         <div className="p-8 space-y-4 text-center">
                             <p className="text-[13px] text-white/80 leading-relaxed font-medium">
-                                {isZh ? "导入将覆盖当前所有代理、账户及会话数据。确定要继续进行神经同步吗？" : "Importing will overwrite all current proxies, accounts, and session data. Are you sure you want to proceed with neural sync?"}
+                                {isZh ? "导入将覆盖当前所有代理、账户及会话数据。确定要继续进行数据同步吗？" : "Importing will overwrite all current proxies, accounts, and session data. Are you sure?"}
                             </p>
-                            <div className="flex items-center justify-center gap-2 text-[9px] text-emerald-400/50 uppercase tracking-[0.2em] font-black italic">
+                            <div className="flex items-center justify-center gap-2 text-[9px] text-emerald-400/50 uppercase tracking-[0.2em] font-bold italic">
                                 <Info size={12} weight="bold" />
-                                Database Overwrite Authorized
+                                {isZh ? "数据覆盖已获得授权" : "Database Overwrite Authorized"}
                             </div>
                         </div>
                         <footer className="p-6 border-t border-white/5 flex gap-3 bg-white/[0.01]">
                             <button
-                                className="linear-btn-secondary flex-1 h-11 text-[11px] font-black uppercase tracking-widest"
+                                className="linear-btn-secondary flex-1 h-11 text-[11px] font-bold uppercase tracking-widest"
                                 onClick={() => setShowImportConfirm(false)}
                                 disabled={importing}
                             >
                                 {t("cancel")}
                             </button>
                             <button
-                                className="flex-1 h-11 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white rounded-xl font-black uppercase tracking-widest text-[11px] shadow-[0_4px_20px_rgba(16,185,129,0.2)] transition-all flex items-center justify-center gap-2"
+                                className="flex-1 h-11 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-[0_4px_20px_rgba(16,185,129,0.2)] transition-all flex items-center justify-center gap-2"
                                 onClick={confirmImport}
                                 disabled={importing}
                             >
                                 {importing ? <Spinner className="animate-spin text-white" /> : <ArrowUDownLeft weight="bold" size={16} />}
-                                {isZh ? "立即同步" : "Synchronize"}
+                                {isZh ? "立即导入恢复" : "Restore Now"}
                             </button>
                         </footer>
                     </div>

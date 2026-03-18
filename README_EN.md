@@ -5,7 +5,7 @@
 
 **The Next-Generation Telegram Automation & Account Manager**
 
-[![Version](https://img.shields.io/badge/version-v3.5-purple.svg)](https://github.com/jikssha/tg-pilot)
+[![Version](https://img.shields.io/badge/version-v3.6-purple.svg)](https://github.com/jikssha/tg-pilot)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 [![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
@@ -23,14 +23,14 @@ Built with **native AI integration (Vision & Computation)**, TG-Pilot handles co
 ## ✨ Key Features
 
 - **🎮 Multi-Account Fleet Management**: Consolidate and monitor unlimited Telegram sessions through a single dashboard.
-- **💎 Minimalist Linear Aesthetic (v3.5)**: Completely refactored Pure Dark console with **Custom Linear Modals** replacing native system dialogs for a premium, unified interaction.
+- **💎 Minimalist Linear Aesthetic (v3.5/v3.6)**: Completely refactored Pure Dark console. v3.6 refines the **Settings UI** with cleaner typography and intuitive layouts.
 - **⚙️ Versatile Action Sequences**: Natively supports `Text`, `Buttons`, `Dices`, `AI Vision`, and `Math Challenges`.
 - **📱 Hidden Device Fingerprinting**: Auto-spoofs official device fingerprints (MacBook/iPhone) to minimize detection.
 - **📈 Real-time Task Radar**: Integrated task cards with one-click run, history log filtering (failures only), and config cloning.
 - **🧠 Native AI-Driven**: Encountering puzzles? Configure the LLM API to bypass them entirely on autopilot.
-- **🛡️ Rock-Solid Architecture**: Built with strict concurrency limits and built-in protections against `429 Too Many Requests`.
 - **⚡ Session Clone Engine (v3.5)**: High-performance session migration terminal. Export full ZIP credentials and restore fleet presence on new hardware in seconds.
-- **🚀 Bulk Flow Distribution (v3.5)**: Select multiple accounts and push "Task Packages" instantly. Align your entire fleet's sequence with a single click.
+- **🚀 Bulk Flow Distribution (v3.5)**: Select multiple accounts and push "Task Packages" instantly.
+- **🌏 Deep UI Localization (v3.6)**: Full Chinese localization for all configuration modules (AI, Backup, API, Account) with refined hints.
 - **📦 Modern Containerization**: Deploy effortlessly with a highly customizable, ready-to-run Docker image.
  
 

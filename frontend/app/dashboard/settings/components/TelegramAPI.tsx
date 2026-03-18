@@ -84,8 +84,8 @@ export default function TelegramAPI({ token, telegramConfig, loadTelegramConfig 
                         <TelegramLogo weight="bold" size={24} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black tracking-tight uppercase italic">Telegram Engine</h2>
-                        <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">{isZh ? "API Protocol Configuration" : "API Protocol Configuration"}</p>
+                        <h2 className="text-xl font-bold tracking-tight uppercase">Telegram 协议配置</h2>
+                        <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">{isZh ? "API 基础参数设置" : "API Protocol Configuration"}</p>
                     </div>
                 </div>
 
@@ -96,7 +96,7 @@ export default function TelegramAPI({ token, telegramConfig, loadTelegramConfig 
                             <Warning size={20} weight="bold" />
                         </div>
                         <div className="space-y-1">
-                            <p className="text-[11px] font-black text-amber-500 uppercase tracking-widest">{isZh ? "Security Advisory" : "Security Advisory"}</p>
+                            <p className="text-[11px] font-bold text-amber-500 uppercase tracking-widest">{isZh ? "安全建议 (Security Advisory)" : "Security Advisory"}</p>
                             <p className="text-[12px] text-white/40 leading-relaxed font-medium">
                                 {isZh ? "如果您不清楚这些是什么，请保持默认。修改错误的 API ID/Hash 会导致账号登录失败。" : "Keep default if unsure. Incorrect credentials will cause login failures."}
                             </p>
@@ -105,21 +105,21 @@ export default function TelegramAPI({ token, telegramConfig, loadTelegramConfig 
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-3">
-                            <label className="text-[10px] font-black text-white/20 uppercase tracking-widest ml-1">Terminal ID (API ID)</label>
+                            <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">{isZh ? "应用标识 (API ID)" : "Terminal ID (API ID)"}</label>
                             <input
                                 type="text"
                                 className="!h-12 bg-black/40 border-white/5 focus:border-[#0088cc]/30 transition-all rounded-xl px-5 font-mono"
-                                placeholder="e.g. 12345678"
+                                placeholder="例如 12345678"
                                 value={form.api_id}
                                 onChange={(e) => setForm({ ...form, api_id: e.target.value })}
                             />
                         </div>
                         <div className="space-y-3">
-                            <label className="text-[10px] font-black text-white/20 uppercase tracking-widest ml-1">Authorization Hash (API Hash)</label>
+                            <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">{isZh ? "验证哈希 (API Hash)" : "Authorization Hash (API Hash)"}</label>
                             <input
                                 type="text"
                                 className="!h-12 bg-black/40 border-white/5 focus:border-[#0088cc]/30 transition-all rounded-xl px-5 font-mono"
-                                placeholder="e.g. abc123def456..."
+                                placeholder="例如 abc123def456..."
                                 value={form.api_hash}
                                 onChange={(e) => setForm({ ...form, api_hash: e.target.value })}
                             />
@@ -128,15 +128,15 @@ export default function TelegramAPI({ token, telegramConfig, loadTelegramConfig 
 
                     <div className="flex items-center justify-between pt-8 border-t border-white/5">
                         <button 
-                            className="h-12 px-6 rounded-xl border border-rose-500/20 text-rose-400 text-[11px] font-black uppercase tracking-widest hover:bg-rose-500/10 transition-all flex items-center gap-3"
+                            className="h-12 px-6 rounded-xl border border-rose-500/20 text-rose-400 text-[11px] font-bold uppercase tracking-widest hover:bg-rose-500/10 transition-all flex items-center gap-3"
                             onClick={handleReset}
                             disabled={loading}
                         >
                             <Trash size={16} weight="bold" />
-                            {isZh ? "Reset Protocol" : "Reset Protocol"}
+                            {isZh ? "重置协议" : "Reset Protocol"}
                         </button>
                         <button 
-                            className="linear-btn-primary px-10 h-12 font-black uppercase tracking-widest text-[11px] flex items-center gap-3"
+                            className="linear-btn-primary px-10 h-12 font-bold uppercase tracking-widest text-[11px] flex items-center gap-3"
                             onClick={handleSave}
                             disabled={loading}
                         >
@@ -166,27 +166,34 @@ export default function TelegramAPI({ token, telegramConfig, loadTelegramConfig 
                             <p className="text-[13px] text-white/80 leading-relaxed font-medium">
                                 {isZh ? "确定要将 Telegram 配置重置为默认值吗？现有配置将被立即清除。" : "Are you sure you want to reset the Telegram configuration to default values? Current settings will be purged immediately."}
                             </p>
-                            <div className="flex items-center justify-center gap-2 text-[9px] text-amber-500/50 uppercase tracking-[0.2em] font-black italic">
+                            <div className="flex items-center justify-center gap-2 text-[9px] text-amber-500/50 uppercase tracking-[0.2em] font-bold italic">
                                 <Warning size={12} weight="bold" />
-                                Infrastructure Override Initiated
+                                {isZh ? "协议配置将被覆盖" : "Infrastructure Override Initiated"}
                             </div>
                         </div>
                         <footer className="p-6 border-t border-white/5 flex gap-3 bg-white/[0.01]">
                             <button
-                                className="linear-btn-secondary flex-1 h-11 text-[11px] font-black uppercase tracking-widest"
+                                className="linear-btn-secondary flex-1 h-11 text-[11px] font-bold uppercase tracking-widest"
                                 onClick={() => setShowResetConfirm(false)}
                                 disabled={loading}
                             >
                                 {t("cancel")}
                             </button>
                             <button
-                                className="flex-1 h-11 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-xl font-black uppercase tracking-widest text-[11px] shadow-[0_4px_20px_rgba(245,158,11,0.2)] transition-all flex items-center justify-center gap-2"
+                                className="flex-1 h-11 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-[0_4px_20px_rgba(245,158,11,0.2)] transition-all flex items-center justify-center gap-2"
                                 onClick={confirmReset}
                                 disabled={loading}
                             >
                                 {loading ? <Spinner className="animate-spin text-white" /> : <ArrowClockwise weight="bold" size={16} />}
                                 {isZh ? "立即重置" : "Proceed Reset"}
                             </button>
+                        </footer>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+     </button>
                         </footer>
                     </div>
                 </div>

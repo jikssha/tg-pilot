@@ -157,15 +157,15 @@ export default function AccountSecurity({ token, totpEnabled, setTotpEnabled, se
                         <User weight="bold" size={24} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black tracking-tight uppercase italic">{t("username")}</h2>
-                        <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">{isZh ? "Identifier Management" : "Identifier Management"}</p>
+                        <h2 className="text-xl font-bold tracking-tight uppercase">{t("username")}</h2>
+                        <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">{isZh ? "登录身份管理" : "Identifier Management"}</p>
                     </div>
                 </div>
 
                 <div className="rounded-3xl bg-white/[0.02] border border-white/5 p-8 space-y-8 shadow-inner">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-3">
-                            <label className="text-[10px] font-black text-white/20 uppercase tracking-widest ml-1">{t("new_username")}</label>
+                            <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">{t("new_username")}</label>
                             <input
                                 type="text"
                                 className="!h-12 bg-black/40 border-white/5 focus:border-sky-500/30 transition-all rounded-xl px-5"
@@ -175,7 +175,7 @@ export default function AccountSecurity({ token, totpEnabled, setTotpEnabled, se
                             />
                         </div>
                         <div className="space-y-3">
-                            <label className="text-[10px] font-black text-white/20 uppercase tracking-widest ml-1">{t("current_password")}</label>
+                            <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">{t("current_password")}</label>
                             <input
                                 type="password"
                                 className="!h-12 bg-black/40 border-white/5 focus:border-sky-500/30 transition-all rounded-xl px-5"
@@ -187,7 +187,7 @@ export default function AccountSecurity({ token, totpEnabled, setTotpEnabled, se
                     </div>
                     <div className="flex justify-end pt-4">
                         <button 
-                            className="linear-btn-primary px-10 h-12 min-w-[160px] font-black uppercase tracking-widest text-[11px]" 
+                            className="linear-btn-primary px-10 h-12 min-w-[160px] font-bold uppercase tracking-widest text-[11px]" 
                             disabled={userLoading}
                             onClick={handleChangeUsername}
                         >
@@ -204,8 +204,8 @@ export default function AccountSecurity({ token, totpEnabled, setTotpEnabled, se
                         <ShieldCheck weight="bold" size={24} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black tracking-tight uppercase italic">{t("account_security")}</h2>
-                        <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">{isZh ? "Advanced Protection" : "Advanced Protection"}</p>
+                        <h2 className="text-xl font-bold tracking-tight uppercase">{t("account_security")}</h2>
+                        <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">{isZh ? "账号安全加固" : "Advanced Protection"}</p>
                     </div>
                 </div>
 
@@ -219,7 +219,7 @@ export default function AccountSecurity({ token, totpEnabled, setTotpEnabled, se
                             <div className="space-y-1.5 text-center md:text-left">
                                 <div className="flex items-center justify-center md:justify-start gap-4">
                                     <h3 className="text-base font-bold tracking-tight">{t("two_factor_auth")} (2FA)</h3>
-                                    <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${totpEnabled ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'}`}>
+                                    <span className={`text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border ${totpEnabled ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'}`}>
                                         {totpEnabled ? t("enabled") : t("disabled")}
                                     </span>
                                 </div>
@@ -230,11 +230,11 @@ export default function AccountSecurity({ token, totpEnabled, setTotpEnabled, se
                         </div>
                         <div className="shrink-0 w-full md:w-auto">
                             {totpEnabled ? (
-                                <button className="w-full md:w-auto px-8 h-12 rounded-xl border border-rose-500/20 text-rose-400 text-[11px] font-black uppercase tracking-widest hover:bg-rose-500/10 transition-all" onClick={handleDisableTOTP} disabled={totpLoading}>
+                                <button className="w-full md:w-auto px-8 h-12 rounded-xl border border-rose-500/20 text-rose-400 text-[11px] font-bold uppercase tracking-widest hover:bg-rose-500/10 transition-all" onClick={handleDisableTOTP} disabled={totpLoading}>
                                     {totpLoading ? <Spinner className="animate-spin" /> : t("disable_2fa")}
                                 </button>
                             ) : (
-                                <button className="w-full md:w-auto linear-btn-primary px-8 h-12 !font-black !uppercase !tracking-widest !text-[11px]" onClick={handleSetupTOTP} disabled={totpLoading}>
+                                <button className="w-full md:w-auto linear-btn-primary px-8 h-12 !font-bold !uppercase !tracking-widest !text-[11px]" onClick={handleSetupTOTP} disabled={totpLoading}>
                                     {totpLoading ? <Spinner className="animate-spin" /> : t("start_setup")}
                                 </button>
                             )}
@@ -253,14 +253,14 @@ export default function AccountSecurity({ token, totpEnabled, setTotpEnabled, se
                                 </div>
                                 <div className="flex-1 space-y-6">
                                     <div className="space-y-1.5">
-                                        <p className="text-[10px] font-black text-[#8a3ffc] uppercase tracking-widest">{isZh ? "Step 01: Scan Identity" : "Step 01: Scan Identity"}</p>
-                                        <p className="text-[13px] font-bold">{isZh ? "使用验证器扫描二维码" : "Use Google Authenticator or similar apps"}</p>
+                                        <p className="text-[10px] font-bold text-[#8a3ffc] uppercase tracking-widest">{isZh ? "第一步：扫描识别" : "Step 01: Scan Identity"}</p>
+                                        <p className="text-[13px] font-bold">{isZh ? "使用身份验证器（如 Google Authenticator）扫描二维码" : "Use Google Authenticator or similar apps"}</p>
                                         <div className="bg-white/5 px-4 py-3 rounded-xl border border-white/5 font-mono text-[11px] text-white/40 select-all break-all cursor-copy">
                                             {totpSecret}
                                         </div>
                                     </div>
                                     <div className="space-y-3">
-                                        <p className="text-[10px] font-black text-[#8a3ffc] uppercase tracking-widest font-bold">{isZh ? "Step 02: Verification" : "Step 02: Verification"}</p>
+                                        <p className="text-[10px] font-bold text-[#8a3ffc] uppercase tracking-widest font-bold">{isZh ? "第二步：验证身份" : "Step 02: Verification"}</p>
                                         <div className="flex gap-4">
                                             <input 
                                                 type="text" 
@@ -269,7 +269,7 @@ export default function AccountSecurity({ token, totpEnabled, setTotpEnabled, se
                                                 value={totpCode}
                                                 onChange={(e) => setTotpCode(e.target.value)}
                                             />
-                                            <button className="linear-btn-primary px-8 h-12 !font-black !uppercase !tracking-widest !text-[11px]" onClick={handleEnableTOTP} disabled={totpLoading}>
+                                            <button className="linear-btn-primary px-8 h-12 !font-bold !uppercase !tracking-widest !text-[11px]" onClick={handleEnableTOTP} disabled={totpLoading}>
                                                 {totpLoading ? <Spinner className="animate-spin" /> : t("enable_2fa")}
                                             </button>
                                         </div>
@@ -288,12 +288,12 @@ export default function AccountSecurity({ token, totpEnabled, setTotpEnabled, se
                         </div>
                         <div>
                             <h3 className="text-sm font-bold tracking-tight">{isZh ? "更改登录密码" : "Change Login Password"}</h3>
-                            <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">{isZh ? "Credentials Rotation" : "Credentials Rotation"}</p>
+                            <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">{isZh ? "凭据信息轮换" : "Credentials Rotation"}</p>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div className="space-y-3">
-                            <label className="text-[10px] font-black text-white/20 uppercase tracking-widest ml-1">{t("old_password")}</label>
+                            <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">{t("old_password")}</label>
                             <input
                                 type="password"
                                 className="!h-12 bg-black/40 border-white/5 focus:border-sky-500/30 transition-all rounded-xl px-5"
@@ -302,7 +302,7 @@ export default function AccountSecurity({ token, totpEnabled, setTotpEnabled, se
                             />
                         </div>
                         <div className="space-y-3">
-                            <label className="text-[10px] font-black text-white/20 uppercase tracking-widest ml-1">{t("new_password")}</label>
+                            <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">{t("new_password")}</label>
                             <input
                                 type="password"
                                 className="!h-12 bg-black/40 border-white/5 focus:border-sky-500/30 transition-all rounded-xl px-5"
@@ -311,7 +311,7 @@ export default function AccountSecurity({ token, totpEnabled, setTotpEnabled, se
                             />
                         </div>
                         <div className="space-y-3">
-                            <label className="text-[10px] font-black text-white/20 uppercase tracking-widest ml-1">{t("confirm_password")}</label>
+                            <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">{t("confirm_password")}</label>
                             <input
                                 type="password"
                                 className="!h-12 bg-black/40 border-white/5 focus:border-sky-500/30 transition-all rounded-xl px-5"
@@ -322,7 +322,7 @@ export default function AccountSecurity({ token, totpEnabled, setTotpEnabled, se
                     </div>
                     <div className="flex justify-end pt-2">
                         <button 
-                            className="linear-btn-secondary px-10 h-12 min-w-[160px] font-black uppercase tracking-widest text-[11px]" 
+                            className="linear-btn-secondary px-10 h-12 min-w-[160px] font-bold uppercase tracking-widest text-[11px]" 
                             disabled={pwdLoading}
                             onClick={handleChangePassword}
                         >

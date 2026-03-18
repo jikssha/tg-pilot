@@ -247,14 +247,20 @@ class ConfigService:
         try:
             data = json.loads(json_str)
 
-            # 验证数据格式
-            if "config" not in data:
+            # 兼容性处理：如果数据是包装好的格式则解包，否则视为直接的配置对象
+            if isinstance(data, dict):
+                if "config" in data and isinstance(data["config"], dict):
+                    config = data["config"]
+                    source_task_name = data.get("task_name")
+                else:
+                    config = data
+                    source_task_name = config.get("name")
+            else:
                 return False
 
             # 确定任务名称
-            final_task_name = task_name or data.get("task_name", "imported_task")
+            final_task_name = task_name or source_task_name or "imported_task"
 
-            config = data["config"]
             if account_name:
                 config["account_name"] = account_name
 

@@ -114,6 +114,47 @@ def export_sign_task(
         )
 
 
+@router.post("/import/sign", response_model=ImportTaskResponse)
+def import_sign_task(
+    request: ImportTaskRequest, current_user: User = Depends(get_current_user)
+):
+    try:
+        success = get_config_service().import_sign_task(
+            request.config_json,
+            task_name=request.task_name,
+            account_name=request.account_name,
+        )
+        if not success:
+            return ImportTaskResponse(
+                success=False,
+                task_name=request.task_name or "unknown",
+                message="Import failed. Invalid configuration format.",
+            )
+
+        from backend.scheduler import sync_jobs
+        import asyncio
+
+        _clear_sign_task_cache()
+        try:
+            # Check if event loop is running
+            asyncio.get_running_loop()
+            asyncio.create_task(sync_jobs())
+        except RuntimeError:
+            # Fallback for no running loop
+            pass
+
+        return ImportTaskResponse(
+            success=True,
+            task_name=request.task_name or "imported",
+            message="Task imported successfully",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to import task: {str(e)}",
+        )
+
+
 @router.get("/sessions/export")
 async def export_sessions_zip(current_user: User = Depends(get_current_user)):
     """
