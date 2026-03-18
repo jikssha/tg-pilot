@@ -295,7 +295,7 @@ class SignTaskService:
         return all_history
 
     def clear_account_history_logs(self, account_name: str) -> Dict[str, int]:
-        """娓呯悊鏌愯处鍙风殑鍘嗗彶鏃ュ織锛屼笉褰卞搷鍏朵粬璐﹀彿"""
+        """清理某账号的历史日志，不影响其他账号"""
         removed_files = 0
         removed_entries = 0
 
@@ -377,7 +377,7 @@ class SignTaskService:
                     pass
                 continue
 
-            # legacy 鏂囦欢鍙兘娌℃湁 account_name 锛屾槸鏃х増鍗曡处鍙峰湺鏅?
+            # legacy 文件可能没有 account_name，是旧版单账号场景
             has_account_field = any(
                 isinstance(item, dict) and "account_name" in item for item in data_list
             )
@@ -588,7 +588,7 @@ class SignTaskService:
             return []
 
     def _load_task_config(self, task_dir: Path) -> Optional[Dict[str, Any]]:
-        """加载单个任务配置，优先使用 config.json 中的 last_run"""
+        """加载单个任务配置, 优先使用 config.json 中的 last_run"""
         config_file = task_dir / "config.json"
         if not config_file.exists():
             return None
