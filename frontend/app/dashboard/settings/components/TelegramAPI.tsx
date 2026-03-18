@@ -193,11 +193,4 @@ export default function TelegramAPI({ token, telegramConfig, loadTelegramConfig 
             )}
         </div>
     );
-     </button>
-                        </footer>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
 }

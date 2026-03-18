@@ -1,3 +1,5 @@
+<div align="center">
+
 # 🚀 TG-Pilot
 
 **Telegram 多账号自动化批量签到任务管理面板**
@@ -7,7 +9,7 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 [![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 
-[英文 / English](README_EN.md) · [更新日志 / Changelog](CHANGELOG.md) · [反馈问题](https://github.com/jikssha/tg-pilot/issues)
+[英文 / English](README_EN.md) · [更新日志 / CHANGELOG](CHANGELOG.md) · [反馈问题](https://github.com/jikssha/tg-pilot/issues)
 
 </div>
 
