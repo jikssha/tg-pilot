@@ -4,7 +4,7 @@
 
 **Telegram 多账号自动化批量签到任务管理面板**
 
-[![Version](https://img.shields.io/badge/version-v3.6.1-purple.svg)](https://github.com/jikssha/tg-pilot)
+[![Version](https://img.shields.io/badge/version-v3.7-purple.svg)](https://github.com/jikssha/tg-pilot)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 [![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
@@ -15,13 +15,13 @@
 
 ---
 
-**TG-Pilot** 是一款专为高效与稳定性打造的 Telegram 多账号自动化批量签到任务管理面板。通过全新重构的 Linear 风格极简暗黑 Web 界面，你可以轻松管理多个 Telegram 账号，配置自动化签到任务，并让所有繁杂的交互操作在后台 24 小时全自动运行。
+**TG-Pilot** 是一款专为高效与稳定性打造的 Telegram 多账号自动化批量签到任务管理面板。通过全新重构的 Linear 风格极简暗黑 Web 界面，你可以轻松管理多个 Telegram 账号，配置自动化签到任务，并让所有繁杂的交互操作在后台 24 小时全自动运行。`v3.7` 进一步补齐了运维总览、审计追踪与预检式迁移恢复能力，让后台状态和关键管理动作都能在面板内被直接观察与确认。
 
 
 ## ✨ 核心特性
 
 - **🎮 多账号矩阵管理**：支持单面板统一管理无限个 Telegram 会话账号，随时查看状态。
-- **💎 极简 Linear 审美 (v3.5/v3.6.1)**：全新重构的 Pure Dark 风格控制台。v3.6 进一步优化了 **设置页面 UI**，v3.6.1 则补齐了工程基线与交付护栏。
+- **💎 极简 Linear 审美 (v3.5-v3.7)**：全新重构的 Pure Dark 风格控制台。v3.6 优化了 **设置页面 UI**，v3.6.1 补齐了工程基线与交付护栏，v3.7 则继续把运维与审计能力纳入统一控制台。
 - **⚙️ 全能动作序列**：原生支持「发送文本 / 点击按钮 / 发送特定骰子表情 / AI 智能识图 / AI 计算解密」。
 - **📱 隐匿设备伪装**：底层通信自带官方设备指纹伪装（如 MacBook / iPhone），抹除脚本执行痕迹。
 - **📈 实时任务雷达**：集成化任务卡片，支持一键执行、历史日志筛选（仅看失败）、快捷配置复制。
@@ -29,6 +29,8 @@
 - **⚡ 会话物理同步 (v3.5)**：新增高能“会话迁移终端”，一键导出全量 ZIP 凭证。
 - **🚀 矩阵批量分发 (v3.5)**：支持多账号一键同步拉齐任务序列。
 - **🌏 深度语言本地化 (v3.6)**：控制面板全模块（AI、备份、账号、API等）及其提示语完整中文化，术语更通俗。
+- **🛡️ 运维审计中台 (v3.7)**：设置面板新增 **系统运维概览** 与 **审计事件追踪**，可集中查看服务就绪检查、调度器任务、账号状态分布、签到运行摘要与关键管理动作。
+- **🧪 预检式迁移恢复 (v3.7)**：会话包与全量配置包在导入前先展示 manifest、文件清单、冲突数量与可导入数量，并支持按策略覆盖或跳过，避免盲目恢复。
 - **📦 现代化容器部署**：提供高定制化的 Docker 镜像，只需一行命令即可跨平台开箱即用。
 
 
