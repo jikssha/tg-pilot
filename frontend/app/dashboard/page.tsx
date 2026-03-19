@@ -3,10 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { getToken } from "../../lib/auth";
 import {
-  listAccounts,
   checkAccountsStatus,
   startAccountLogin,
   startQrLogin,
@@ -18,38 +16,25 @@ import {
   deleteAccount,
   getAccountLogs,
   clearAccountLogs,
-  listSignTasks,
   testProxyConnection,
   importSignTask,
   AccountInfo,
   AccountStatusItem,
   AccountLog,
-  SignTask,
 } from "../../lib/api";
 import {
-  Lightning,
   Plus,
-  Gear,
-  ListDashes,
-  Clock,
+  PaperPlaneRight,
   Spinner,
   X,
   PencilSimple,
-  PaperPlaneRight,
   Trash,
   Warning,
-  ShieldCheck,
-  Play,
-  CirclesThree,
   TerminalWindow,
   Eye,
   EyeClosed,
   GithubLogo,
   Checks,
-  ListChecks,
-  CheckSquareOffset,
-  Square,
-  CheckSquare,
   ClipboardText,
   Info
 } from "@phosphor-icons/react";
@@ -57,6 +42,14 @@ import { ToastContainer, useToast } from "../../components/ui/toast";
 import { ThemeLanguageToggle } from "../../components/ThemeLanguageToggle";
 import { useLanguage } from "../../context/LanguageContext";
 import AccountTasksContent from "./account-tasks/AccountTasksContent";
+import { useDashboardOverview } from "@/features/accounts/hooks/use-dashboard-overview";
+import { AccountSidebar } from "@/features/accounts/components/account-sidebar";
+import { DashboardEmptyState } from "@/features/accounts/components/dashboard-empty-state";
+import { AccountDetailPanel } from "@/features/accounts/components/account-detail-panel";
+import { EditAccountDialog } from "@/features/accounts/components/edit-account-dialog";
+import { BulkImportDialog } from "@/features/accounts/components/bulk-import-dialog";
+import { LogsConsoleDialog } from "@/features/accounts/components/logs-console-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const EMPTY_LOGIN_DATA = {
   account_name: "",
@@ -84,8 +77,6 @@ export default function Dashboard() {
   const isZh = language === "zh";
   const { toasts, addToast, removeToast } = useToast();
   const [token, setLocalToken] = useState<string | null>(null);
-  const [accounts, setAccounts] = useState<AccountInfo[]>([]);
-  const [tasks, setTasks] = useState<SignTask[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedAccountName, setSelectedAccountName] = useState<string | null>(null);
 
@@ -182,6 +173,16 @@ export default function Dashboard() {
   const sanitizeAccountName = (name: string) =>
     name.replace(/[^A-Za-z0-9\u4e00-\u9fff]/g, "");
 
+  const [checking, setChecking] = useState(true);
+  const [accountStatusMap, setAccountStatusMap] = useState<Record<string, AccountStatusItem>>({});
+  const statusCheckedRef = useRef(false);
+  const dashboardOverview = useDashboardOverview(token);
+  const accounts = dashboardOverview.accounts;
+  const tasks = dashboardOverview.tasks;
+  const dataLoaded = dashboardOverview.isFetched;
+  const dashboardLoading = dashboardOverview.isLoading && accounts.length === 0;
+  const refetchDashboardOverview = dashboardOverview.refetch;
+
   const isDuplicateAccountName = useCallback((name: string, allowedSameName?: string | null) => {
     const normalized = normalizeAccountName(name).toLowerCase();
     if (!normalized) return false;
@@ -194,11 +195,6 @@ export default function Dashboard() {
       return current === normalized;
     });
   }, [accounts, normalizeAccountName]);
-
-  const [checking, setChecking] = useState(true);
-  const [dataLoaded, setDataLoaded] = useState(false);
-  const [accountStatusMap, setAccountStatusMap] = useState<Record<string, AccountStatusItem>>({});
-  const statusCheckedRef = useRef(false);
 
   const addToastRef = useRef(addToast);
   const tRef = useRef(t);
@@ -354,26 +350,13 @@ export default function Dashboard() {
     }
   }, []);
 
-  const loadData = useCallback(async (tokenStr: string) => {
+  const loadData = useCallback(async () => {
     try {
-      setLoading(true);
-      const [accountsData, tasksData] = await Promise.all([
-        listAccounts(tokenStr),
-        listSignTasks(tokenStr),
-      ]);
-      // 对账号名称进行自然排序
-      const sortedAccounts = [...accountsData.accounts].sort((a, b) => 
-        a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
-      );
-      setAccounts(sortedAccounts);
-      setTasks(tasksData);
+      await refetchDashboardOverview();
     } catch (err: any) {
       addToastRef.current(formatErrorMessage("load_failed", err), "error");
-    } finally {
-      setLoading(false);
-      setDataLoaded(true);
     }
-  }, [formatErrorMessage]);
+  }, [formatErrorMessage, refetchDashboardOverview]);
 
   useEffect(() => {
     const tokenStr = getToken();
@@ -383,12 +366,11 @@ export default function Dashboard() {
     }
     setLocalToken(tokenStr);
     setChecking(false);
-    setDataLoaded(false);
     statusCheckedRef.current = false;
     // 不再恢复 sessionStorage 中缓存的旧状态，避免误显示"登录失效"
     // restoreCachedStatus();
-    loadData(tokenStr);
-  }, [loadData, restoreCachedStatus]);
+    void refetchDashboardOverview();
+  }, [refetchDashboardOverview, restoreCachedStatus]);
   useEffect(() => {
     if (!token || !dataLoaded || accounts.length === 0) {
       if (dataLoaded && accounts.length === 0) setAccountStatusMap({});
@@ -499,7 +481,7 @@ export default function Dashboard() {
       setReloginAccountName(null);
       setLoginData({ ...EMPTY_LOGIN_DATA });
       setShowAddDialog(false);
-      loadData(token);
+      void loadData();
     } catch (err: any) {
       addToast(formatErrorMessage("verify_failed", err), "error");
     } finally {
@@ -530,7 +512,7 @@ export default function Dashboard() {
       addToast(t("account_deleted"), "success");
       setShowDeleteConfirm(false);
       setAccountToDelete(null);
-      loadData(token);
+      void loadData();
     } catch (err: any) {
       addToast(formatErrorMessage("delete_failed", err), "error");
     } finally {
@@ -558,7 +540,7 @@ export default function Dashboard() {
       });
       addToast(t("save_changes"), "success");
       setShowEditDialog(false);
-      loadData(token);
+      void loadData();
     } catch (err: any) {
       addToast(formatErrorMessage("save_failed", err), "error");
     } finally {
@@ -755,7 +737,7 @@ export default function Dashboard() {
       setLoginData({ ...EMPTY_LOGIN_DATA });
       resetQrState();
       setShowAddDialog(false);
-      loadData(token);
+      void loadData();
     } catch (err: any) {
       const errMsg = err?.message ? String(err.message) : "";
       const fallback = formatErrorMessage("qr_login_failed", err);
@@ -856,7 +838,7 @@ export default function Dashboard() {
           stopPolling();
           resetQrState();
           setShowAddDialog(false);
-          loadData(token);
+          void loadData();
           return;
         }
 
@@ -1141,7 +1123,7 @@ export default function Dashboard() {
       // setSelectedAccounts(new Set());
       
       // 刷新数据
-      loadData(token);
+      void loadData();
       if (selectedAccountName) {
          // 可选：触发内部组件刷新
       }
@@ -1172,87 +1154,21 @@ export default function Dashboard() {
     <div id="dashboard-view" className="w-full h-full flex overflow-hidden bg-[var(--bg-body)]">
       
       {/* 侧边栏 (Sidebar) */}
-      <aside className="w-[260px] bg-[#070707] border-r border-[var(--border-color)] flex flex-col shrink-0 flex-shrink-0">
-        <div className="h-[52px] px-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-medium text-sm text-[var(--text-main)] cursor-pointer px-2 py-1 rounded-md hover:bg-white/5 -ml-2 transition-colors">
-            <div className="w-5 h-5 bg-[#EDEDED] rounded text-[#0A0A0A] flex items-center justify-center">
-               <PaperPlaneRight weight="fill" className="text-xs" />
-            </div>
-            TG-Pilot
-            <span className="text-[10px] font-mono bg-white/5 border border-white/10 px-1 rounded-sm text-main/30 ml-0.5">v3.5</span>
-          </div>
-          <Link href="/dashboard/settings" title={t("sidebar_settings")} className="text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-white/5 p-1 rounded transition-colors">
-            <Gear weight="bold" />
-          </Link>
-        </div>
-
-        <div className="px-4 pt-4 pb-2 flex justify-between items-center text-[11px] font-semibold text-[#555962] uppercase tracking-wider">
-          {isSelectionMode ? (isZh ? "多选模式" : "Selection") : (isZh ? "账号列表" : "Accounts")}
-          <div className="flex items-center gap-1">
-            <button 
-              onClick={toggleSelectionMode}
-              className={`p-1 rounded transition-colors ${isSelectionMode ? "text-sky-400 bg-sky-400/10" : "text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-white/5"}`}
-              title={isZh ? "切换多选模式" : "Toggle Multi-Selection"}
-            >
-              <ListChecks weight="bold" />
-            </button>
-            {!isSelectionMode && (
-              <button 
-                onClick={openAddDialog}
-                className="text-[var(--text-sub)] hover:text-[var(--text-main)] p-1 hover:bg-white/5 rounded transition-colors"
-                title={t("add_account")}
-              >
-                <Plus weight="bold" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-2 pb-4 sidebar-scrollbar">
-          {loading && accounts.length === 0 ? (
-            <div className="flex flex-col gap-2 py-10 text-main/10 items-center">
-              <Spinner className="animate-spin mb-2" size={20} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">{t("loading")}</span>
-            </div>
-          ) : (
-            accounts.map((acc) => {
-              const statusInfo = accountStatusMap[acc.name];
-              const isChecking = statusInfo?.status === "checking";
-              const isInvalid = statusInfo?.status === "error" && statusInfo?.needs_relogin;
-              const isOnline = statusInfo?.status === "valid";
-              
-              const isActive = selectedAccountName === acc.name;
-              const isSelected = selectedAccounts.has(acc.name);
-
-              return (
-                <div 
-                  key={acc.name}
-                  onClick={() => isSelectionMode ? toggleAccountSelection(acc.name) : setSelectedAccountName(acc.name)}
-                  className={`flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer text-[13px] transition-all mb-[2px] relative group/item ${
-                    isActive && !isSelectionMode ? "bg-white/10 text-[var(--text-main)] font-medium" : "text-[var(--text-sub)] hover:bg-white/5 hover:text-[var(--text-main)]"
-                  } ${isInvalid ? "opacity-60" : ""} ${isSelected && isSelectionMode ? "bg-sky-500/10 !text-sky-400" : ""}`}
-                >
-                  {isSelectionMode && (
-                    <div className="shrink-0 text-sky-400/60 group-hover/item:text-sky-400 transition-colors">
-                      {isSelected ? <CheckSquare weight="fill" size={16} /> : <Square weight="bold" size={16} />}
-                    </div>
-                  )}
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${
-                    isChecking ? "bg-amber-400/50 animate-pulse" :
-                    isOnline ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.3)]" : 
-                    "border border-rose-500/50 bg-transparent"
-                  }`}></div>
-                  <div className="flex-1 truncate">{acc.name}</div>
-                  {!isSelectionMode && (
-                    <div className="text-[10px] text-[#555962] font-mono shrink-0 group-hover/item:hidden">{getAccountTaskCount(acc.name)}</div>
-                  )}
-                  {isInvalid && !isSelectionMode && <div className="text-rose-500 shrink-0 text-xs"><Warning weight="bold" /></div>}
-                </div>
-              );
-            })
-          )}
-        </div>
-      </aside>
+      <AccountSidebar
+        accounts={accounts}
+        loading={dashboardLoading}
+        isSelectionMode={isSelectionMode}
+        selectedAccounts={selectedAccounts}
+        selectedAccountName={selectedAccountName}
+        accountStatusMap={accountStatusMap}
+        isZh={isZh}
+        t={t}
+        getAccountTaskCount={getAccountTaskCount}
+        onToggleSelectionMode={toggleSelectionMode}
+        onOpenAddDialog={openAddDialog}
+        onSelectAccount={handleAccountCardClick}
+        onToggleAccountSelection={toggleAccountSelection}
+      />
 
       {/* 工作区 (Detail Area) */}
       <main className="flex-1 flex flex-col bg-[#0E0E0E] overflow-hidden relative">
@@ -1282,100 +1198,23 @@ export default function Dashboard() {
 
         <div className="flex-1 overflow-y-auto p-8 lg:p-12 w-full max-w-5xl mx-auto custom-scrollbar">
           {!selectedAccount ? (
-            <div className="h-full flex flex-col items-center justify-center text-[var(--text-sub)] mt-20">
-              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/5">
-                <ListDashes size={24} />
-              </div>
-              <p className="text-sm">Select an account from the sidebar or add a new one.</p>
-              <button 
-                onClick={openAddDialog}
-                className="mt-6 linear-btn-secondary"
-              >
-                <Plus weight="bold" /> {t("add_account")}
-              </button>
-            </div>
+            <DashboardEmptyState t={t} onAddAccount={openAddDialog} />
           ) : (
-            <>
-              {/* Account Header */}
-              <div className="mb-8">
-                  <h1 className="text-2xl font-semibold mb-1 flex items-center gap-3 text-[var(--text-main)]">
-                      {selectedAccount.name}
-                      {selectedStatus?.status === "valid" ? (
-                        <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.3)] inline-block"></span>
-                      ) : selectedStatus?.status === "checking" ? (
-                        <span className="w-2.5 h-2.5 bg-amber-400/50 rounded-full animate-pulse inline-block"></span>
-                      ) : (
-                        <span className="w-2.5 h-2.5 border border-rose-500 rounded-full inline-block"></span>
-                      )}
-                      
-                      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                           onClick={(e) => { e.stopPropagation(); handleShowLogs(selectedAccount.name); }}
-                           className="p-1.5 rounded-md text-sky-400 hover:text-sky-500 hover:bg-sky-500/10 transition-colors"
-                           title={isZh ? "运行日志" : "Running Logs"}
-                        >
-                           <TerminalWindow weight="bold" size={18} />
-                        </button>
-                        <button 
-                          className="p-1.5 rounded-md text-rose-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setAccountToDelete(selectedAccount.name);
-                            setShowDeleteConfirm(true);
-                          }}
-                          title={t("remove")}
-                        >
-                          <Trash weight="bold" size={18} />
-                        </button>
-                      </div>
-                  </h1>
-                  <div className="flex flex-wrap items-center gap-3 mt-4">
-                      <div className="flex items-center gap-1.5 bg-white/5 py-1.5 px-3 rounded-md border border-white/5">
-                        <Clock weight="bold" /> 
-                        {selectedStatus?.checked_at ? new Date(selectedStatus.checked_at).toLocaleTimeString() : t("account_status_checking")} {selectedStatus?.status === 'valid' ? ` (${t("connected")})` : ` (${t("account_status_invalid")})`}
-                      </div>
-                      <span className="bg-white/5 border border-[var(--border-color)] px-2.5 py-1 rounded-md text-xs text-[var(--text-sub)] inline-flex items-center gap-1.5">
-                        <ShieldCheck weight="bold" /> 安全监控中
-                      </span>
-                  </div>
-              </div>
-
-              {selectedStatus?.needs_relogin && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6 flex items-center justify-between">
-                  <div className="text-sm text-red-400 font-medium flex items-center gap-2">
-                    <span className="text-lg">!</span> {t("account_relogin_required")}
-                  </div>
-                  <button 
-                    className="bg-red-500/20 hover:bg-red-500/30 text-red-400 px-3 py-1.5 rounded text-xs font-medium transition-colors"
-                    onClick={() => openReloginDialog(selectedAccount)}
-                  >
-                    重新登录
-                  </button>
-                </div>
-              )}
-
-              {/* Enhanced Task Management & Logs Console */}
-              <div className="mb-10 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                <AccountTasksContent embedded={true} initialAccountName={selectedAccount.name} />
-              </div>
-
-              {/* Account Settings Section (Minimized) */}
-              <div className="border border-[var(--border-color)] rounded-lg bg-[rgba(255,255,255,0.01)] mb-8 overflow-hidden animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                <div className="px-4 py-3 border-b border-[var(--border-color)] text-[12px] font-semibold flex items-center justify-between bg-[rgba(255,255,255,0.02)] text-[var(--text-main)]">
-                    <div className="flex items-center gap-2"><Gear weight="bold" /> 代理设置</div>
-                    <button className="text-[var(--accent-glow)] hover:underline text-xs font-mono" onClick={() => handleEditAccount(selectedAccount)}>Edit</button>
-                </div>
-                <div className="flex px-4 py-3 border-b border-white/5 text-[12px]">
-                    <div className="w-[120px] text-[var(--text-sub)]">SOCKS5 代理</div>
-                    <div className="flex-1 text-[var(--text-main)] font-mono">{selectedAccount.proxy || "not_set"}</div>
-                </div>
-                <div className="flex px-4 py-3 text-[12px]">
-                    <div className="w-[120px] text-[var(--text-sub)]">备注说明</div>
-                    <div className="flex-1 text-[var(--text-sub)] italic">{selectedAccount.remark || "not_set"}</div>
-                </div>
-              </div>
-              
-            </>
+            <AccountDetailPanel
+              selectedAccount={selectedAccount}
+              selectedStatus={selectedStatus}
+              isZh={isZh}
+              t={t}
+              onShowLogs={handleShowLogs}
+              onShowDelete={(accountName) => {
+                setAccountToDelete(accountName);
+                setShowDeleteConfirm(true);
+              }}
+              onRelogin={openReloginDialog}
+              onEditAccount={handleEditAccount}
+            >
+              <AccountTasksContent embedded={true} initialAccountName={selectedAccount.name} />
+            </AccountDetailPanel>
           )}
         </div>
       </main>
@@ -1650,169 +1489,65 @@ export default function Dashboard() {
         </div>
       )}
 
-      {showEditDialog && (
-        <div className="modal-overlay active" onClick={() => setShowEditDialog(false)}>
-          <div className="glass-panel modal-content !max-w-[440px] !p-0 overflow-hidden animate-zoom-in border-white/5" onClick={e => e.stopPropagation()}>
-            <header className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
-                  <PencilSimple weight="bold" size={20} />
-                </div>
-                <div>
-                    <h3 className="text-sm font-bold tracking-tight">{t("edit_account")}</h3>
-                    <p className="text-[10px] text-white/30 uppercase tracking-widest mt-0.5 font-bold">Account Preferences</p>
-                </div>
-              </div>
-              <button className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]" onClick={() => setShowEditDialog(false)}>
-                  <X weight="bold" size={18} />
-              </button>
-            </header>
+      <EditAccountDialog
+        open={showEditDialog}
+        title={t("edit_account")}
+        accountName={editData.account_name}
+        remark={editData.remark}
+        proxy={editData.proxy}
+        isSaving={loading}
+        proxyTesting={proxyTesting}
+        t={t}
+        onClose={handleCloseEditDialog}
+        onSave={handleSaveEdit}
+        onRemarkChange={(value) => setEditData((prev) => ({ ...prev, remark: value }))}
+        onProxyChange={(value) => setEditData((prev) => ({ ...prev, proxy: value }))}
+        onClearProxy={() => setEditData((prev) => ({ ...prev, proxy: "" }))}
+        onTestProxy={handleTestProxy}
+      />
 
-            <div className="p-6 space-y-6">
-              <div>
-                <label className="text-[11px] mb-1">{t("session_name")}</label>
-                <input
-                  type="text"
-                  className="!py-2.5 !px-4 !mb-4"
-                  value={editData.account_name}
-                  disabled
-                />
-
-                <label className="text-[11px] mb-1">{t("remark")}</label>
-                <input
-                  type="text"
-                  className="!py-2.5 !px-4 !mb-4"
-                  placeholder={t("remark_placeholder")}
-                  value={editData.remark}
-                  onChange={(e) => setEditData({ ...editData, remark: e.target.value })}
-                />
-
-                <label className="text-[11px] mb-1">{t("proxy")}</label>
-                <div className="flex gap-2 !mb-4 items-center relative">
-                  <input
-                    type="text"
-                    className="!py-2.5 !px-4 flex-1"
-                    placeholder={t("proxy_placeholder")}
-                    style={{ marginBottom: 0 }}
-                    value={editData.proxy}
-                    onChange={(e) => setEditData({ ...editData, proxy: e.target.value })}
-                  />
-                  {editData.proxy && (
-                    <button
-                      className="absolute right-16 text-xs text-rose-400 opacity-60 hover:opacity-100"
-                      onClick={() => setEditData({ ...editData, proxy: "" })}
-                      title={t("clear_proxy")}
-                    >
-                      <X weight="bold" />
-                    </button>
-                  )}
-                  <button
-                    className="btn-secondary !h-[42px] px-3 text-xs flex-shrink-0"
-                    onClick={() => handleTestProxy(editData.proxy)}
-                    disabled={proxyTesting || !editData.proxy}
-                  >
-                    {proxyTesting ? <Spinner className="animate-spin" size={16} /> : t("proxy_test")}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button className="linear-btn-secondary flex-1 h-11" onClick={() => setShowEditDialog(false)}>{t("cancel")}</button>
-                <button className="linear-btn-primary flex-1 h-11 !font-bold" onClick={handleSaveEdit} disabled={loading}>
-                  {loading ? <Spinner className="animate-spin" /> : t("save")}
-                </button>
-              </div>
-            </div>
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title={t("confirm_delete")}
+        description={t("confirm_delete_account").replace("{name}", accountToDelete || "")}
+        hint={isZh ? "此操作不可撤销" : "This action is permanent"}
+        icon={
+          <div className="w-16 h-16 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 border border-rose-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]">
+            <Trash weight="bold" size={32} />
           </div>
-        </div>
-      )}
+        }
+        cancelLabel={t("cancel")}
+        confirmLabel={t("delete")}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setAccountToDelete(null);
+        }}
+        onConfirm={handleDeleteAccount}
+        cancelDisabled={loading}
+        confirmDisabled={loading}
+        confirmIcon={loading ? <Spinner className="animate-spin" /> : <Trash weight="bold" size={16} />}
+        confirmClassName="bg-rose-500 hover:bg-rose-600 active:scale-95 text-white flex-1 h-11 rounded-lg font-bold text-[13px] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+      />
 
-      {showDeleteConfirm && (
-        <div className="modal-overlay active" onClick={() => setShowDeleteConfirm(false)}>
-          <div className="glass-panel modal-content !max-w-[400px] !p-0 overflow-hidden animate-zoom-in border-white/5" onClick={e => e.stopPropagation()}>
-            <div className="p-8 flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 mb-6 border border-rose-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]">
-                <Trash weight="bold" size={32} />
-              </div>
-              <h3 className="text-lg font-bold text-white mb-3">
-                {t("confirm_delete")}
-              </h3>
-              <p className="text-[13px] text-white/40 mb-8 leading-relaxed max-w-[280px]">
-                {t("confirm_delete_account").replace("{name}", accountToDelete || "")}
-                <br />
-                <span className="text-rose-400/80 font-bold block mt-2 text-[11px] uppercase tracking-wider">{isZh ? "此操作不可撤销" : "This action is permanent"}</span>
-              </p>
-              
-              <div className="flex gap-3 w-full">
-                <button 
-                  className="linear-btn-secondary flex-1 h-11" 
-                  onClick={() => {
-                    setShowDeleteConfirm(false);
-                    setAccountToDelete(null);
-                  }}
-                  disabled={loading}
-                >
-                  {t("cancel")}
-                </button>
-                <button 
-                  className="bg-rose-500 hover:bg-rose-600 active:scale-95 text-white flex-1 h-11 rounded-lg font-bold text-[13px] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  onClick={handleDeleteAccount}
-                  disabled={loading}
-                >
-                  {loading ? <Spinner className="animate-spin" /> : <Trash weight="bold" size={16} />}
-                  {t("delete")}
-                </button>
-              </div>
-            </div>
+      <ConfirmDialog
+        open={showClearLogsConfirm}
+        title={isZh ? "确认清空日志" : "Purge Command Logs"}
+        description={isZh ? "确定要清空该账户的所有运行日志吗？该操作不可撤销。" : "Are you sure you want to clear all logs for this account? This action cannot be undone."}
+        hint="Permanent cleanup sequence initiated"
+        icon={
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-inner">
+            <TerminalWindow weight="bold" size={20} />
           </div>
-        </div>
-      )}
-
-      {showClearLogsConfirm && (
-        <div className="modal-overlay active" onClick={() => setShowClearLogsConfirm(false)}>
-          <div className="glass-panel modal-content !max-w-md !p-0 overflow-hidden animate-zoom-in border-white/5 bg-[#050505]" onClick={e => e.stopPropagation()}>
-            <header className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-inner">
-                  <TerminalWindow weight="bold" size={20} />
-                </div>
-                <h3 className="text-sm font-bold tracking-tight">
-                  {isZh ? "确认清空日志" : "Purge Command Logs"}
-                </h3>
-              </div>
-              <button onClick={() => setShowClearLogsConfirm(false)} className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]">
-                <X weight="bold" size={18} />
-              </button>
-            </header>
-            <div className="p-8 space-y-4 text-center">
-              <p className="text-[13px] text-white/80 leading-relaxed font-medium">
-                {isZh ? "确定要清空该账户的所有运行日志吗？该操作不可撤销。" : "Are you sure you want to clear all logs for this account? This action cannot be undone."}
-              </p>
-              <div className="flex items-center justify-center gap-2 text-[9px] text-white/20 uppercase tracking-[0.2em] font-black italic">
-                <Info size={12} weight="bold" />
-                Permanent cleanup sequence initiated
-              </div>
-            </div>
-            <footer className="p-6 border-t border-white/5 flex gap-3 bg-white/[0.01]">
-              <button
-                className="linear-btn-secondary flex-1 h-11 text-[11px] font-black uppercase tracking-widest"
-                onClick={() => setShowClearLogsConfirm(false)}
-                disabled={logsLoading}
-              >
-                {t("cancel")}
-              </button>
-              <button
-                className="flex-1 h-11 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-xl font-black uppercase tracking-widest text-[11px] shadow-[0_4px_20px_rgba(245,158,11,0.2)] transition-all flex items-center justify-center gap-2"
-                onClick={confirmClearLogs}
-                disabled={logsLoading}
-              >
-                {logsLoading ? <Spinner className="animate-spin text-white" /> : <Trash weight="bold" size={16} />}
-                {isZh ? "立即清空" : "Purge Now"}
-              </button>
-            </footer>
-          </div>
-        </div>
-      )}
+        }
+        cancelLabel={t("cancel")}
+        confirmLabel={isZh ? "立即清空" : "Purge Now"}
+        onCancel={() => setShowClearLogsConfirm(false)}
+        onConfirm={confirmClearLogs}
+        cancelDisabled={logsLoading}
+        confirmDisabled={logsLoading}
+        confirmIcon={logsLoading ? <Spinner className="animate-spin text-white" /> : <Trash weight="bold" size={16} />}
+        confirmClassName="flex-1 h-11 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-xl font-black uppercase tracking-widest text-[11px] shadow-[0_4px_20px_rgba(245,158,11,0.2)] transition-all flex items-center justify-center gap-2"
+      />
 
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
@@ -1852,154 +1587,27 @@ export default function Dashboard() {
       )}
 
       {/* 批量导入弹窗 */}
-      {showBulkImport && (
-        <div className="modal-overlay active" onClick={() => setShowBulkImport(false)}>
-          <div className="glass-panel modal-content !max-w-3xl !p-0 overflow-hidden animate-zoom-in border-white/5 flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <header className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
-                  <ClipboardText weight="bold" size={20} />
-                </div>
-                <div>
-                    <h3 className="text-sm font-bold tracking-tight">{isZh ? "批量导入任务配置" : "Bulk Import Config"}</h3>
-                    <p className="text-[10px] text-white/30 uppercase tracking-widest mt-0.5 font-bold">Fast Configuration Migration</p>
-                </div>
-              </div>
-              <button 
-                className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]"
-                onClick={() => setShowBulkImport(false)} 
-                disabled={bulkImportLoading}
-              >
-                <X weight="bold" size={18} />
-              </button>
-            </header>
-
-            <div className="p-8 space-y-6">
-              <div className="p-4 rounded-xl bg-sky-500/5 border border-sky-500/10 text-[11px] text-sky-400/80 leading-relaxed font-bold">
-                {isZh 
-                  ? "💡 支持粘贴单个任务对象 或 多个任务组成的数组 [{}, {}]。系统将自动为每个选中账号分发包内所有任务。" 
-                  : "💡 Paste a single task object or an array of tasks [{}, {}]. All tasks will be distributed to each selected account."}
-              </div>
-              <textarea
-                className="w-full h-80 !mb-0 font-mono text-[11px] bg-black/40 border-white/5 focus:border-sky-500/30 transition-all rounded-xl p-5 custom-scrollbar"
-                placeholder={isZh ? "[ {\"task_name\": \"任务1\", ...}, {\"task_name\": \"任务2\", ...} ]" : "[ {\"task_name\": \"Task 1\", ...}, ... ]"}
-                value={bulkImportConfig}
-                onChange={(e) => setBulkImportConfig(e.target.value)}
-              />
-            </div>
-
-            <footer className="p-5 border-t border-white/5 flex gap-3 bg-white/[0.01]">
-              <button
-                className="linear-btn-secondary flex-1 h-11"
-                onClick={() => setShowBulkImport(false)}
-                disabled={bulkImportLoading}
-              >
-                {t("cancel")}
-              </button>
-              <button
-                className="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white flex-[2] rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_20px_rgba(14,165,233,0.15)]"
-                onClick={handleBulkImportSubmit}
-                disabled={bulkImportLoading || !bulkImportConfig.trim()}
-              >
-                {bulkImportLoading ? <Spinner className="animate-spin" /> : <ClipboardText weight="bold" size={18} />}
-                {isZh ? `立即分发至 ${selectedAccounts.size} 个账号` : `Distribute to ${selectedAccounts.size} accounts`}
-              </button>
-            </footer>
-          </div>
-        </div>
-      )}
-      {showLogsDialog && (
-          <div className="modal-overlay active" onClick={() => setShowLogsDialog(false)}>
-            <div 
-              className="glass-panel modal-content !max-w-5xl !h-[85vh] !p-0 overflow-hidden flex flex-col animate-zoom-in border-white/5" 
-              onClick={e => e.stopPropagation()}
-            >
-              <header className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01] shrink-0">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 shadow-inner">
-                    <TerminalWindow weight="bold" size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold tracking-tight">
-                      {isZh ? "运行日志控制台" : "Running Logs Console"}
-                    </h3>
-                    <p className="text-[10px] text-white/20 uppercase tracking-widest font-black mt-0.5">
-                      {logsAccountName} / System Event Stream
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    className="h-9 px-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-black uppercase tracking-widest hover:bg-rose-500/20 transition-all flex items-center gap-2"
-                    onClick={handleClearLogs}
-                    disabled={logsLoading}
-                  >
-                    <Trash weight="bold" size={14} />
-                    {isZh ? "清空日志" : "Clear Logs"}
-                  </button>
-                  <button 
-                    className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]" 
-                    onClick={() => setShowLogsDialog(false)}
-                  >
-                    <X weight="bold" size={16} />
-                  </button>
-                </div>
-              </header>
-
-              <div className="flex-1 overflow-y-auto p-8 bg-black/40 custom-scrollbar relative">
-                {logsLoading ? (
-                  <div className="h-full flex flex-col items-center justify-center gap-4">
-                    <Spinner className="animate-spin text-sky-400" size={32} weight="bold" />
-                    <span className="text-[10px] font-black translation-all text-white/20 uppercase tracking-[0.2em]">{t("loading")}</span>
-                  </div>
-                ) : accountLogs.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center gap-3">
-                    <ListDashes size={48} weight="thin" className="opacity-10" />
-                    <span className="text-[10px] font-black tracking-widest uppercase opacity-20 italic">{isZh ? "暂无运行数据" : "No Execution Logs"}</span>
-                  </div>
-                ) : (
-                  <div className="space-y-4 font-mono">
-                    {accountLogs.map((log) => (
-                      <div 
-                        key={log.id} 
-                        className={`group p-5 rounded-2xl border transition-all hover:translate-x-1 ${
-                          log.success 
-                            ? 'bg-emerald-500/[0.02] border-emerald-500/5 hover:border-emerald-500/20' 
-                            : 'bg-rose-500/[0.02] border-rose-500/5 hover:border-rose-500/20'
-                        }`}
-                      >
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-2 h-2 rounded-full ${log.success ? 'bg-emerald-500' : 'bg-rose-500'} shadow-[0_0_10px_currentColor]`}></div>
-                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{log.task_name || "System"}</span>
-                          </div>
-                          <span className="text-[10px] text-white/20 font-bold whitespace-nowrap bg-black/40 px-3 py-1 rounded-full border border-white/5">
-                            {new Date(log.created_at).toLocaleString()}
-                          </span>
-                        </div>
-                        <div className={`text-xs leading-relaxed font-medium break-words ${log.success ? 'text-white/80' : 'text-rose-200/90'}`}>
-                          {log.message}
-                        </div>
-                        {log.bot_message && (
-                          <div className="mt-4 p-4 rounded-xl bg-black/40 border border-white/5 text-[10px] text-sky-400/60 break-all border-dashed">
-                             <span className="text-white/20 mr-2 uppercase font-black tracking-tighter">Bot Notification:</span>
-                             {log.bot_message}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <footer className="px-8 py-4 border-t border-white/5 bg-white/[0.01] flex justify-center shrink-0">
-                <p className="text-[9px] text-white/10 uppercase tracking-[0.3em] font-black italic">
-                   System Event Stream Protocol v1.0
-                </p>
-              </footer>
-            </div>
-          </div>
-        )}
+      <BulkImportDialog
+        open={showBulkImport}
+        isZh={isZh}
+        selectedCount={selectedAccounts.size}
+        value={bulkImportConfig}
+        loading={bulkImportLoading}
+        t={t}
+        onClose={() => setShowBulkImport(false)}
+        onChange={setBulkImportConfig}
+        onSubmit={handleBulkImportSubmit}
+      />
+      <LogsConsoleDialog
+        open={showLogsDialog}
+        accountName={logsAccountName}
+        logs={accountLogs}
+        loading={logsLoading}
+        isZh={isZh}
+        t={t}
+        onClose={() => setShowLogsDialog(false)}
+        onClearLogs={handleClearLogs}
+      />
       </div>
   );
 }

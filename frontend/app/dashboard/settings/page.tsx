@@ -5,17 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getToken } from "../../../lib/auth";
 import {
-    getTOTPStatus,
-    getAIConfig,
-    GlobalSettings,
-    getGlobalSettings,
-    TelegramConfig,
-    getTelegramConfig,
-    BotNotifyConfig,
-    getBotNotifyConfig,
-    AIConfig,
-} from "../../../lib/api";
-import {
     CaretLeft,
     UserCircle,
     TelegramLogo,
@@ -35,6 +24,7 @@ import TelegramAPI from "./components/TelegramAPI";
 import NotificationService from "./components/NotificationService";
 import AIEnrichment from "./components/AIEnrichment";
 import BackupMigration from "./components/BackupMigration";
+import { useSettingsData } from "@/features/settings/hooks/use-settings-data";
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -48,12 +38,7 @@ export default function SettingsPage() {
     const [currentTab, setCurrentTab] = useState<"account" | "telegram" | "notification" | "ai" | "backup">("account");
 
     // Unified Data State
-    const [totpEnabled, setTotpEnabled] = useState(false);
-    const [aiConfig, setAIConfig] = useState<AIConfig | null>(null);
-    const [globalSettings, setGlobalSettings] = useState<GlobalSettings>({ sign_interval: null, log_retention_days: 7, data_dir: null });
-    const [telegramConfig, setTelegramConfig] = useState<TelegramConfig | null>(null);
-    const [botNotifyConfig, setBotNotifyConfig] = useState<BotNotifyConfig | null>(null);
-
+    const [localTotpEnabled, setLocalTotpEnabled] = useState(false);
     useEffect(() => {
         const tokenStr = getToken();
         if (!tokenStr) {
@@ -62,27 +47,13 @@ export default function SettingsPage() {
         }
         setLocalToken(tokenStr);
         setChecking(false);
-        loadAllData(tokenStr);
     }, []);
+    const settingsQuery = useSettingsData(token);
+    const { totpEnabled, aiConfig, globalSettings, telegramConfig, botNotifyConfig } = settingsQuery;
 
-    const loadAllData = async (tokenStr: string) => {
-        try {
-            const [totp, ai, global, telegram, bot] = await Promise.all([
-                getTOTPStatus(tokenStr),
-                getAIConfig(tokenStr),
-                getGlobalSettings(tokenStr),
-                getTelegramConfig(tokenStr),
-                getBotNotifyConfig(tokenStr)
-            ]);
-            setTotpEnabled(totp.enabled);
-            setAIConfig(ai);
-            setGlobalSettings(global || { sign_interval: null, log_retention_days: 7, data_dir: null });
-            setTelegramConfig(telegram);
-            setBotNotifyConfig(bot);
-        } catch (err) {
-            console.error("Failed to load settings data", err);
-        }
-    };
+    useEffect(() => {
+        setLocalTotpEnabled(totpEnabled);
+    }, [totpEnabled]);
 
     if (!token || checking) return null;
 
@@ -197,8 +168,8 @@ export default function SettingsPage() {
                             {currentTab === "account" && (
                                 <AccountSecurity 
                                     token={token} 
-                                    totpEnabled={totpEnabled} 
-                                    setTotpEnabled={setTotpEnabled} 
+                                    totpEnabled={localTotpEnabled} 
+                                    setTotpEnabled={setLocalTotpEnabled} 
                                     setToken={setLocalToken} 
                                 />
                             )}
@@ -206,7 +177,7 @@ export default function SettingsPage() {
                                 <TelegramAPI 
                                     token={token} 
                                     telegramConfig={telegramConfig} 
-                                    loadTelegramConfig={() => loadAllData(token)} 
+                                    loadTelegramConfig={async () => { await settingsQuery.refetch(); }} 
                                 />
                             )}
                             {currentTab === "notification" && (
@@ -214,21 +185,21 @@ export default function SettingsPage() {
                                     token={token} 
                                     botNotifyConfig={botNotifyConfig} 
                                     globalSettings={globalSettings}
-                                    loadBotNotifyConfig={() => loadAllData(token)} 
+                                    loadBotNotifyConfig={async () => { await settingsQuery.refetch(); }} 
                                 />
                             )}
                             {currentTab === "ai" && (
                                 <AIEnrichment 
                                     token={token} 
                                     aiConfig={aiConfig} 
-                                    loadAIConfig={() => loadAllData(token)} 
+                                    loadAIConfig={async () => { await settingsQuery.refetch(); }} 
                                 />
                             )}
                             {currentTab === "backup" && (
                                 <BackupMigration 
                                     token={token} 
                                     globalSettings={globalSettings} 
-                                    loadGlobalSettings={() => loadAllData(token)} 
+                                    loadGlobalSettings={async () => { await settingsQuery.refetch(); }} 
                                 />
                             )}
                         </div>

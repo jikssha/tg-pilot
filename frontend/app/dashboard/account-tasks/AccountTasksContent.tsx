@@ -5,11 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getToken } from "../../../lib/auth";
 import {
-    listSignTasks,
     deleteSignTask,
     runSignTask,
     getSignTaskHistory,
-    getAccountChats,
     searchAccountChats,
     createSignTask,
     updateSignTask,
@@ -53,6 +51,9 @@ import {
 } from "@phosphor-icons/react";
 import { ToastContainer, useToast } from "../../../components/ui/toast";
 import { useLanguage } from "../../../context/LanguageContext";
+import { useAccountTaskData } from "@/features/sign-tasks/hooks/use-account-task-data";
+import { SignTaskDialogs } from "@/features/sign-tasks/components/sign-task-dialogs";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type ActionTypeOption = "1" | "2" | "3" | "ai_vision" | "ai_logic";
 
@@ -242,8 +243,6 @@ export default function AccountTasksContent({
     const fieldLabelClass = "text-xs font-bold uppercase tracking-wider text-main/40 mb-1 block";
 
     const [token, setLocalToken] = useState<string | null>(null);
-    const [tasks, setTasks] = useState<SignTask[]>([]);
-    const [chats, setChats] = useState<ChatInfo[]>([]);
     const [chatSearch, setChatSearch] = useState("");
     const [chatSearchResults, setChatSearchResults] = useState<ChatInfo[]>([]);
     const [chatSearchLoading, setChatSearchLoading] = useState(false);
@@ -324,6 +323,12 @@ export default function AccountTasksContent({
     const [importingPastedConfig, setImportingPastedConfig] = useState(false);
 
     const [checking, setChecking] = useState(true);
+    const accountTaskData = useAccountTaskData(token, accountName);
+    const tasks = accountTaskData.tasks;
+    const chats = accountTaskData.chats;
+    const initialLoading = accountTaskData.isLoading;
+    const refetchTaskData = accountTaskData.refetchAll;
+    const refreshTaskChats = accountTaskData.refreshChats;
     const taskNamePlaceholder = isZh ? "\u7559\u7A7A\u4F7F\u7528\u9ED8\u8BA4\u540D\u79F0" : "Leave empty to use default name";
     const sendTextLabel = isZh ? "\u53D1\u9001\u6587\u672C\u6D88\u606F" : "Send Text Message";
     const clickTextButtonLabel = isZh ? "\u70B9\u51FB\u6587\u5B57\u6309\u94AE" : "Click Text Button";
@@ -385,31 +390,17 @@ export default function AccountTasksContent({
         return [4, 5, 6, 7].includes(actionId);
     }, []);
 
-    const loadData = useCallback(async (tokenStr: string) => {
+    const loadData = useCallback(async () => {
         try {
-            setLoading(true);
-            const tasksData = await listSignTasks(tokenStr, accountName);
-            setTasks(tasksData);
-            try {
-                const chatsData = await getAccountChats(tokenStr, accountName);
-                setChats(chatsData);
-            } catch (err: any) {
-                if (handleAccountSessionInvalid(err)) return;
-                const toast = addToastRef.current;
-                if (toast) {
-                    toast(formatErrorMessage("load_failed", err), "error");
-                }
-            }
+            await refetchTaskData();
         } catch (err: any) {
             if (handleAccountSessionInvalid(err)) return;
             const toast = addToastRef.current;
             if (toast) {
                 toast(formatErrorMessage("load_failed", err), "error");
             }
-        } finally {
-            setLoading(false);
         }
-    }, [accountName, formatErrorMessage, handleAccountSessionInvalid]);
+    }, [formatErrorMessage, handleAccountSessionInvalid, refetchTaskData]);
 
     useEffect(() => {
         const tokenStr = getToken();
@@ -418,13 +409,13 @@ export default function AccountTasksContent({
             return;
         }
         if (!accountName) {
-            if (!embedded) window.location.replace("/dashboard");
+            setChecking(false);
             return;
         }
         setLocalToken(tokenStr);
         setChecking(false);
-        loadData(tokenStr);
-    }, [accountName, embedded, loadData]);
+        void refetchTaskData();
+    }, [accountName, embedded, refetchTaskData]);
 
     useEffect(() => {
         if (!token || !accountName) return;
@@ -475,8 +466,7 @@ export default function AccountTasksContent({
         if (!token || !accountName) return;
         try {
             setRefreshingChats(true);
-            const chatsData = await getAccountChats(token, accountName, true);
-            setChats(chatsData);
+            await refreshTaskChats(true);
             addToast(t("chats_refreshed"), "success");
         } catch (err: any) {
             if (handleAccountSessionInvalid(err)) return;
@@ -490,8 +480,7 @@ export default function AccountTasksContent({
         if (!token) return;
         try {
             setLoading(true);
-            const chatsData = await getAccountChats(token, accountName);
-            setChats(chatsData);
+            await refreshTaskChats(false);
             addToast(t("chats_refreshed"), "success");
         } catch (err: any) {
             if (handleAccountSessionInvalid(err)) return;
@@ -532,7 +521,7 @@ export default function AccountTasksContent({
             await deleteSignTask(token, taskToDelete, accountName);
             setShowDeleteTaskDialog(false);
             setTaskToDelete(null);
-            await loadData(token);
+            await loadData();
         } catch (err: any) {
             // Only show error if it's NOT a 404 (already deleted/doesn't exist)
             if (err.status !== 404 && !err.message?.includes("not exist")) {
@@ -540,7 +529,7 @@ export default function AccountTasksContent({
             } else {
                 setShowDeleteTaskDialog(false);
                 setTaskToDelete(null);
-                await loadData(token); // Refresh anyway if it doesn't exist
+                await loadData(); // Refresh anyway if it doesn't exist
             }
         } finally {
             setLoading(false);
@@ -597,7 +586,7 @@ export default function AccountTasksContent({
             setLoading(true);
             const result = await importSignTask(token, taskConfig, undefined, accountName);
             addToast(pasteTaskSuccess(result.task_name), "success");
-            await loadData(token);
+            await loadData();
             return { ok: true };
         } catch (err: any) {
             const message = err?.message ? `${pasteTaskFailed}: ${err.message}` : pasteTaskFailed;
@@ -795,7 +784,7 @@ export default function AccountTasksContent({
                 range_start: "09:00",
                 range_end: "18:00",
             });
-            await loadData(token);
+            await loadData();
         } catch (err: any) {
             addToast(formatErrorMessage("create_failed", err), "error");
         } finally {
@@ -869,7 +858,7 @@ export default function AccountTasksContent({
 
             addToast(t("update_success"), "success");
             setShowEditDialog(false);
-            await loadData(token);
+            await loadData();
         } catch (err: any) {
             addToast(formatErrorMessage("update_failed", err), "error");
         } finally {
@@ -911,7 +900,40 @@ export default function AccountTasksContent({
         });
     }, [showCreateDialog]);
 
-    if (!token || checking) {
+    if (checking) {
+        return null;
+    }
+
+    if (!accountName && !embedded) {
+        return (
+            <div id="account-tasks-view" className="w-full h-full flex flex-col">
+                <nav className="navbar">
+                    <div className="nav-brand">
+                        <div className="flex items-center gap-4">
+                            <Link href="/dashboard" className="action-btn !w-8 !h-8" title={t("sidebar_home")}>
+                                <CaretLeft weight="bold" size={18} />
+                            </Link>
+                            <h1 className="text-lg font-bold tracking-tight">{isZh ? "任务列表" : "Task Board"}</h1>
+                        </div>
+                    </div>
+                </nav>
+                <main className="main-content !pt-6">
+                    <EmptyState
+                        icon={<Lightning size={40} weight="bold" />}
+                        title={isZh ? "先选择一个账号" : "Choose an account first"}
+                        description={isZh ? "签到任务依然以账号为单位管理。请先从仪表盘选择账号，再进入任务工作台。" : "Sign tasks are still managed per account. Pick an account from the dashboard first, then open the task workspace."}
+                        action={
+                            <Link href="/dashboard" className="linear-btn-secondary">
+                                <CaretLeft weight="bold" /> {t("sidebar_home")}
+                            </Link>
+                        }
+                    />
+                </main>
+            </div>
+        );
+    }
+
+    if (!token) {
         return null;
     }
 
@@ -959,7 +981,7 @@ export default function AccountTasksContent({
                     </h2>
                     <div className="flex items-center gap-2">
                         <button 
-                            onClick={() => loadData(token)}
+                            onClick={() => loadData()}
                             className="p-2 text-[var(--text-sub)] hover:text-white hover:bg-white/5 rounded-md transition-all"
                             title={t("refresh_list")}
                         >
@@ -985,7 +1007,7 @@ export default function AccountTasksContent({
 
             <main className={`main-content ${embedded ? '!pt-0 !p-0' : '!pt-6'}`}>
 
-                {loading && tasks.length === 0 ? (
+                {initialLoading && tasks.length === 0 ? (
                     <div className="w-full py-20 flex flex-col items-center justify-center text-main/20">
                         <Spinner size={40} weight="bold" className="animate-spin mb-4" />
                         <p className="text-xs uppercase tracking-widest font-bold font-mono">{t("loading")}</p>
@@ -1449,299 +1471,37 @@ export default function AccountTasksContent({
             )
             }
 
-            {copyTaskDialog && (
-                <div className="modal-overlay active" onClick={closeCopyTaskDialog}>
-                    <div className="glass-panel modal-content !max-w-3xl !p-0 overflow-hidden animate-zoom-in border-white/5 flex flex-col bg-[#050505] shadow-[0_0_80px_rgba(0,0,0,0.8)]" onClick={(e) => e.stopPropagation()}>
-                        <header className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-                            <div className="flex items-center gap-5">
-                                <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 shadow-inner">
-                                    <Files weight="bold" size={24} />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-black tracking-tight uppercase italic">{copyTaskDialogTitle}</h3>
-                                    <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">Configuration Export Protocol</p>
-                                </div>
-                            </div>
-                            <button onClick={closeCopyTaskDialog} className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 transition-all flex items-center justify-center" disabled={copyingConfig}>
-                                <X weight="bold" size={18} />
-                            </button>
-                        </header>
-                        <div className="p-10 space-y-6">
-                            <p className="text-[10px] text-white/20 uppercase tracking-widest font-black flex items-center gap-2">
-                                <Info size={14} weight="bold" />
-                                {copyTaskDialogDesc}
-                            </p>
-                            <div className="relative group">
-                                <div className="absolute -inset-1 bg-gradient-to-b from-sky-500/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity blur"></div>
-                                <textarea
-                                    className="relative w-full h-80 !mb-0 font-mono text-[11px] bg-black/60 border-white/5 rounded-2xl p-6 custom-scrollbar shadow-inner text-sky-100/60 focus:text-sky-300 focus:border-sky-500/30 transition-all outline-none"
-                                    value={copyTaskDialog.config}
-                                    readOnly
-                                />
-                            </div>
-                        </div>
-                        <footer className="p-8 border-t border-white/5 flex gap-4 bg-white/[0.01]">
-                            <button
-                                className="h-12 rounded-xl border border-white/5 bg-white/[0.02] text-white/40 text-[11px] font-black uppercase tracking-widest hover:bg-white/[0.05] hover:text-white transition-all flex-1"
-                                onClick={closeCopyTaskDialog}
-                                disabled={copyingConfig}
-                                >
-                                {t("close")}
-                            </button>
-                            <button
-                                className="bg-sky-500 hover:bg-sky-600 active:scale-95 text-white flex-[2] h-12 rounded-xl font-black uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(14,165,233,0.3)]"
-                                onClick={handleCopyTaskConfig}
-                                disabled={copyingConfig}
-                            >
-                                {copyingConfig ? <Spinner className="animate-spin text-white" /> : <ClipboardText weight="bold" size={18} />}
-                                {copyConfigAction}
-                            </button>
-                        </footer>
-                    </div>
-                </div>
-            )}
-
-            {showPasteDialog && (
-                <div className="modal-overlay active" onClick={closePasteTaskDialog}>
-                    <div className="glass-panel modal-content !max-w-3xl !p-0 overflow-hidden animate-zoom-in border-white/5 flex flex-col bg-[#050505] shadow-[0_0_80px_rgba(0,0,0,0.8)]" onClick={(e) => e.stopPropagation()}>
-                        <header className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-                            <div className="flex items-center gap-5">
-                                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-inner">
-                                    <ClipboardText weight="bold" size={24} />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-black tracking-tight uppercase italic">{pasteTaskDialogTitle}</h3>
-                                    <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-bold mt-0.5">Configuration Import Protocol</p>
-                                </div>
-                            </div>
-                            <button onClick={closePasteTaskDialog} className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 transition-all flex items-center justify-center" disabled={importingPastedConfig || loading}>
-                                <X weight="bold" size={18} />
-                            </button>
-                        </header>
-                        <div className="p-10 space-y-6">
-                            <p className="text-[10px] text-white/20 uppercase tracking-widest font-black flex items-center gap-2">
-                                <Info size={14} weight="bold" />
-                                {pasteTaskDialogDesc}
-                            </p>
-                            <div className="relative group">
-                                <div className="absolute -inset-1 bg-gradient-to-b from-emerald-500/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity blur"></div>
-                                <textarea
-                                    className="relative w-full h-80 !mb-0 font-mono text-[11px] bg-black/60 border-white/5 rounded-2xl p-6 custom-scrollbar shadow-inner text-emerald-100/60 focus:text-emerald-300 focus:border-emerald-500/30 transition-all outline-none"
-                                    placeholder={pasteTaskDialogPlaceholder}
-                                    value={pasteTaskConfigInput}
-                                    onChange={(e) => setPasteTaskConfigInput(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        <footer className="p-8 border-t border-white/5 flex gap-4 bg-white/[0.01]">
-                            <button
-                                className="h-12 rounded-xl border border-white/5 bg-white/[0.02] text-white/40 text-[11px] font-black uppercase tracking-widest hover:bg-white/[0.05] hover:text-white transition-all flex-1"
-                                onClick={closePasteTaskDialog}
-                                disabled={importingPastedConfig || loading}
-                            >
-                                {t("cancel")}
-                            </button>
-                            <button
-                                className="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white flex-[2] h-12 rounded-xl font-black uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(16,185,129,0.3)]"
-                                onClick={handlePasteDialogImport}
-                                disabled={importingPastedConfig || loading}
-                            >
-                                {importingPastedConfig ? <Spinner className="animate-spin text-white" /> : <Lightning weight="bold" size={18} />}
-                                {importTaskAction}
-                            </button>
-                        </footer>
-                    </div>
-                </div>
-            )}
-
-            {historyTaskName && (
-                <div className="modal-overlay active" onClick={() => setHistoryTaskName(null)}>
-                    <div className="glass-panel modal-content !max-w-5xl !h-[85vh] flex flex-col !p-0 overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.8)] border-white/5 animate-zoom-in bg-[#050505]" onClick={e => e.stopPropagation()}>
-                        <header className="px-8 py-5 border-b border-white/5 flex justify-between items-center bg-white/[0.01] backdrop-blur-md">
-                            <div className="flex items-center gap-5">
-                                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner">
-                                    <ListDashes weight="bold" size={24} />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-black tracking-tight uppercase italic">
-                                        {t("task_history_logs_title").replace("{name}", historyTaskName)}
-                                    </h3>
-                                    <p className="text-[9px] text-white/20 uppercase tracking-[0.25em] mt-0.5 font-bold">Protocol Execution Archives</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-6">
-                                <label className="flex items-center gap-3 cursor-pointer group px-4 py-2 rounded-xl bg-white/[0.02] border border-white/5 hover:border-rose-500/20 transition-all">
-                                    <input 
-                                        type="checkbox" 
-                                        className="!w-4 !h-4 accent-rose-500" 
-                                        checked={showFailedOnly}
-                                        onChange={() => setShowFailedOnly(!showFailedOnly)}
-                                    />
-                                    <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${showFailedOnly ? 'text-rose-400' : 'text-white/20 group-hover:text-white/40'}`}>
-                                        {isZh ? "异常检测" : "Anomaly Only"}
-                                    </span>
-                                </label>
-                                <div className="w-px h-6 bg-white/5 mx-1"></div>
-                                <button
-                                    onClick={() => setHistoryTaskName(null)}
-                                    className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 transition-all flex items-center justify-center"
-                                >
-                                    <X weight="bold" size={18} />
-                                </button>
-                            </div>
-                        </header>
-                        <div className="flex-1 overflow-y-auto p-8 bg-black/20 custom-scrollbar-premium">
-                            {historyLoading ? (
-                                <div className="h-full flex flex-col items-center justify-center gap-6 text-white/5">
-                                    <div className="relative">
-                                        <div className="w-16 h-16 rounded-full border-2 border-white/[0.02] border-t-indigo-500/40 animate-spin"></div>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
-                                        </div>
-                                    </div>
-                                    <span className="text-[10px] font-black uppercase tracking-[0.5em] animate-pulse">Synchronizing Data...</span>
-                                </div>
-                            ) : historyLogs.filter(log => !showFailedOnly || !log.success).length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center gap-5 opacity-10">
-                                    <ListDashes size={64} weight="thin" />
-                                    <span className="text-[10px] uppercase font-black tracking-[0.4em] italic">
-                                        {t("task_history_empty")}
-                                    </span>
-                                </div>
-                            ) : (
-                                <div className="space-y-8 max-w-5xl mx-auto pb-12">
-                                    {historyLogs
-                                        .filter(log => !showFailedOnly || !log.success)
-                                        .map((log, i) => (
-                                        <div key={`${log.time}-${i}`} className="rounded-3xl border border-white/5 bg-white/[0.015] overflow-hidden hover:bg-white/[0.03] hover:border-white/10 transition-all group shadow-inner">
-                                            <div className="flex justify-between items-center px-6 py-4 border-b border-white/[0.03] bg-white/[0.01]">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`flex items-center gap-2.5 px-3 py-1 rounded-full border ${log.success ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400 animate-pulse'}`}>
-                                                        <div className={`w-1 h-1 rounded-full ${log.success ? "bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" : "bg-rose-500"}`}></div>
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">
-                                                            {log.success ? t("success") : "Protocol Failure"}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-[11px] font-black text-white/20 uppercase tracking-widest font-mono">
-                                                        [{new Date(log.time).toLocaleString(isZh ? "zh-CN" : "en-US", { hour12: false })}]
-                                                    </span>
-                                                </div>
-                                                <div className="text-[9px] font-black text-white/10 uppercase tracking-[0.2em]">Record ID: {log.time.split('T')[0].replace(/-/g, '')}{i}</div>
-                                            </div>
-                                            <div className="p-8 space-y-6">
-                                                <div className="flex items-start justify-between gap-6">
-                                                    <div className="space-y-1">
-                                                        <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">{isZh ? "Target Object" : "Target Object"}</p>
-                                                        <p className="text-[13px] font-bold text-white group-hover:text-[#8a3ffc] transition-colors">{historyTaskName}</p>
-                                                    </div>
-                                                    {log.message && (
-                                                        <div className="flex-1 max-w-md text-right">
-                                                            <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">{isZh ? "Gateway Message" : "Gateway Message"}</p>
-                                                            <p className="text-[11px] text-white/40 leading-relaxed font-medium line-clamp-2">{log.message}</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="space-y-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="h-px flex-1 bg-white/5"></div>
-                                                        <span className="text-[9px] font-black text-white/10 uppercase tracking-[0.3em]">Runtime Intelligence</span>
-                                                        <div className="h-px flex-1 bg-white/5"></div>
-                                                    </div>
-                                                    
-                                                    {log.flow_logs && log.flow_logs.length > 0 ? (
-                                                        <div className="relative group/logs">
-                                                            <div className="absolute -inset-0.5 bg-gradient-to-b from-white/5 to-transparent rounded-2xl opacity-0 group-hover/logs:opacity-100 transition-opacity"></div>
-                                                            <div className="relative space-y-1.5 bg-black/60 p-6 rounded-2xl border border-white/5 font-mono shadow-inner overflow-hidden">
-                                                                {log.flow_logs.map((line, lineIndex) => (
-                                                                    <div key={lineIndex} className="text-white/60 flex gap-4 text-[10px] hover:text-white transition-colors">
-                                                                        <span className="text-white/5 select-none w-5 text-right font-black tracking-tighter shrink-0 italic border-r border-white/[0.03] pr-2">
-                                                                            {(lineIndex + 1).toString().padStart(2, '0')}
-                                                                        </span>
-                                                                        <span className="break-all font-medium">{line}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="py-10 rounded-2xl border border-dashed border-white/5 flex items-center justify-center">
-                                                            <span className="text-[10px] font-black text-white/10 uppercase tracking-widest">{t("task_history_no_flow")}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {log.flow_truncated && (
-                                                    <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-amber-500/[0.03] border border-amber-500/10">
-                                                        <Warning size={14} weight="bold" className="text-amber-500" />
-                                                        <span className="text-[10px] font-black text-amber-500/60 uppercase tracking-widest">
-                                                            {t("task_history_truncated").replace("{count}", String(log.flow_line_count || 0))}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <footer className="px-8 py-4 border-t border-white/5 bg-white/[0.01] flex justify-between items-center shrink-0">
-                            <div className="flex items-center gap-3 text-[10px] font-black text-white/10 uppercase tracking-widest">
-                                <Info size={14} weight="bold" />
-                                {isZh ? "所有执行记录均采用异步加密存储" : "Asynchronous encrypted storage enabled"}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-                                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Vault Synchronized</span>
-                            </div>
-                        </footer>
-                    </div>
-                </div>
-            )}
-
-            {showDeleteTaskDialog && (
-                <div className="modal-overlay active" onClick={() => setShowDeleteTaskDialog(false)}>
-                    <div className="glass-panel modal-content !max-w-md !p-0 overflow-hidden animate-zoom-in border-white/5 bg-[#050505] shadow-[0_0_80px_rgba(0,0,0,0.8)]" onClick={e => e.stopPropagation()}>
-                        <header className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-500 shadow-inner">
-                                    <Trash weight="bold" size={20} />
-                                </div>
-                                <h3 className="text-sm font-bold tracking-tight">
-                                    {isZh ? "确认删除任务" : "Terminate Task"}
-                                </h3>
-                            </div>
-                            <button onClick={() => setShowDeleteTaskDialog(false)} className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]">
-                                <X weight="bold" size={18} />
-                            </button>
-                        </header>
-                        <div className="p-8 space-y-4 text-center">
-                            <p className="text-sm text-white/80 leading-relaxed font-medium">
-                                {isZh ? `确定要删除任务 “${taskToDelete}” 吗？` : `Confirm termination of task "${taskToDelete}"?`}
-                            </p>
-                            <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-black italic">
-                                This action is irreversible / Session will be purged
-                            </p>
-                        </div>
-                        <footer className="p-6 border-t border-white/5 flex gap-3 bg-white/[0.01]">
-                            <button
-                                className="linear-btn-secondary flex-1 h-11 text-[11px] font-black uppercase tracking-widest"
-                                onClick={() => setShowDeleteTaskDialog(false)}
-                                disabled={loading}
-                            >
-                                {t("cancel")}
-                            </button>
-                            <button
-                                className="flex-1 h-11 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white rounded-xl font-black uppercase tracking-widest text-[11px] shadow-[0_4px_20px_rgba(244,63,94,0.3)] transition-all flex items-center justify-center gap-2"
-                                onClick={confirmDeleteTask}
-                                disabled={loading}
-                            >
-                                {loading ? <Spinner className="animate-spin text-white" /> : <Trash weight="bold" size={16} />}
-                                {isZh ? "立即终止" : "Terminate"}
-                            </button>
-                        </footer>
-                    </div>
-                </div>
-            )}
+            <SignTaskDialogs
+                copyTaskDialog={copyTaskDialog}
+                copyTaskDialogTitle={copyTaskDialogTitle}
+                copyTaskDialogDesc={copyTaskDialogDesc}
+                copyConfigAction={copyConfigAction}
+                copyingConfig={copyingConfig}
+                pasteTaskTitle={pasteTaskDialogTitle}
+                pasteTaskDescription={pasteTaskDialogDesc}
+                pasteTaskPlaceholder={pasteTaskDialogPlaceholder}
+                showPasteDialog={showPasteDialog}
+                pasteTaskConfigInput={pasteTaskConfigInput}
+                importingPastedConfig={importingPastedConfig}
+                historyTaskName={historyTaskName}
+                historyLogs={historyLogs}
+                historyLoading={historyLoading}
+                showFailedOnly={showFailedOnly}
+                showDeleteTaskDialog={showDeleteTaskDialog}
+                deleteTaskName={taskToDelete}
+                loading={loading}
+                isZh={isZh}
+                t={t}
+                onCloseCopyDialog={closeCopyTaskDialog}
+                onCopyTaskConfig={handleCopyTaskConfig}
+                onClosePasteDialog={closePasteTaskDialog}
+                onPasteTaskConfigChange={setPasteTaskConfigInput}
+                onImportPastedTask={handlePasteDialogImport}
+                onCloseHistory={() => setHistoryTaskName(null)}
+                onToggleFailedOnly={() => setShowFailedOnly(!showFailedOnly)}
+                onCloseDeleteDialog={() => setShowDeleteTaskDialog(false)}
+                onConfirmDeleteTask={confirmDeleteTask}
+            />
 
             {!embedded && <ToastContainer toasts={toasts} removeToast={removeToast} />}
         </div >
