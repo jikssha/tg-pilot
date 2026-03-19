@@ -112,22 +112,92 @@ async function mockDashboardApis(page: Page) {
     }
 
     if (path === "/api/config/ai") {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ api_key: "", base_url: "", model: "" }) });
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ has_config: false }) });
       return;
     }
 
-    if (path === "/api/config/global") {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ sign_interval: null, log_retention_days: 7, data_dir: null }) });
+    if (path === "/api/config/settings") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ sign_interval: null, log_retention_days: 7, data_dir: null, server_time: "09:30" }) });
       return;
     }
 
     if (path === "/api/config/telegram") {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ api_id: "", api_hash: "" }) });
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ api_id: "", api_hash: "", is_custom: false, default_api_id: "", default_api_hash: "" }) });
       return;
     }
 
     if (path === "/api/config/bot-notify") {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ enabled: false, token: "", chat_id: "" }) });
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ has_config: false, enabled: false, chat_id: "" }) });
+      return;
+    }
+
+    if (path === "/api/config/ops/overview") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          readiness: {
+            ready: true,
+            checks: { storage: true, database: true, scheduler: true, jobs_synced: true },
+            details: {},
+          },
+          scheduler: {
+            running: true,
+            job_count: 3,
+            jobs: [{ id: "sign-demo-main-daily-checkin", next_run_time: new Date().toISOString() }],
+          },
+          accounts: {
+            total: 2,
+            statuses: { valid: 2 },
+          },
+          sign_tasks: {
+            total: 2,
+            enabled: 2,
+            disabled: 0,
+            last_run_success: 1,
+            last_run_failed: 0,
+            never_run: 1,
+          },
+          recent_audit: [
+            {
+              id: 1,
+              action: "import_all_configs",
+              resource_type: "config_bundle",
+              resource_id: "all",
+              actor: "admin",
+              status: "success",
+              details: { overwrite: false },
+              created_at: new Date().toISOString(),
+            },
+          ],
+          latest_audit_at: new Date().toISOString(),
+        }),
+      });
+      return;
+    }
+
+    if (path === "/api/config/audit/events") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          items: [
+            {
+              id: 1,
+              action: "import_all_configs",
+              resource_type: "config_bundle",
+              resource_id: "all",
+              actor: "admin",
+              status: "success",
+              details: { overwrite: false, signs_imported: 2 },
+              created_at: new Date().toISOString(),
+            },
+          ],
+          total: 1,
+          limit: 20,
+          offset: 0,
+        }),
+      });
       return;
     }
 
@@ -175,4 +245,8 @@ test("settings page renders system control center with mocked config", async ({ 
 
   await expect(page.getByText("系统控制面板")).toBeVisible();
   await expect(page.getByText("账户安全与验证")).toBeVisible();
+  await page.getByRole("button", { name: "系统运维概览" }).click();
+  await expect(page.getByRole("heading", { name: "系统运维概览" })).toBeVisible();
+  await page.getByRole("button", { name: "审计事件追踪" }).click();
+  await expect(page.getByRole("heading", { name: "审计事件追踪" })).toBeVisible();
 });

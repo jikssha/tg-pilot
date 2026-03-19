@@ -58,6 +58,16 @@ class ImportAllRequest(BaseModel):
     overwrite: bool = False
 
 
+class PreviewAllResponse(BaseModel):
+    valid: bool
+    metadata: dict
+    overwrite: bool
+    sign_tasks: dict
+    monitor_tasks: dict
+    settings: dict
+    warnings: list[str]
+
+
 class ImportAllResponse(BaseModel):
     signs_imported: int
     signs_skipped: int
@@ -71,6 +81,15 @@ class TaskListResponse(BaseModel):
     sign_tasks: list[str]
     monitor_tasks: list[str]
     total: int
+
+
+class SessionPreviewResponse(BaseModel):
+    valid: bool
+    metadata: dict
+    file_count: int
+    file_names: list[str]
+    account_names: list[str]
+    warnings: list[str]
 
 
 @router.get("/tasks", response_model=TaskListResponse)
@@ -247,6 +266,23 @@ async def import_sessions_zip(
         )
 
 
+@router.post("/sessions/preview", response_model=SessionPreviewResponse)
+async def preview_sessions_zip(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    del current_user
+    try:
+        content = await file.read()
+        preview = get_config_service().preview_sessions_zip(content)
+        return SessionPreviewResponse(**preview)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to preview sessions: {str(e)}",
+        )
+
+
 @router.get("/export/all")
 def export_all_configs(current_user: User = Depends(get_current_user)):
     try:
@@ -325,6 +361,23 @@ async def import_all_configs(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to import all configs: {str(e)}",
+        )
+
+
+@router.post("/import/all/preview", response_model=PreviewAllResponse)
+def preview_all_configs(
+    request: ImportAllRequest, current_user: User = Depends(get_current_user)
+):
+    del current_user
+    try:
+        preview = get_config_service().preview_all_configs(
+            request.config_json, request.overwrite
+        )
+        return PreviewAllResponse(**preview)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to preview config bundle: {str(e)}",
         )
 
 

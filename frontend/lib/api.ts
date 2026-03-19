@@ -485,6 +485,92 @@ export interface GlobalSettings {
   server_time?: string;
 }
 
+export interface BundleMetadata {
+  schema_version?: number | null;
+  payload_type?: string | null;
+  source?: string | null;
+  exported_at?: string | null;
+}
+
+export interface SessionBundlePreview {
+  valid: boolean;
+  metadata: BundleMetadata;
+  file_count: number;
+  file_names: string[];
+  account_names: string[];
+  warnings: string[];
+}
+
+export interface ConfigBundlePreview {
+  valid: boolean;
+  metadata: BundleMetadata;
+  overwrite: boolean;
+  sign_tasks: {
+    total: number;
+    conflicts: number;
+    importable: number;
+    sample_names: string[];
+    conflict_names: string[];
+  };
+  monitor_tasks: {
+    total: number;
+    conflicts: number;
+    importable: number;
+    sample_names: string[];
+    conflict_names: string[];
+  };
+  settings: {
+    sections: string[];
+    count: number;
+  };
+  warnings: string[];
+}
+
+export interface AuditEventItem {
+  id: number;
+  action: string;
+  resource_type: string;
+  resource_id?: string | null;
+  actor?: string | null;
+  status: string;
+  details?: Record<string, any> | null;
+  created_at: string;
+}
+
+export interface AuditEventListResponse {
+  items: AuditEventItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface OperationsOverview {
+  readiness: {
+    ready: boolean;
+    checks: Record<string, boolean>;
+    details?: Record<string, string>;
+  };
+  scheduler: {
+    running: boolean;
+    job_count: number;
+    jobs: Array<{ id: string; next_run_time?: string | null }>;
+  };
+  accounts: {
+    total: number;
+    statuses: Record<string, number>;
+  };
+  sign_tasks: {
+    total: number;
+    enabled: number;
+    disabled: number;
+    last_run_success: number;
+    last_run_failed: number;
+    never_run: number;
+  };
+  recent_audit: AuditEventItem[];
+  latest_audit_at?: string | null;
+}
+
 export const getGlobalSettings = (token: string) =>
   request<GlobalSettings>("/config/settings", {}, token);
 
@@ -493,6 +579,51 @@ export const saveGlobalSettings = (token: string, settings: GlobalSettings) =>
     method: "POST",
     body: JSON.stringify(settings),
   }, token);
+
+export const previewSessionsZip = async (token: string, file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE}/config/sessions/preview`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.detail || "Preview failed");
+  }
+  return res.json() as Promise<SessionBundlePreview>;
+};
+
+export const previewAllConfigsImport = (
+  token: string,
+  configJson: string,
+  overwrite = false
+) =>
+  request<ConfigBundlePreview>("/config/import/all/preview", {
+    method: "POST",
+    body: JSON.stringify({ config_json: configJson, overwrite }),
+  }, token);
+
+export const getAuditEvents = (
+  token: string,
+  params: { limit?: number; offset?: number; action?: string; resourceType?: string; status?: string } = {}
+) => {
+  const searchParams = new URLSearchParams();
+  if (params.limit) searchParams.append("limit", String(params.limit));
+  if (params.offset) searchParams.append("offset", String(params.offset));
+  if (params.action) searchParams.append("action", params.action);
+  if (params.resourceType) searchParams.append("resource_type", params.resourceType);
+  if (params.status) searchParams.append("status", params.status);
+  return request<AuditEventListResponse>(
+    `/config/audit/events${searchParams.toString() ? `?${searchParams.toString()}` : ""}`,
+    {},
+    token
+  );
+};
+
+export const getOperationsOverview = (token: string) =>
+  request<OperationsOverview>("/config/ops/overview", {}, token);
 
 // ============ Telegram API 配置 ============
 

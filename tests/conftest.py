@@ -26,6 +26,7 @@ MODULES_TO_RELOAD = [
     "backend.services.config",
     "backend.services.login_sessions",
     "backend.services.legacy_migration",
+    "backend.services.operations",
     "backend.services.sign_tasks",
     "backend.services.telegram",
     "backend.scheduler",
@@ -36,6 +37,7 @@ MODULES_TO_RELOAD = [
     "backend.stores.sign_tasks",
     "backend.stores",
     "backend.api.routes.auth",
+    "backend.api.routes.insights",
     "backend.services.users",
 ]
 

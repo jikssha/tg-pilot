@@ -410,6 +410,83 @@ class ConfigService:
 
         return result
 
+    def preview_all_configs(
+        self, json_str: str, overwrite: bool = False
+    ) -> Dict[str, Any]:
+        data = json.loads(json_str)
+        payload = data if isinstance(data, dict) else {}
+        metadata = {
+            "schema_version": payload.get("schema_version"),
+            "payload_type": payload.get("payload_type"),
+            "source": payload.get("source"),
+            "exported_at": payload.get("exported_at"),
+        }
+
+        signs = payload.get("signs", {}) if isinstance(payload.get("signs"), dict) else {}
+        monitors = (
+            payload.get("monitors", {})
+            if isinstance(payload.get("monitors"), dict)
+            else {}
+        )
+        settings_data = (
+            payload.get("settings", {})
+            if isinstance(payload.get("settings"), dict)
+            else {}
+        )
+
+        sign_conflicts: list[str] = []
+        sign_samples: list[str] = []
+        for key, config in signs.items():
+            if not isinstance(config, dict):
+                continue
+            task_name = str(config.get("name") or key.split("@")[0])
+            account_name = config.get("account_name")
+            if account_name is None and "@" in key:
+                account_name = key.split("@", 1)[1]
+            display_name = (
+                f"{task_name}@{account_name}" if account_name else task_name
+            )
+            if len(sign_samples) < 5:
+                sign_samples.append(display_name)
+            if self.sign_task_store.get_task(task_name, account_name=account_name):
+                sign_conflicts.append(display_name)
+
+        monitor_conflicts: list[str] = []
+        monitor_samples: list[str] = []
+        for task_name in monitors.keys():
+            display_name = str(task_name)
+            if len(monitor_samples) < 5:
+                monitor_samples.append(display_name)
+            if (self.monitors_dir / display_name / "config.json").exists():
+                monitor_conflicts.append(display_name)
+
+        settings_sections = [key for key, value in settings_data.items() if value]
+
+        return {
+            "valid": True,
+            "metadata": metadata,
+            "overwrite": overwrite,
+            "sign_tasks": {
+                "total": len(signs),
+                "conflicts": len(sign_conflicts),
+                "importable": len(signs) if overwrite else max(len(signs) - len(sign_conflicts), 0),
+                "sample_names": sign_samples,
+                "conflict_names": sign_conflicts[:10],
+            },
+            "monitor_tasks": {
+                "total": len(monitors),
+                "conflicts": len(monitor_conflicts),
+                "importable": len(monitors) if overwrite else max(len(monitors) - len(monitor_conflicts), 0),
+                "sample_names": monitor_samples,
+                "conflict_names": monitor_conflicts[:10],
+            },
+            "settings": {
+                "sections": settings_sections,
+                "count": len(settings_sections),
+            },
+            "warnings": [],
+        }
+
     # ============ AI 配置 ============
 
     def _get_ai_config_file(self) -> Path:
@@ -711,6 +788,52 @@ class ConfigService:
                     if file.is_file():
                         zf.write(file, file.name)
         return buf.getvalue()
+
+    def preview_sessions_zip(self, zip_bytes: bytes) -> Dict[str, Any]:
+        warnings: list[str] = []
+        files: list[str] = []
+        manifest: dict[str, Any] = {}
+
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+            for member in zf.infolist():
+                if member.is_dir():
+                    continue
+                name = member.filename.replace("\\", "/")
+                if name == "manifest.json":
+                    try:
+                        with zf.open(member) as fh:
+                            loaded = json.loads(fh.read().decode("utf-8"))
+                            if isinstance(loaded, dict):
+                                manifest = loaded
+                    except Exception:
+                        warnings.append("manifest_unreadable")
+                    continue
+                if "/" in name:
+                    warnings.append(f"nested_entry:{name}")
+                files.append(name)
+
+        account_names = sorted(
+            {
+                Path(name).stem.replace(".session", "")
+                if name.endswith(".session_string")
+                else Path(name).stem
+                for name in files
+            }
+        )
+
+        return {
+            "valid": True,
+            "metadata": {
+                "schema_version": manifest.get("schema_version"),
+                "payload_type": manifest.get("payload_type"),
+                "source": manifest.get("source"),
+                "exported_at": manifest.get("exported_at"),
+            },
+            "file_count": len(files),
+            "file_names": files[:20],
+            "account_names": account_names[:20],
+            "warnings": warnings,
+        }
 
     def import_sessions_zip(self, zip_bytes: bytes) -> bool:
         """

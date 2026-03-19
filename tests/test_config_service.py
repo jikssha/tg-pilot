@@ -69,3 +69,44 @@ def test_session_zip_export_import_round_trip(isolated_env):
     restored = sorted(path.name for path in session_dir.iterdir() if path.is_file())
     assert restored == sorted(original_files)
     assert (session_dir / "alpha.session_string").read_text(encoding="utf-8") == "SESSION_ALPHA"
+
+
+def test_session_zip_preview_returns_manifest_and_accounts(isolated_env):
+    from backend.core.config import get_settings
+    from backend.services.config import ConfigService
+
+    service = ConfigService()
+    session_dir = get_settings().resolve_session_dir()
+    session_dir.mkdir(parents=True, exist_ok=True)
+    (session_dir / "preview-main.session_string").write_text("SESSION", encoding="utf-8")
+
+    archive = service.export_sessions_zip()
+    preview = service.preview_sessions_zip(archive)
+
+    assert preview["valid"] is True
+    assert preview["metadata"]["payload_type"] == "session_bundle"
+    assert preview["file_count"] == 1
+    assert preview["account_names"] == ["preview-main"]
+
+
+def test_config_bundle_preview_reports_conflicts(isolated_env):
+    from backend.services.config import ConfigService
+
+    service = ConfigService()
+    payload = {
+        "_version": 3,
+        "account_name": "primary",
+        "sign_at": "0 6 * * *",
+        "random_seconds": 0,
+        "sign_interval": 5,
+        "chats": [],
+    }
+    assert service.save_sign_config("daily_sign", payload) is True
+
+    bundle = service.export_all_configs()
+    preview = service.preview_all_configs(bundle, overwrite=False)
+
+    assert preview["valid"] is True
+    assert preview["metadata"]["payload_type"] == "config_bundle"
+    assert preview["sign_tasks"]["total"] >= 1
+    assert preview["sign_tasks"]["conflicts"] >= 1

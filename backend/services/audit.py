@@ -4,6 +4,8 @@ import json
 import logging
 from typing import Any
 
+from sqlalchemy.orm import Query
+
 from backend.contracts.dtos import AuditEventCreate
 from backend.core.database import get_session_local
 from backend.models.audit_event import AuditEvent
@@ -12,6 +14,28 @@ logger = logging.getLogger("backend.audit")
 
 
 class AuditService:
+    @staticmethod
+    def _serialize_event(row: AuditEvent) -> dict[str, Any]:
+        parsed_details: dict[str, Any] | None = None
+        if row.details:
+            try:
+                loaded = json.loads(row.details)
+                if isinstance(loaded, dict):
+                    parsed_details = loaded
+            except json.JSONDecodeError:
+                parsed_details = {"raw": row.details}
+
+        return {
+            "id": row.id,
+            "action": row.action,
+            "resource_type": row.resource_type,
+            "resource_id": row.resource_id,
+            "actor": row.actor,
+            "status": row.status,
+            "details": parsed_details,
+            "created_at": row.created_at.isoformat() + "Z",
+        }
+
     def record(self, event: AuditEventCreate) -> None:
         db = get_session_local()()
         try:
@@ -60,6 +84,41 @@ class AuditService:
                 details=details or {},
             )
         )
+
+    def list_events(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        action: str | None = None,
+        resource_type: str | None = None,
+        status: str | None = None,
+    ) -> dict[str, Any]:
+        db = get_session_local()()
+        try:
+            query: Query[AuditEvent] = db.query(AuditEvent)
+            if action:
+                query = query.filter(AuditEvent.action == action)
+            if resource_type:
+                query = query.filter(AuditEvent.resource_type == resource_type)
+            if status:
+                query = query.filter(AuditEvent.status == status)
+
+            total = query.count()
+            rows = (
+                query.order_by(AuditEvent.created_at.desc(), AuditEvent.id.desc())
+                .offset(offset)
+                .limit(limit)
+                .all()
+            )
+            return {
+                "items": [self._serialize_event(row) for row in rows],
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+            }
+        finally:
+            db.close()
 
 
 _audit_service: AuditService | None = None

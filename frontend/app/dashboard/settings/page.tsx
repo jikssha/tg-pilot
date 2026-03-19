@@ -24,6 +24,8 @@ import TelegramAPI from "./components/TelegramAPI";
 import NotificationService from "./components/NotificationService";
 import AIEnrichment from "./components/AIEnrichment";
 import BackupMigration from "./components/BackupMigration";
+import AuditTrail from "./components/AuditTrail";
+import OperationsOverview from "./components/OperationsOverview";
 import { useSettingsData } from "@/features/settings/hooks/use-settings-data";
 
 export default function SettingsPage() {
@@ -35,7 +37,7 @@ export default function SettingsPage() {
     const { toasts, removeToast } = useToast();
 
     // Tab State
-    const [currentTab, setCurrentTab] = useState<"account" | "telegram" | "notification" | "ai" | "backup">("account");
+    const [currentTab, setCurrentTab] = useState<"account" | "telegram" | "notification" | "ai" | "backup" | "ops" | "audit">("account");
 
     // Unified Data State
     const [localTotpEnabled, setLocalTotpEnabled] = useState(false);
@@ -61,8 +63,10 @@ export default function SettingsPage() {
         { id: "account", icon: UserCircle, label: isZh ? "账户安全与验证" : "Account & Security" },
         { id: "telegram", icon: TelegramLogo, label: isZh ? "Telegram API" : "Telegram API" },
         { id: "notification", icon: Bell, label: isZh ? "通知服务中心" : "Notifications" },
+        { id: "ops", icon: Cpu, label: isZh ? "系统运维概览" : "Operations" },
         { id: "ai", icon: Cpu, label: isZh ? "AI 辅助增强" : "AI Enrichment" },
         { id: "backup", icon: Database, label: isZh ? "备份与系统设置" : "Backup & Settings" },
+        { id: "audit", icon: UserCircle, label: isZh ? "审计事件追踪" : "Audit Trail" },
     ] as const;
 
     return (
@@ -188,6 +192,9 @@ export default function SettingsPage() {
                                     loadBotNotifyConfig={async () => { await settingsQuery.refetch(); }} 
                                 />
                             )}
+                            {currentTab === "ops" && (
+                                <OperationsOverview token={token} />
+                            )}
                             {currentTab === "ai" && (
                                 <AIEnrichment 
                                     token={token} 
@@ -201,6 +208,9 @@ export default function SettingsPage() {
                                     globalSettings={globalSettings} 
                                     loadGlobalSettings={async () => { await settingsQuery.refetch(); }} 
                                 />
+                            )}
+                            {currentTab === "audit" && (
+                                <AuditTrail token={token} />
                             )}
                         </div>
 
