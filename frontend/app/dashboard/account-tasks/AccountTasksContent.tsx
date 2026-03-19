@@ -53,6 +53,7 @@ import { ToastContainer, useToast } from "../../../components/ui/toast";
 import { useLanguage } from "../../../context/LanguageContext";
 import { useAccountTaskData } from "@/features/sign-tasks/hooks/use-account-task-data";
 import { SignTaskDialogs } from "@/features/sign-tasks/components/sign-task-dialogs";
+import { TaskEditorDialog } from "@/features/sign-tasks/components/task-editor-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 
 type ActionTypeOption = "1" | "2" | "3" | "ai_vision" | "ai_logic";
@@ -228,10 +229,12 @@ TaskItem.displayName = "TaskItem";
 
 export default function AccountTasksContent({ 
     embedded = false, 
-    initialAccountName = "" 
+    initialAccountName = "",
+    autoOpenCreate = false,
 }: { 
     embedded?: boolean; 
-    initialAccountName?: string 
+    initialAccountName?: string;
+    autoOpenCreate?: boolean;
 }) {
     const router = useRouter();
     const { t, language } = useLanguage();
@@ -461,6 +464,13 @@ export default function AccountTasksContent({
             setChatSearchLoading(false);
         }
     }, [showCreateDialog, showEditDialog, accountName]);
+
+    useEffect(() => {
+        if (!autoOpenCreate) return;
+        if (!accountName || !token) return;
+        if (showCreateDialog || showEditDialog) return;
+        setShowCreateDialog(true);
+    }, [accountName, autoOpenCreate, showCreateDialog, showEditDialog, token]);
 
     const handleRefreshChats = async () => {
         if (!token || !accountName) return;
@@ -1042,435 +1052,93 @@ export default function AccountTasksContent({
             </main>
 
             {/* 闂傚倷绀侀幉锛勬暜濡ゅ啰鐭欓柟瀵稿Х绾?缂傚倸鍊搁崐鎼佸磹瑜版帗鍋嬮柣鎰仛椤愯姤銇勯幇鈺佲偓鎰板磻閹剧粯鍋ㄦ繛鍫熷閺侇垶姊烘导娆戠暢婵☆偄瀚伴妴鍛附缁嬪灝鑰垮┑鐐村灦鐢帗绂嶉悙顒佸弿婵☆垰娼￠崫娲煛閸℃绠婚柡宀嬬秮婵℃悂濡烽妷顔荤棯闂佽崵鍠愬ú鏍涘┑鍡╁殨濠电姵鑹剧粻濠氭煟閹存梹娅呭ù婊堢畺閺岋繝宕熼銈囶唺闁?*/}
-            {(showCreateDialog || showEditDialog) && (
-                <div className="modal-overlay active" onClick={() => { setShowCreateDialog(false); setShowEditDialog(false); }}>
-                    <div className="glass-panel modal-content !max-w-xl !p-0 overflow-hidden animate-zoom-in border-white/5 flex flex-col !h-[85vh] shadow-[0_0_50px_rgba(0,0,0,0.5)]" onClick={e => e.stopPropagation()}>
-                        <header className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-[var(--accent-glow)]/10 border border-[var(--accent-glow)]/30 flex items-center justify-center text-[#b57dff] shadow-inner">
-                                    <Lightning weight="fill" size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-bold tracking-tight">
-                                        {showCreateDialog ? t("create_task") : t("edit_task")}
-                                    </h3>
-                                    <p className="text-[10px] text-white/30 uppercase tracking-widest mt-0.5 font-bold">
-                                        {showCreateDialog ? "New Automation Script" : editingTaskName}
-                                    </p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => { setShowCreateDialog(false); setShowEditDialog(false); }}
-                                className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]"
-                            >
-                                <X weight="bold" size={18} />
-                            </button>
-                        </header>
-
-                        <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar bg-black/10">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {showCreateDialog ? (
-                                    <div className="space-y-2">
-                                        <label className={fieldLabelClass}>{t("task_name")}</label>
-                                        <input
-                                            className="!mb-0"
-                                            placeholder={taskNamePlaceholder}
-                                            value={newTask.name}
-                                            onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        <label className={fieldLabelClass}>{t("task_name")}</label>
-                                        <input
-                                            className="!mb-0"
-                                            value={editingTaskName}
-                                            readOnly
-                                            aria-readonly="true"
-                                        />
-                                    </div>
-                                )}
-
-                                <div className="space-y-2">
-                                    <label className={fieldLabelClass}>{t("scheduling_mode")}</label>
-                                    <select
-                                        className="w-full"
-                                        value={showCreateDialog ? newTask.execution_mode : editTask.execution_mode}
-                                        onChange={(e) => {
-                                            const mode = e.target.value as "fixed" | "range";
-                                            showCreateDialog
-                                                ? setNewTask({ ...newTask, execution_mode: mode })
-                                                : setEditTask({ ...editTask, execution_mode: mode });
-                                        }}
-                                    >
-                                        <option value="range">{t("random_range_recommend")}</option>
-                                        <option value="fixed">{t("fixed_time_cron")}</option>
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className={fieldLabelClass}>{t("action_interval")}</label>
-                                    <input
-                                        type="text"
-                                        className="!mb-0"
-                                        value={showCreateDialog ? newTask.action_interval : editTask.action_interval}
-                                        onChange={(e) => {
-                                            const val = parseInt(e.target.value) || 1;
-                                            showCreateDialog
-                                                ? setNewTask({ ...newTask, action_interval: val })
-                                                : setEditTask({ ...editTask, action_interval: val });
-                                        }}
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    {(showCreateDialog ? newTask.execution_mode : editTask.execution_mode) === "fixed" ? (
-                                        <>
-                                            <label className={fieldLabelClass}>{t("sign_time_cron")}</label>
-                                            <input
-                                                className="!mb-0"
-                                                placeholder="0 6 * * *"
-                                                value={showCreateDialog ? newTask.sign_at : editTask.sign_at}
-                                                onChange={(e) => showCreateDialog
-                                                    ? setNewTask({ ...newTask, sign_at: e.target.value })
-                                                    : setEditTask({ ...editTask, sign_at: e.target.value })
-                                                }
-                                            />
-                                            <div className="text-[10px] text-main/30 mt-1 italic">
-                                                {t("cron_example")}
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <label className={fieldLabelClass}>{t("time_range")}</label>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <input
-                                                    type="time"
-                                                    className="!mb-0"
-                                                    aria-label={t("start_label")}
-                                                    title={t("start_label")}
-                                                    value={showCreateDialog ? newTask.range_start : editTask.range_start}
-                                                    onChange={(e) => showCreateDialog
-                                                        ? setNewTask({ ...newTask, range_start: e.target.value })
-                                                        : setEditTask({ ...editTask, range_start: e.target.value })
-                                                    }
-                                                />
-                                                <input
-                                                    type="time"
-                                                    className="!mb-0"
-                                                    aria-label={t("end_label")}
-                                                    title={t("end_label")}
-                                                    value={showCreateDialog ? newTask.range_end : editTask.range_end}
-                                                    onChange={(e) => showCreateDialog
-                                                        ? setNewTask({ ...newTask, range_end: e.target.value })
-                                                        : setEditTask({ ...editTask, range_end: e.target.value })
-                                                    }
-                                                />
-                                            </div>
-                                            <div className="text-[10px] text-main/30 mt-1 italic">
-                                                {t("random_time_hint")}
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-6 space-y-6 shadow-inner">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <div className="p-1.5 bg-sky-500/10 rounded-lg text-sky-400">
-                                        <MagnifyingGlass weight="bold" size={14} />
-                                    </div>
-                                    <span className="text-[11px] font-bold uppercase tracking-widest text-white/50">{t("chat_target_config")}</span>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] text-main/40 uppercase tracking-widest font-bold">{t("search_chat")}</label>
-                                        <div className="relative group">
-                                            <input
-                                                className="!mb-0 !h-11 bg-black/40 border-white/5 focus:border-sky-500/30 transition-all rounded-xl pl-10"
-                                                placeholder={t("search_chat_placeholder")}
-                                                value={chatSearch}
-                                                onChange={(e) => setChatSearch(e.target.value)}
-                                            />
-                                            <MagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-sky-400 transition-colors" size={16} weight="bold" />
-                                        </div>
-                                        {chatSearch.trim() ? (
-                                            <div className="max-h-48 overflow-y-auto rounded-xl border border-white/5 bg-black/60 backdrop-blur-xl mt-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
-                                                {chatSearchLoading ? (
-                                                    <div className="px-3 py-2 text-xs text-main/40">{t("searching")}</div>
-                                                ) : chatSearchResults.length > 0 ? (
-                                                    <div className="flex flex-col">
-                                                        {chatSearchResults.map((chat) => {
-                                                            const title = chat.title || chat.username || String(chat.id);
-                                                            return (
-                                                                <button
-                                                                    key={chat.id}
-                                                                    type="button"
-                                                                    className="text-left px-3 py-2 hover:bg-white/5 border-b border-white/5 last:border-b-0"
-                                                                    onClick={() => {
-                                                                        applyChatSelection(chat.id, title);
-                                                                        setChatSearch("");
-                                                                        setChatSearchResults([]);
-                                                                    }}
-                                                                >
-                                                                    <div className="text-sm font-semibold truncate">{title}</div>
-                                                                    <div className="text-[10px] text-main/40 font-mono truncate">
-                                                                        {chat.id}{chat.username ? ` · @${chat.username}` : ""}
-                                                                    </div>
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                ) : (
-                                                    <div className="px-3 py-2 text-xs text-main/40">{t("search_no_results")}</div>
-                                                )}
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <label className="text-[10px] text-main/40 uppercase tracking-widest font-bold">{t("select_from_list")}</label>
-                                            <button
-                                                onClick={handleRefreshChats}
-                                                disabled={refreshingChats}
-                                                className="text-[10px] text-sky-400 hover:text-sky-300 transition-colors uppercase font-black tracking-tighter flex items-center gap-1.5"
-                                                title={t("refresh_chat_title")}
-                                            >
-                                                {refreshingChats ? (
-                                                    <div className="w-3 h-3 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
-                                                ) : <ArrowClockwise weight="bold" size={12} />}
-                                                {t("refresh_list")}
-                                            </button>
-                                        </div>
-                                        <div className="relative group">
-                                            <select
-                                                className="!mb-0 !h-11 bg-black/40 border-white/5 focus:border-sky-500/30 transition-all rounded-xl pl-10 appearance-none cursor-pointer pr-10"
-                                                value={showCreateDialog ? newTask.chat_id : editTask.chat_id}
-                                                onChange={(e) => {
-                                                    const id = parseInt(e.target.value);
-                                                    const chat = chats.find(c => c.id === id);
-                                                    const chatName = chat?.title || chat?.username || "";
-                                                    applyChatSelection(id, chatName);
-                                                }}
-                                            >
-                                                <option value={0}>{t("select_from_list")}</option>
-                                                {chats.map(chat => (
-                                                    <option key={chat.id} value={chat.id}>
-                                                        {chat.title || chat.username || chat.id}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <UsersThree className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-sky-400 transition-colors" size={16} weight="bold" />
-                                            <CaretDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" size={14} weight="bold" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2 group">
-                                        <label className="text-[10px] text-main/40 uppercase tracking-widest font-bold">{t("manual_chat_id")}</label>
-                                        <div className="relative">
-                                            <input
-                                                placeholder={t("manual_id_placeholder")}
-                                                className="!mb-0 !h-11 bg-black/40 border-white/5 focus:border-rose-500/30 transition-all rounded-xl pl-10"
-                                                value={showCreateDialog ? newTask.chat_id_manual : editTask.chat_id_manual}
-                                                onChange={(e) => {
-                                                    if (showCreateDialog) {
-                                                        setNewTask({ ...newTask, chat_id_manual: e.target.value, chat_id: 0 });
-                                                    } else {
-                                                        setEditTask({ ...editTask, chat_id_manual: e.target.value, chat_id: 0 });
-                                                    }
-                                                }}
-                                            />
-                                            <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-rose-400 transition-colors" size={16} weight="bold" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2 group">
-                                        <label className="text-[10px] text-main/40 uppercase tracking-widest font-bold">{t("delete_after")}</label>
-                                        <div className="relative">
-                                            <input
-                                                type="text"
-                                                inputMode="numeric"
-                                                placeholder={t("delete_after_placeholder")}
-                                                className="!mb-0 !h-11 bg-black/40 border-white/5 focus:border-amber-500/30 transition-all rounded-xl pl-10"
-                                                value={showCreateDialog ? (newTask.delete_after ?? "") : (editTask.delete_after ?? "")}
-                                                onChange={(e) => {
-                                                    const cleaned = e.target.value.replace(/[^0-9]/g, "");
-                                                    const val = cleaned === "" ? undefined : Number(cleaned);
-                                                    showCreateDialog
-                                                        ? setNewTask({ ...newTask, delete_after: val })
-                                                        : setEditTask({ ...editTask, delete_after: val });
-                                                }}
-                                            />
-                                            <Timer className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-amber-400 transition-colors" size={16} weight="bold" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-6">
-                                <div className="flex items-center justify-between px-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner">
-                                            <DotsThreeVertical weight="bold" size={20} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-sm font-bold tracking-tight uppercase">{t("action_sequence")}</h3>
-                                            <p className="text-[10px] text-white/30 uppercase tracking-widest mt-0.5 font-bold">Automation Logic</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={showCreateDialog ? handleAddAction : handleEditAddAction}
-                                        className="h-10 px-5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 shadow-[0_0_20px_rgba(99,102,241,0.2)]"
-                                    >
-                                        <Plus weight="bold" /> {t("add_action")}
-                                    </button>
-                                </div>
-
-                                <div className="space-y-3">
-                                    {(showCreateDialog ? newTask.actions : editTask.actions).map((action, index) => (
-                                        <div key={index} className="flex gap-4 items-center bg-white/[0.02] border border-white/5 p-4 rounded-2xl group/action hover:bg-white/[0.03] hover:border-white/10 transition-all animate-zoom-in">
-                                            <div className="shrink-0 w-8 h-8 flex items-center justify-center font-mono text-[11px] text-white/10 font-black bg-black/20 rounded-lg group-hover/action:text-indigo-500/40 transition-colors">
-                                                {String(index + 1).padStart(2, '0')}
-                                            </div>
-                                            <div className="shrink-0 relative">
-                                                <select
-                                                    className="!w-[150px] !h-10 !mb-0 !py-0 !text-[11px] font-bold bg-black/40 border-white/5 rounded-xl px-4 appearance-none cursor-pointer pr-10 focus:border-white/20"
-                                                    value={toActionTypeOption(action)}
-                                                    onChange={(e) => {
-                                                        const selectedType = e.target.value as ActionTypeOption;
-                                                        updateCurrentDialogAction(index, (currentAction) => {
-                                                            const currentActionId = Number(currentAction?.action);
-                                                            if (selectedType === "1") {
-                                                                return { ...currentAction, action: 1, text: currentAction?.text || "" };
-                                                            }
-                                                            if (selectedType === "3") {
-                                                                return { ...currentAction, action: 3, text: currentAction?.text || "" };
-                                                            }
-                                                            if (selectedType === "2") {
-                                                                return { ...currentAction, action: 2, dice: currentAction?.dice || DICE_OPTIONS[0] };
-                                                            }
-                                                            if (selectedType === "ai_vision") {
-                                                                const nextActionId = (currentActionId === 4 || currentActionId === 6) ? currentActionId : 6;
-                                                                return { ...currentAction, action: nextActionId };
-                                                            }
-                                                            const nextActionId = (currentActionId === 5 || currentActionId === 7) ? currentActionId : 5;
-                                                            return { ...currentAction, action: nextActionId };
-                                                        });
-                                                    }}
-                                                >
-                                                    <option value="1">{sendTextLabel}</option>
-                                                    <option value="3">{clickTextButtonLabel}</option>
-                                                    <option value="2">{sendDiceLabel}</option>
-                                                    <option value="ai_vision">{aiVisionLabel}</option>
-                                                    <option value="ai_logic">{aiCalcLabel}</option>
-                                                </select>
-                                                <CaretDown className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" size={12} weight="bold" />
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                {(action.action === 1 || action.action === 3) && (
-                                                    <input
-                                                        placeholder={action.action === 1 ? sendTextPlaceholder : clickButtonPlaceholder}
-                                                        className="!mb-0 !h-10 !text-[11px] bg-black/40 border-white/5 rounded-xl px-5 focus:border-white/20 transition-all"
-                                                        value={action.text || ""}
-                                                        onChange={(e) => {
-                                                            updateCurrentDialogAction(index, (currentAction) => ({
-                                                                ...currentAction,
-                                                                text: e.target.value,
-                                                            }));
-                                                        }}
-                                                    />
-                                                )}
-                                                {action.action === 2 && (
-                                                    <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-                                                        {DICE_OPTIONS.map((d) => (
-                                                            <button
-                                                                key={d}
-                                                                type="button"
-                                                                className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-lg transition-all ${((action as any).dice === d) ? 'bg-amber-500/20 border border-amber-500/40 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-black/40 border border-white/5 text-white/10 hover:text-white/40 hover:bg-white/5'}`}
-                                                                onClick={() => {
-                                                                    updateCurrentDialogAction(index, (currentAction) => ({
-                                                                        ...currentAction,
-                                                                        dice: d,
-                                                                    }));
-                                                                }}
-                                                            >
-                                                                {d}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                                {(action.action === 4 || action.action === 6) && (
-                                                    <div className="h-10 px-4 flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                                                        <Robot weight="fill" size={18} className="text-[#8183ff] shrink-0" />
-                                                        <select
-                                                            className="!mb-0 !h-10 !py-0 !text-[11px] font-black uppercase tracking-widest bg-transparent border-none focus:ring-0 !w-full cursor-pointer"
-                                                            value={action.action === 4 ? "click" : "send"}
-                                                            onChange={(e) => {
-                                                                const nextActionId = e.target.value === "click" ? 4 : 6;
-                                                                updateCurrentDialogAction(index, (currentAction) => ({
-                                                                    ...currentAction,
-                                                                    action: nextActionId,
-                                                                }));
-                                                            }}
-                                                        >
-                                                            <option value="send">{aiVisionSendModeLabel}</option>
-                                                            <option value="click">{aiVisionClickModeLabel}</option>
-                                                        </select>
-                                                    </div>
-                                                )}
-                                                {(action.action === 5 || action.action === 7) && (
-                                                    <div className="h-10 px-4 flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                                                        <MathOperations weight="fill" size={18} className="text-amber-400 shrink-0" />
-                                                        <select
-                                                            className="!mb-0 !h-10 !py-0 !text-[11px] font-black uppercase tracking-widest bg-transparent border-none focus:ring-0 !w-full cursor-pointer"
-                                                            value={action.action === 7 ? "click" : "send"}
-                                                            onChange={(e) => {
-                                                                const nextActionId = e.target.value === "click" ? 7 : 5;
-                                                                updateCurrentDialogAction(index, (currentAction) => ({
-                                                                    ...currentAction,
-                                                                    action: nextActionId,
-                                                                }));
-                                                            }}
-                                                        >
-                                                            <option value="send">{aiCalcSendModeLabel}</option>
-                                                            <option value="click">{aiCalcClickModeLabel}</option>
-                                                        </select>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <button
-                                                onClick={() => showCreateDialog ? handleRemoveAction(index) : handleEditRemoveAction(index)}
-                                                className="w-10 h-10 rounded-xl text-rose-500/30 hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-all opacity-0 group-hover/action:opacity-100"
-                                            >
-                                                <Trash weight="bold" size={18} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        <footer className="p-6 border-t border-white/5 flex gap-4 bg-white/[0.01]">
-                            <button
-                                className="linear-btn-secondary flex-1 h-12"
-                                onClick={() => { setShowCreateDialog(false); setShowEditDialog(false); }}
-                            >
-                                {t("cancel")}
-                            </button>
-                            <button
-                                className="linear-btn-primary flex-[2] h-12 font-black uppercase tracking-widest text-[13px] !bg-white !text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-95"
-                                onClick={showCreateDialog ? handleCreateTask : handleSaveEdit}
-                                disabled={loading}
-                            >
-                                {loading ? <Spinner className="animate-spin text-black" /> : (showCreateDialog ? t("add_task") : t("save_changes"))}
-                            </button>
-                        </footer>
-                    </div>
-                </div>
-            )
-            }
-
+            <TaskEditorDialog
+                open={showCreateDialog || showEditDialog}
+                mode={showCreateDialog ? "create" : "edit"}
+                loading={loading}
+                title={showCreateDialog ? t("create_task") : t("edit_task")}
+                subtitle={showCreateDialog ? "New Automation Script" : editingTaskName}
+                t={t}
+                fieldLabelClass={fieldLabelClass}
+                taskNamePlaceholder={taskNamePlaceholder}
+                sendTextLabel={sendTextLabel}
+                clickTextButtonLabel={clickTextButtonLabel}
+                sendDiceLabel={sendDiceLabel}
+                aiVisionLabel={aiVisionLabel}
+                aiCalcLabel={aiCalcLabel}
+                aiVisionSendModeLabel={aiVisionSendModeLabel}
+                aiVisionClickModeLabel={aiVisionClickModeLabel}
+                aiCalcSendModeLabel={aiCalcSendModeLabel}
+                aiCalcClickModeLabel={aiCalcClickModeLabel}
+                sendTextPlaceholder={sendTextPlaceholder}
+                clickButtonPlaceholder={clickButtonPlaceholder}
+                chats={chats}
+                chatSearch={chatSearch}
+                chatSearchResults={chatSearchResults}
+                chatSearchLoading={chatSearchLoading}
+                refreshingChats={refreshingChats}
+                taskName={showCreateDialog ? newTask.name : editingTaskName}
+                executionMode={showCreateDialog ? newTask.execution_mode : editTask.execution_mode}
+                signAt={showCreateDialog ? newTask.sign_at : editTask.sign_at}
+                rangeStart={showCreateDialog ? newTask.range_start : editTask.range_start}
+                rangeEnd={showCreateDialog ? newTask.range_end : editTask.range_end}
+                actionInterval={showCreateDialog ? newTask.action_interval : editTask.action_interval}
+                chatId={showCreateDialog ? newTask.chat_id : editTask.chat_id}
+                chatIdManual={showCreateDialog ? newTask.chat_id_manual : editTask.chat_id_manual}
+                deleteAfter={showCreateDialog ? newTask.delete_after : editTask.delete_after}
+                actions={showCreateDialog ? newTask.actions : editTask.actions}
+                onClose={() => {
+                    setShowCreateDialog(false);
+                    setShowEditDialog(false);
+                }}
+                onTaskNameChange={(value) => {
+                    if (showCreateDialog) {
+                        setNewTask({ ...newTask, name: value });
+                    }
+                }}
+                onExecutionModeChange={(value) => showCreateDialog
+                    ? setNewTask({ ...newTask, execution_mode: value })
+                    : setEditTask({ ...editTask, execution_mode: value })
+                }
+                onActionIntervalChange={(value) => showCreateDialog
+                    ? setNewTask({ ...newTask, action_interval: value })
+                    : setEditTask({ ...editTask, action_interval: value })
+                }
+                onSignAtChange={(value) => showCreateDialog
+                    ? setNewTask({ ...newTask, sign_at: value })
+                    : setEditTask({ ...editTask, sign_at: value })
+                }
+                onRangeStartChange={(value) => showCreateDialog
+                    ? setNewTask({ ...newTask, range_start: value })
+                    : setEditTask({ ...editTask, range_start: value })
+                }
+                onRangeEndChange={(value) => showCreateDialog
+                    ? setNewTask({ ...newTask, range_end: value })
+                    : setEditTask({ ...editTask, range_end: value })
+                }
+                onChatSearchChange={setChatSearch}
+                onSelectChat={(chatId, chatName) => {
+                    applyChatSelection(chatId, chatName);
+                    setChatSearch("");
+                    setChatSearchResults([]);
+                }}
+                onRefreshChats={handleRefreshChats}
+                onChatIdManualChange={(value) => {
+                    if (showCreateDialog) {
+                        setNewTask({ ...newTask, chat_id_manual: value, chat_id: 0 });
+                    } else {
+                        setEditTask({ ...editTask, chat_id_manual: value, chat_id: 0 });
+                    }
+                }}
+                onDeleteAfterChange={(value) => showCreateDialog
+                    ? setNewTask({ ...newTask, delete_after: value })
+                    : setEditTask({ ...editTask, delete_after: value })
+                }
+                onAddAction={showCreateDialog ? handleAddAction : handleEditAddAction}
+                onRemoveAction={showCreateDialog ? handleRemoveAction : handleEditRemoveAction}
+                onUpdateAction={updateCurrentDialogAction}
+                onSubmit={showCreateDialog ? handleCreateTask : handleSaveEdit}
+            />
             <SignTaskDialogs
                 copyTaskDialog={copyTaskDialog}
                 copyTaskDialogTitle={copyTaskDialogTitle}
@@ -1507,3 +1175,4 @@ export default function AccountTasksContent({
         </div >
     );
 }
+

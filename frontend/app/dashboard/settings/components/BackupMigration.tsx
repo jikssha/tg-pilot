@@ -17,6 +17,7 @@ import {
 } from "@phosphor-icons/react";
 import { useLanguage } from "../../../../context/LanguageContext";
 import { useToast } from "../../../../components/ui/toast";
+import { ConfirmDialog } from "../../../../components/ui/confirm-dialog";
 import { 
     GlobalSettings, 
     saveGlobalSettings, 
@@ -207,51 +208,25 @@ export default function BackupMigration({ token, globalSettings, loadGlobalSetti
                 </div>
             </section>
 
-            {showImportConfirm && (
-                <div className="modal-overlay active" onClick={() => setShowImportConfirm(false)}>
-                    <div className="glass-panel modal-content !max-w-md !p-0 overflow-hidden animate-zoom-in border-white/5 bg-[#050505]" onClick={e => e.stopPropagation()}>
-                        <header className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shadow-inner">
-                                    <CloudArrowUp weight="bold" size={20} />
-                                </div>
-                                <h3 className="text-sm font-bold tracking-tight">
-                                    {isZh ? "确认导入数据" : "Restore Data Confirmation"}
-                                </h3>
-                            </div>
-                            <button onClick={() => setShowImportConfirm(false)} className="icon-btn !w-9 !h-9 bg-white/[0.03] hover:bg-white/[0.08]">
-                                <X weight="bold" size={18} />
-                            </button>
-                        </header>
-                        <div className="p-8 space-y-4 text-center">
-                            <p className="text-[13px] text-white/80 leading-relaxed font-medium">
-                                {isZh ? "导入将覆盖当前所有代理、账户及会话数据。确定要继续进行数据同步吗？" : "Importing will overwrite all current proxies, accounts, and session data. Are you sure?"}
-                            </p>
-                            <div className="flex items-center justify-center gap-2 text-[9px] text-emerald-400/50 uppercase tracking-[0.2em] font-bold italic">
-                                <Info size={12} weight="bold" />
-                                {isZh ? "数据覆盖已获得授权" : "Database Overwrite Authorized"}
-                            </div>
-                        </div>
-                        <footer className="p-6 border-t border-white/5 flex gap-3 bg-white/[0.01]">
-                            <button
-                                className="linear-btn-secondary flex-1 h-11 text-[11px] font-bold uppercase tracking-widest"
-                                onClick={() => setShowImportConfirm(false)}
-                                disabled={importing}
-                            >
-                                {t("cancel")}
-                            </button>
-                            <button
-                                className="flex-1 h-11 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-[0_4px_20px_rgba(16,185,129,0.2)] transition-all flex items-center justify-center gap-2"
-                                onClick={confirmImport}
-                                disabled={importing}
-                            >
-                                {importing ? <Spinner className="animate-spin text-white" /> : <ArrowUDownLeft weight="bold" size={16} />}
-                                {isZh ? "立即导入恢复" : "Restore Now"}
-                            </button>
-                        </footer>
+            <ConfirmDialog
+                open={showImportConfirm}
+                title={isZh ? "确认导入数据" : "Restore Data Confirmation"}
+                description={isZh ? "导入将覆盖当前所有代理、账户及会话数据。确定要继续进行数据同步吗？" : "Importing will overwrite all current proxies, accounts, and session data. Are you sure?"}
+                hint={isZh ? "数据覆盖已获得授权" : "Database Overwrite Authorized"}
+                icon={
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shadow-inner">
+                        <CloudArrowUp weight="bold" size={20} />
                     </div>
-                </div>
-            )}
+                }
+                cancelLabel={t("cancel")}
+                confirmLabel={isZh ? "立即导入恢复" : "Restore Now"}
+                onCancel={() => setShowImportConfirm(false)}
+                onConfirm={confirmImport}
+                cancelDisabled={importing}
+                confirmDisabled={importing}
+                confirmClassName="flex-1 h-11 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-[0_4px_20px_rgba(16,185,129,0.2)] transition-all flex items-center justify-center gap-2"
+                confirmIcon={importing ? <Spinner className="animate-spin text-white" /> : <ArrowUDownLeft weight="bold" size={16} />}
+            />
         </div>
     );
 }
