@@ -17,6 +17,7 @@ from backend.core.auth import get_current_user
 from backend.models.user import User
 from backend.services.audit import get_audit_service
 from backend.services.telegram import get_telegram_service
+from backend.stores import get_account_store
 
 router = APIRouter()
 logger = logging.getLogger("backend.qr_login")
@@ -561,9 +562,7 @@ def update_account(
             detail=f"账号 {account_name} 不存在",
         )
     try:
-        from backend.utils.tg_session import set_account_profile
-
-        set_account_profile(
+        get_account_store().upsert_profile(
             account_name,
             remark=request.remark,
             proxy=request.proxy,

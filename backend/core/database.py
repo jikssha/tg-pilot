@@ -62,6 +62,11 @@ def check_database_connection() -> None:
         connection.execute(text("SELECT 1"))
 
 
+def ensure_schema() -> None:
+    init_engine()
+    Base.metadata.create_all(bind=get_engine())
+
+
 def reset_engine_state() -> None:
     global _engine, _SessionLocal
     if _engine is not None:

@@ -20,14 +20,33 @@ from backend.utils.tg_session import (
 
 class FileSessionStore:
     def list_account_names(self) -> list[str]:
-        return list_account_names()
+        legacy_names = set(list_account_names())
+        try:
+            from backend.stores.accounts import get_account_store
+
+            legacy_names.update(get_account_store().list_account_names())
+        except Exception:
+            pass
+        return sorted(legacy_names)
 
     def list_session_files(self, session_dir: Path) -> list[Path]:
         pattern = "*.session_string" if get_session_mode() == "string" else "*.session"
         return sorted(session_dir.glob(pattern))
 
     def get_account_profile(self, account_name: str) -> dict[str, Any]:
-        return get_account_profile(account_name)
+        try:
+            from backend.stores.accounts import get_account_store
+
+            profile = get_account_store().get_profile(account_name)
+        except Exception:
+            profile = {}
+
+        legacy_profile = get_account_profile(account_name)
+        merged = dict(legacy_profile)
+        for key, value in profile.items():
+            if value not in (None, ""):
+                merged[key] = value
+        return merged
 
     def get_account_proxy(self, account_name: str) -> str | None:
         return get_account_proxy(account_name)
@@ -42,6 +61,16 @@ class FileSessionStore:
     ) -> None:
         set_account_session_string(account_name, session_string)
         save_session_string_file(session_dir, account_name, session_string)
+        try:
+            from backend.stores.accounts import get_account_store
+
+            get_account_store().upsert_profile(
+                account_name,
+                session_backend="string",
+                session_ref=f"{account_name}.session_string",
+            )
+        except Exception:
+            pass
 
     def delete_account_session(self, session_dir: Path, account_name: str) -> None:
         delete_account_session_string(account_name)
@@ -55,6 +84,16 @@ class FileSessionStore:
         proxy: str | None = None,
     ) -> None:
         set_account_profile(account_name, remark=remark, proxy=proxy)
+        try:
+            from backend.stores.accounts import get_account_store
+
+            get_account_store().upsert_profile(
+                account_name,
+                remark=remark,
+                proxy=proxy,
+            )
+        except Exception:
+            pass
 
 
 _session_store: FileSessionStore | None = None

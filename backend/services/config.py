@@ -9,10 +9,13 @@ import io
 import json
 import logging
 import zipfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from backend.contracts import SignTaskDefinition
 from backend.core.config import get_settings
+from backend.stores import get_sign_task_store
 from backend.utils.storage import (
     clear_data_dir_override,
     is_writable_dir,
@@ -27,33 +30,46 @@ logger = logging.getLogger("backend.config")
 class ConfigService:
     """配置管理服务类"""
 
+    EXPORT_SCHEMA_VERSION = 1
+    EXPORT_SOURCE = "tg-pilot"
+
     def __init__(self):
         self.workdir = settings.resolve_workdir()
         self.signs_dir = self.workdir / "signs"
         self.monitors_dir = self.workdir / "monitors"
+        self.sign_task_store = get_sign_task_store()
 
         # 确保目录存在
         self.signs_dir.mkdir(parents=True, exist_ok=True)
         self.monitors_dir.mkdir(parents=True, exist_ok=True)
 
+    @classmethod
+    def _export_metadata(cls, payload_type: str) -> dict[str, Any]:
+        return {
+            "schema_version": cls.EXPORT_SCHEMA_VERSION,
+            "payload_type": payload_type,
+            "source": cls.EXPORT_SOURCE,
+            "exported_at": datetime.utcnow().isoformat() + "Z",
+        }
+
+    @staticmethod
+    def _is_versioned_payload(data: Any, payload_type: str | None = None) -> bool:
+        if not isinstance(data, dict):
+            return False
+        if "schema_version" not in data:
+            return False
+        if payload_type is None:
+            return True
+        return data.get("payload_type") == payload_type
+
     def list_sign_tasks(self) -> List[str]:
         """获取所有签到任务名称列表"""
-        tasks = []
-
-        if self.signs_dir.exists():
-            # 扫描顶层目录 (兼容旧版)
-            for path in self.signs_dir.iterdir():
-                if path.is_dir():
-                    # Check if it's a task directory (has config.json)
-                    if (path / "config.json").exists():
-                        tasks.append(path.name)
-                    else:
-                        # Check if it's an account directory containing tasks
-                        for task_dir in path.iterdir():
-                            if task_dir.is_dir() and (task_dir / "config.json").exists():
-                                tasks.append(task_dir.name)
-
-        return sorted(set(tasks))  # 去重并排序
+        return sorted(
+            {
+                task.name
+                for task in self.sign_task_store.list_tasks(force_refresh=True)
+            }
+        )
 
     def list_monitor_tasks(self) -> List[str]:
         """获取所有监控任务名称列表"""
@@ -100,25 +116,13 @@ class ConfigService:
         Returns:
             配置字典,如果不存在则返回 None
         """
-        if account_name:
-            task_dir = self.signs_dir / account_name / task_name
-            config_file = task_dir / "config.json"
-            if not config_file.exists():
-                return None
-        else:
-            matches = self._find_sign_task_dirs(task_name)
-            if not matches:
-                return None
-            if len(matches) > 1:
-                raise ValueError(f"任务 {task_name} 存在于多个账号中,请指定 account_name")
-            task_dir = matches[0]
-            config_file = task_dir / "config.json"
-
-        try:
-            with open(config_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, OSError):
+        task = self.sign_task_store.get_task(task_name, account_name=account_name)
+        if task is None:
             return None
+        payload = task.to_dict()
+        payload.pop("name", None)
+        payload.pop("enabled", None)
+        return payload
 
     def save_sign_config(self, task_name: str, config: Dict) -> bool:
         """
@@ -131,23 +135,23 @@ class ConfigService:
         Returns:
             是否成功保存
         """
-        account_name = config.get("account_name", "")
-
-        if account_name:
-            # 使用新版结构: signs/account/task
-            task_dir = self.signs_dir / account_name / task_name
-        else:
-            # 兼容旧版或无账号: signs/task
-            task_dir = self.signs_dir / task_name
-
-        task_dir.mkdir(parents=True, exist_ok=True)
-        config_file = task_dir / "config.json"
-
         try:
-            with open(config_file, "w", encoding="utf-8") as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
+            definition = SignTaskDefinition(
+                name=task_name,
+                account_name=str(config.get("account_name") or ""),
+                sign_at=str(config.get("sign_at") or ""),
+                chats=list(config.get("chats") or []),
+                random_seconds=int(config.get("random_seconds") or 0),
+                sign_interval=int(config.get("sign_interval") or 1),
+                enabled=bool(config.get("enabled", True)),
+                last_run=config.get("last_run"),
+                execution_mode=str(config.get("execution_mode") or "fixed"),
+                range_start=str(config.get("range_start") or ""),
+                range_end=str(config.get("range_end") or ""),
+            )
+            self.sign_task_store.save_task(definition)
             return True
-        except OSError:
+        except Exception:
             return False
 
     def delete_sign_config(
@@ -163,38 +167,10 @@ class ConfigService:
         Returns:
             是否成功删除
         """
-        if account_name:
-            task_dir = self.signs_dir / account_name / task_name
-            if not task_dir.exists():
-                return False
-        else:
-            matches = self._find_sign_task_dirs(task_name)
-            if not matches:
-                return False
-            if len(matches) > 1:
-                raise ValueError(f"任务 {task_name} 存在于多个账号中,请指定 account_name")
-            task_dir = matches[0]
-
-        try:
-            # 删除配置文件
-            config_file = task_dir / "config.json"
-            if config_file.exists():
-                config_file.unlink()
-
-            # 删除签到记录文件
-            record_file = task_dir / "sign_record.json"
-            if record_file.exists():
-                record_file.unlink()
-
-            # 删除目录
-            # 注意:如果是嵌套结构,这里只删除了任务目录,没有删除可能变空的账号目录
-            # 这通常是可以接受的,或者我们可以检查父目录是否为空并删除
-            import shutil
-            shutil.rmtree(task_dir)
-
-            return True
-        except OSError:
+        task = self.sign_task_store.get_task(task_name, account_name=account_name)
+        if task is None:
             return False
+        return self.sign_task_store.delete_task(task_name, task.account_name)
 
     def export_sign_task(
         self, task_name: str, account_name: Optional[str] = None
@@ -221,6 +197,7 @@ class ConfigService:
 
         # 添加元数据
         export_data = {
+            **self._export_metadata("sign_task"),
             "task_name": task_name,
             "task_type": "sign",
             "config": config,
@@ -247,6 +224,11 @@ class ConfigService:
         """
         try:
             data = json.loads(json_str)
+            if self._is_versioned_payload(data, "sign_task"):
+                data = {
+                    "task_name": data.get("task_name"),
+                    "config": data.get("config"),
+                }
 
             # 兼容性处理：如果数据是包装好的格式则解包，否则视为直接的配置对象
             if isinstance(data, dict):
@@ -278,49 +260,20 @@ class ConfigService:
             包含所有配置的 JSON 字符串
         """
         all_configs = {
+            **self._export_metadata("config_bundle"),
             "signs": {},
             "monitors": {},
             "settings": {}, # 新增 settings 字段
         }
 
         # 导出所有签到任务
-        if self.signs_dir.exists():
-            # 1. 扫描顶层 (旧版)
-            for path in self.signs_dir.iterdir():
-                if path.is_dir() and (path / "config.json").exists():
-                    try:
-                        with open(path / "config.json", "r", encoding="utf-8") as f:
-                            config = json.load(f)
-                            config.pop("last_run", None)
-                            key = path.name
-                            if key in all_configs["signs"]:
-                                key = f"{key}_{config.get('account_name', 'default')}"
-                            all_configs["signs"][key] = config
-                    except Exception:
-                        pass
-
-                # 2. 扫描账号层
-                if path.is_dir():
-                    for task_dir in path.iterdir():
-                        if task_dir.is_dir() and (task_dir / "config.json").exists():
-                            try:
-                                with open(task_dir / "config.json", "r", encoding="utf-8") as f:
-                                    config = json.load(f)
-                                    config.pop("last_run", None)
-                                    key = f"{task_dir.name}_{path.name}"
-                                    account_name = config.get("account_name")
-                                    if account_name:
-                                        key = f"{config.get('name', task_dir.name)}@{account_name}"
-                                    else:
-                                        key = config.get("name", task_dir.name)
-
-                                    if key in all_configs["signs"]:
-                                        import uuid
-                                        key = f"{key}_{str(uuid.uuid4())[:8]}"
-
-                                    all_configs["signs"][key] = config
-                            except Exception:
-                                pass
+        for task in self.sign_task_store.list_tasks(force_refresh=True):
+            config = task.to_dict()
+            config.pop("name", None)
+            config.pop("enabled", None)
+            config.pop("last_run", None)
+            key = f"{task.name}@{task.account_name}" if task.account_name else task.name
+            all_configs["signs"][key] = config
 
         # 导出所有监控任务
         for task_name in self.list_monitor_tasks():
@@ -360,24 +313,20 @@ class ConfigService:
 
         try:
             data = json.loads(json_str)
+            if self._is_versioned_payload(data, "config_bundle"):
+                payload = data
+            else:
+                payload = data
 
             # 导入签到任务
-            for key, config in data.get("signs", {}).items():
+            for key, config in payload.get("signs", {}).items():
                 task_name = config.get("name")
                 if not task_name:
                     task_name = key.split("@")[0]
 
                 if not overwrite:
                     account_name = config.get("account_name")
-                    exists = False
-                    if account_name:
-                        if (self.signs_dir / account_name / task_name).exists():
-                            exists = True
-                    else:
-                        if (self.signs_dir / task_name).exists():
-                            exists = True
-
-                    if exists:
+                    if self.sign_task_store.get_task(task_name, account_name=account_name):
                         result["signs_skipped"] += 1
                         continue
 
@@ -387,7 +336,7 @@ class ConfigService:
                     result["errors"].append(f"Failed to import sign task: {task_name}")
 
             # 导入监控任务
-            for task_name, config in data.get("monitors", {}).items():
+            for task_name, config in payload.get("monitors", {}).items():
                 task_dir = self.monitors_dir / task_name
                 config_file = task_dir / "config.json"
 
@@ -406,7 +355,7 @@ class ConfigService:
                     )
 
             # 导入设置 (新增)
-            settings_data = data.get("settings", {})
+            settings_data = payload.get("settings", {})
 
             # 导入全局设置
             if "global" in settings_data:
@@ -749,6 +698,14 @@ class ConfigService:
         session_dir = settings.resolve_session_dir()
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr(
+                "manifest.json",
+                json.dumps(
+                    self._export_metadata("session_bundle"),
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+            )
             if session_dir.exists():
                 for file in session_dir.glob("*"):
                     if file.is_file():
@@ -767,7 +724,10 @@ class ConfigService:
                 if file.is_file():
                     file.unlink()
             with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-                zf.extractall(session_dir)
+                for member in zf.infolist():
+                    if member.filename == "manifest.json":
+                        continue
+                    zf.extract(member, session_dir)
             return True
         except Exception as e:
             logger.warning("Error importing sessions zip: %s", e)

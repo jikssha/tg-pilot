@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 from backend.adapters import get_tg_signer_adapter
 from backend.core.config import get_settings
 from backend.services.login_sessions import get_login_session_service
-from backend.stores import get_session_store
+from backend.stores import get_account_store, get_session_store
 from backend.utils.account_locks import get_account_lock
 from backend.utils.proxy import build_proxy_dict
 from backend.utils.tg_session import (
@@ -58,6 +58,7 @@ class TelegramService:
     def __init__(self):
         self.session_dir = settings.resolve_session_dir()
         self.session_dir.mkdir(parents=True, exist_ok=True)
+        self.account_store = get_account_store()
         self.session_store = get_session_store()
         self.telegram_engine = get_tg_signer_adapter()
         self.login_sessions = get_login_session_service()
@@ -90,6 +91,12 @@ class TelegramService:
                     if account_name in pending_accounts:
                         continue
                     profile = self.session_store.get_account_profile(account_name)
+                    self.account_store.sync_from_session(
+                        account_name,
+                        legacy_profile=profile,
+                        session_file=session_file,
+                        session_backend="string",
+                    )
                     accounts.append(
                         {
                             "name": account_name,
@@ -109,7 +116,18 @@ class TelegramService:
                     if account_name in pending_accounts:
                         continue
                     session_file = self.session_dir / f"{account_name}.session_string"
+                    session_string = self.session_store.get_session_string(
+                        self.session_dir, account_name
+                    )
+                    if not session_file.exists() and not session_string:
+                        continue
                     profile = self.session_store.get_account_profile(account_name)
+                    self.account_store.sync_from_session(
+                        account_name,
+                        legacy_profile=profile,
+                        session_file=session_file,
+                        session_backend="string",
+                    )
                     accounts.append(
                         {
                             "name": account_name,
@@ -126,6 +144,12 @@ class TelegramService:
                 for session_file in self.session_store.list_session_files(self.session_dir):
                     account_name = session_file.stem  # 文件名(不含扩展名)
                     profile = self.session_store.get_account_profile(account_name)
+                    self.account_store.sync_from_session(
+                        account_name,
+                        legacy_profile=profile,
+                        session_file=session_file,
+                        session_backend="file",
+                    )
 
                     if account_name in pending_accounts:
                         continue
@@ -199,6 +223,12 @@ class TelegramService:
         checked_at = datetime.utcnow().isoformat() + "Z"
 
         if not self.account_exists(account_name):
+            self.account_store.upsert_profile(
+                account_name,
+                status="not_found",
+                last_status_message="账号不存在",
+                last_checked_at=datetime.utcnow(),
+            )
             return {
                 "account_name": account_name,
                 "ok": False,
@@ -226,6 +256,12 @@ class TelegramService:
                 self.session_dir, account_name
             )
             if not session_string:
+                self.account_store.upsert_profile(
+                    account_name,
+                    status="invalid",
+                    last_status_message="session_string 不存在或已失效",
+                    last_checked_at=datetime.utcnow(),
+                )
                 return {
                     "account_name": account_name,
                     "ok": False,
@@ -248,6 +284,12 @@ class TelegramService:
                 in_memory=in_memory,
             )
         except Exception as e:
+            self.account_store.upsert_profile(
+                account_name,
+                status="error",
+                last_status_message=str(e) or "client init failed",
+                last_checked_at=datetime.utcnow(),
+            )
             return {
                 "account_name": account_name,
                 "ok": False,
@@ -277,6 +319,12 @@ class TelegramService:
             finally:
                 if acquired:
                     lock.release()
+            self.account_store.upsert_profile(
+                account_name,
+                status="valid",
+                last_status_message="",
+                last_checked_at=datetime.utcnow(),
+            )
             return {
                 "account_name": account_name,
                 "ok": True,
@@ -288,6 +336,12 @@ class TelegramService:
                 "user_id": getattr(me, "id", None),
             }
         except asyncio.TimeoutError:
+            self.account_store.upsert_profile(
+                account_name,
+                status="checking",
+                last_status_message="Request timed out",
+                last_checked_at=datetime.utcnow(),
+            )
             return {
                 "account_name": account_name,
                 "ok": False,
@@ -298,6 +352,12 @@ class TelegramService:
                 "needs_relogin": False,
             }
         except ConnectionError as e:
+            self.account_store.upsert_profile(
+                account_name,
+                status="checking",
+                last_status_message=str(e),
+                last_checked_at=datetime.utcnow(),
+            )
             return {
                 "account_name": account_name,
                 "ok": False,
@@ -316,6 +376,12 @@ class TelegramService:
                 or "PERMISSION DENIED" in err_upper
                 or "ATTEMPT TO WRITE A READONLY DATABASE" in err_upper
             ):
+                self.account_store.upsert_profile(
+                    account_name,
+                    status="checking",
+                    last_status_message=err_text,
+                    last_checked_at=datetime.utcnow(),
+                )
                 return {
                     "account_name": account_name,
                     "ok": False,
@@ -326,6 +392,12 @@ class TelegramService:
                     "needs_relogin": False,
                 }
             if "SESSION" in err_upper and "INVALID" in err_upper:
+                self.account_store.upsert_profile(
+                    account_name,
+                    status="invalid",
+                    last_status_message=err_text,
+                    last_checked_at=datetime.utcnow(),
+                )
                 return {
                     "account_name": account_name,
                     "ok": False,
@@ -336,6 +408,12 @@ class TelegramService:
                     "needs_relogin": True,
                 }
             if "UNAUTHORIZED" in err_upper or "AUTH_KEY_UNREGISTERED" in err_upper:
+                self.account_store.upsert_profile(
+                    account_name,
+                    status="invalid",
+                    last_status_message=err_text,
+                    last_checked_at=datetime.utcnow(),
+                )
                 return {
                     "account_name": account_name,
                     "ok": False,
@@ -346,6 +424,12 @@ class TelegramService:
                     "needs_relogin": True,
                 }
             if "FLOOD_WAIT" in err_upper or "TRANSPORT FLOOD" in err_lower:
+                self.account_store.upsert_profile(
+                    account_name,
+                    status="checking",
+                    last_status_message=err_text,
+                    last_checked_at=datetime.utcnow(),
+                )
                 return {
                     "account_name": account_name,
                     "ok": False,
@@ -361,6 +445,12 @@ class TelegramService:
                 or "REQUEST TIMED OUT" in err_upper
                 or "REQUEST TIME OUT" in err_upper
             ):
+                self.account_store.upsert_profile(
+                    account_name,
+                    status="checking",
+                    last_status_message=err_text,
+                    last_checked_at=datetime.utcnow(),
+                )
                 return {
                     "account_name": account_name,
                     "ok": False,
@@ -376,6 +466,12 @@ class TelegramService:
                 or "CONNECTION RESET" in err_upper
                 or "BROKEN PIPE" in err_upper
             ):
+                self.account_store.upsert_profile(
+                    account_name,
+                    status="checking",
+                    last_status_message=err_text,
+                    last_checked_at=datetime.utcnow(),
+                )
                 return {
                     "account_name": account_name,
                     "ok": False,
@@ -385,6 +481,12 @@ class TelegramService:
                     "checked_at": checked_at,
                     "needs_relogin": False,
                 }
+            self.account_store.upsert_profile(
+                account_name,
+                status="error",
+                last_status_message=err_text,
+                last_checked_at=datetime.utcnow(),
+            )
             return {
                 "account_name": account_name,
                 "ok": False,
@@ -474,6 +576,7 @@ class TelegramService:
                 self._accounts_cache = [
                     acc for acc in self._accounts_cache if acc["name"] != account_name
                 ]
+            self.account_store.delete_account(account_name)
 
             return True
         except OSError:
@@ -865,6 +968,7 @@ class TelegramService:
         self, client, account_name: str, proxy: Optional[str] = None
     ) -> None:
         session_mode = get_session_mode()
+        session_ref = f"{account_name}.session"
         if session_mode == "string":
             session_string = await client.export_session_string()
             if not session_string:
@@ -872,6 +976,7 @@ class TelegramService:
             self.session_store.save_session_string(
                 self.session_dir, account_name, session_string
             )
+            session_ref = f"{account_name}.session_string"
         else:
             # 即使在 file 模式,也尝试保存 session_string 作为降级方案
             try:
@@ -887,6 +992,15 @@ class TelegramService:
                     pass
         if proxy:
             self.session_store.set_account_profile(account_name, proxy=proxy)
+        self.account_store.upsert_profile(
+            account_name,
+            session_backend=session_mode,
+            session_ref=session_ref,
+            proxy=proxy,
+            last_login_at=datetime.utcnow(),
+            status="idle",
+            last_status_message="",
+        )
         self._accounts_cache = None
 
     def _log_qr_state(
