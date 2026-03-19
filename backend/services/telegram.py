@@ -12,32 +12,23 @@ import os
 import random
 import secrets
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
+from backend.adapters import get_tg_signer_adapter
 from backend.core.config import get_settings
+from backend.services.login_sessions import get_login_session_service
+from backend.stores import get_session_store
 from backend.utils.account_locks import get_account_lock
 from backend.utils.proxy import build_proxy_dict
 from backend.utils.tg_session import (
-    delete_account_session_string,
-    delete_session_string_file,
-    get_account_profile,
-    get_account_session_string,
     get_global_semaphore,
     get_session_mode,
     is_string_session_mode,
-    list_account_names,
-    load_session_string_file,
-    save_session_string_file,
-    set_account_session_string,
 )
 
 settings = get_settings()
 logger = logging.getLogger("backend.telegram")
-
-# 全局存储临时的登录 session
-_login_sessions = {}
-_qr_login_sessions = {}
 
 # 与 tg_signer/core.py 保持一致的设备指纹列表
 _DEVICE_PROFILES = [
@@ -67,6 +58,9 @@ class TelegramService:
     def __init__(self):
         self.session_dir = settings.resolve_session_dir()
         self.session_dir.mkdir(parents=True, exist_ok=True)
+        self.session_store = get_session_store()
+        self.telegram_engine = get_tg_signer_adapter()
+        self.login_sessions = get_login_session_service()
         self._accounts_cache: Optional[List[Dict[str, Any]]] = None
 
     def list_accounts(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
@@ -84,28 +78,18 @@ class TelegramService:
             return self._accounts_cache
 
         accounts = []
-
-        pending_accounts = set()
-        for data in _login_sessions.values():
-            name = data.get("account_name")
-            if name:
-                pending_accounts.add(name)
-        for data in _qr_login_sessions.values():
-            name = data.get("account_name")
-            status = data.get("status")
-            if name and status != "success":
-                pending_accounts.add(name)
+        pending_accounts = self.login_sessions.list_pending_account_names()
 
         # 扫描 session 目录
         try:
             if is_string_session_mode():
                 seen = set()
-                for session_file in self.session_dir.glob("*.session_string"):
+                for session_file in self.session_store.list_session_files(self.session_dir):
                     account_name = session_file.stem
                     seen.add(account_name)
                     if account_name in pending_accounts:
                         continue
-                    profile = get_account_profile(account_name)
+                    profile = self.session_store.get_account_profile(account_name)
                     accounts.append(
                         {
                             "name": account_name,
@@ -119,13 +103,13 @@ class TelegramService:
                         }
                     )
 
-                for account_name in list_account_names():
+                for account_name in self.session_store.list_account_names():
                     if account_name in seen:
                         continue
                     if account_name in pending_accounts:
                         continue
                     session_file = self.session_dir / f"{account_name}.session_string"
-                    profile = get_account_profile(account_name)
+                    profile = self.session_store.get_account_profile(account_name)
                     accounts.append(
                         {
                             "name": account_name,
@@ -139,9 +123,9 @@ class TelegramService:
                         }
                     )
             else:
-                for session_file in self.session_dir.glob("*.session"):
+                for session_file in self.session_store.list_session_files(self.session_dir):
                     account_name = session_file.stem  # 文件名(不含扩展名)
-                    profile = get_account_profile(account_name)
+                    profile = self.session_store.get_account_profile(account_name)
 
                     if account_name in pending_accounts:
                         continue
@@ -196,11 +180,7 @@ class TelegramService:
             pass
 
         if is_string_session_mode():
-            if get_account_session_string(account_name):
-                return True
-            if load_session_string_file(self.session_dir, account_name):
-                return True
-            return False
+            return bool(self.session_store.get_session_string(self.session_dir, account_name))
 
         session_file = self.session_dir / f"{account_name}.session"
         return session_file.exists()
@@ -216,8 +196,6 @@ class TelegramService:
         2. 使用单次 get_me 探活,避免执行重操作。
         3. 将“会话失效”与“临时网络错误”分开,前端可据此决定是否引导重新登录。
         """
-        from tg_signer.core import get_client
-
         checked_at = datetime.utcnow().isoformat() + "Z"
 
         if not self.account_exists(account_name):
@@ -233,7 +211,7 @@ class TelegramService:
 
         proxy_dict = None
         try:
-            profile = get_account_profile(account_name) or {}
+            profile = self.session_store.get_account_profile(account_name) or {}
             proxy_value = profile.get("proxy")
             if proxy_value:
                 proxy_dict = build_proxy_dict(proxy_value)
@@ -244,9 +222,9 @@ class TelegramService:
         session_string = None
         in_memory = False
         if session_mode == "string":
-            session_string = get_account_session_string(
-                account_name
-            ) or load_session_string_file(self.session_dir, account_name)
+            session_string = self.session_store.get_session_string(
+                self.session_dir, account_name
+            )
             if not session_string:
                 return {
                     "account_name": account_name,
@@ -262,7 +240,7 @@ class TelegramService:
         timeout_seconds = max(1.0, min(float(timeout_seconds or 8.0), 20.0))
 
         try:
-            client = get_client(
+            client = self.telegram_engine.get_client(
                 account_name,
                 proxy=proxy_dict,
                 workdir=self.session_dir,
@@ -427,14 +405,22 @@ class TelegramService:
         Returns:
             是否成功删除
         """
-        # 确保释放资源
-        from tg_signer.core import close_client_by_name
-
-        # 尝试关闭 active client
         try:
-            await close_client_by_name(account_name, workdir=self.session_dir)
+            await self.telegram_engine.close_client(account_name, workdir=self.session_dir)
         except Exception as e:
             logger.warning("Failed to close account client for %s: %s", account_name, e)
+
+        for session_id, data in self.login_sessions.list_phone_sessions_for_account(account_name):
+            client = data.get("client")
+            try:
+                if client and getattr(client, "is_connected", False):
+                    await client.disconnect()
+            except Exception:
+                pass
+            self.login_sessions.remove_phone_session(session_id)
+
+        for login_id, _data in self.login_sessions.list_qr_sessions_for_account(account_name):
+            await self._cleanup_qr_login(login_id)
 
         session_file = self.session_dir / f"{account_name}.session"
         journal_file = self.session_dir / f"{account_name}.session-journal"
@@ -449,11 +435,10 @@ class TelegramService:
             or wal_file.exists()
         )
         has_session_string = bool(
-            get_account_session_string(account_name)
-            or load_session_string_file(self.session_dir, account_name)
+            self.session_store.get_session_string(self.session_dir, account_name)
         )
         has_session_string_file = session_string_file.exists()
-        account_in_store = account_name in list_account_names()
+        account_in_store = account_name in self.session_store.list_account_names()
 
         if not (
             has_session_file
@@ -482,10 +467,7 @@ class TelegramService:
                 session_string_file.unlink()
 
             if has_session_string or account_in_store:
-                delete_account_session_string(account_name)
-
-            # 确保 .session_string 残留被清理
-            delete_session_string_file(self.session_dir, account_name)
+                self.session_store.delete_account_session(self.session_dir, account_name)
 
             # 更新缓存
             if self._accounts_cache is not None:
@@ -521,16 +503,14 @@ class TelegramService:
         from pyrogram import Client
         from pyrogram.errors import FloodWait, PhoneNumberInvalid
 
-        from tg_signer.core import close_client_by_name
-
         account_lock = get_account_lock(account_name)
         session_mode = get_session_mode()
         global_semaphore = get_global_semaphore()
 
-        # 1. 清理全局 _login_sessions 中可能存在的残留连接
-        # _login_sessions key 格式: f"{account_name}_{phone_number}"
+        # 1. 清理登录中间态 store 中可能存在的残留连接
+        # phone session key 格式: f"{account_name}_{phone_number}"
         keys_to_remove = []
-        for key, value in _login_sessions.items():
+        for key, value in self.login_sessions.list_phone_sessions_for_account(account_name):
             if key.startswith(f"{account_name}_"):
                 old_client = value.get("client")
                 old_lock = value.get("lock")
@@ -544,7 +524,7 @@ class TelegramService:
                 keys_to_remove.append(key)
 
         for key in keys_to_remove:
-            _login_sessions.pop(key, None)
+            self.login_sessions.remove_phone_session(key)
 
         # 获取账号锁,避免与任务并发写 session
         await account_lock.acquire()
@@ -555,7 +535,7 @@ class TelegramService:
 
         # 2. 确保没有后台任务占用
         try:
-            await close_client_by_name(account_name, workdir=self.session_dir)
+            await self.telegram_engine.close_client(account_name, workdir=self.session_dir)
         except Exception as e:
             logger.warning("Failed to cleanup background client before login for %s: %s", account_name, e)
 
@@ -646,13 +626,19 @@ class TelegramService:
                 sent_code = await client.send_code(phone_number)
 
             session_key = f"{account_name}_{phone_number}"
-            _login_sessions[session_key] = {
+            session_data = {
                 "client": client,
                 "phone_code_hash": sent_code.phone_code_hash,
                 "phone_number": phone_number,
                 "lock": account_lock,
                 "account_name": account_name,
+                "proxy": proxy,
             }
+            self.login_sessions.register_phone_session(
+                session_key,
+                session_data,
+                expires_at=datetime.utcnow() + timedelta(minutes=5),
+            )
 
             # 保持连接,避免 session 变化导致验证码失效 (PhoneCodeExpired)
             # 断开连接会导致服务端重新分配 Session ID,从而使之前的 hash 失效
@@ -734,7 +720,7 @@ class TelegramService:
 
         # 尝试从全局字典获取之前的 client
         session_key = f"{account_name}_{phone_number}"
-        session_data = _login_sessions.get(session_key)
+        session_data = self.login_sessions.get_phone_session(session_key)
 
         if not session_data:
             raise ValueError("登录会话已过期,请重新发送验证码")
@@ -755,15 +741,14 @@ class TelegramService:
             session_string = await client.export_session_string()
             if not session_string:
                 raise ValueError("导出 session_string 失败")
-            set_account_session_string(account_name, session_string)
-            save_session_string_file(self.session_dir, account_name, session_string)
+            self.session_store.save_session_string(
+                self.session_dir, account_name, session_string
+            )
             self._accounts_cache = None
 
         def _persist_proxy_setting() -> None:
             if proxy:
-                from backend.utils.tg_session import set_account_profile
-
-                set_account_profile(account_name, proxy=proxy)
+                self.session_store.set_account_profile(account_name, proxy=proxy)
 
         if account_lock and not account_lock.locked():
             await account_lock.acquire()
@@ -788,7 +773,7 @@ class TelegramService:
 
                     # 断开连接并清理
                     await client.disconnect()
-                    _login_sessions.pop(session_key, None)
+                    self.login_sessions.remove_phone_session(session_key)
                     _release_account_lock()
 
                     return {
@@ -802,6 +787,9 @@ class TelegramService:
                     # 需要 2FA 密码
                     if not password:
                         # 不断开连接,等待用户输入 2FA 密码
+                        self.login_sessions.update_phone_state(
+                            session_key, status="password_required"
+                        )
                         raise ValueError("此账号启用了两步验证,请输入 2FA 密码")
 
                     # 使用 2FA 密码登录
@@ -813,7 +801,7 @@ class TelegramService:
 
                         # 断开连接并清理
                         await client.disconnect()
-                        _login_sessions.pop(session_key, None)
+                        self.login_sessions.remove_phone_session(session_key)
                         _release_account_lock()
 
                         return {
@@ -831,7 +819,7 @@ class TelegramService:
                 await client.disconnect()
             except Exception:
                 pass
-            _login_sessions.pop(session_key, None)
+            self.login_sessions.remove_phone_session(session_key)
             _release_account_lock()
             raise ValueError("验证码错误,请检查验证码是否正确")
         except PhoneCodeExpired:
@@ -840,7 +828,7 @@ class TelegramService:
                 await client.disconnect()
             except Exception:
                 pass
-            _login_sessions.pop(session_key, None)
+            self.login_sessions.remove_phone_session(session_key)
             _release_account_lock()
             raise ValueError("验证码已过期,请重新获取")
         except ValueError as e:
@@ -850,7 +838,7 @@ class TelegramService:
                     await client.disconnect()
                 except Exception:
                     pass
-                _login_sessions.pop(session_key, None)
+                self.login_sessions.remove_phone_session(session_key)
                 _release_account_lock()
             raise e
         except Exception as e:
@@ -859,7 +847,7 @@ class TelegramService:
                 await client.disconnect()
             except Exception:
                 pass
-            _login_sessions.pop(session_key, None)
+            self.login_sessions.remove_phone_session(session_key)
             _release_account_lock()
 
             # 更详细的错误信息
@@ -881,8 +869,9 @@ class TelegramService:
             session_string = await client.export_session_string()
             if not session_string:
                 raise ValueError("导出 session_string 失败")
-            set_account_session_string(account_name, session_string)
-            save_session_string_file(self.session_dir, account_name, session_string)
+            self.session_store.save_session_string(
+                self.session_dir, account_name, session_string
+            )
         else:
             # 即使在 file 模式,也尝试保存 session_string 作为降级方案
             try:
@@ -891,14 +880,13 @@ class TelegramService:
                 session_string = None
             if session_string:
                 try:
-                    set_account_session_string(account_name, session_string)
-                    save_session_string_file(self.session_dir, account_name, session_string)
+                    self.session_store.save_session_string(
+                        self.session_dir, account_name, session_string
+                    )
                 except Exception:
                     pass
         if proxy:
-            from backend.utils.tg_session import set_account_profile
-
-            set_account_profile(account_name, proxy=proxy)
+            self.session_store.set_account_profile(account_name, proxy=proxy)
         self._accounts_cache = None
 
     def _log_qr_state(
@@ -906,11 +894,32 @@ class TelegramService:
     ) -> None:
         if not login_id:
             return
+        expires_at = None
         if data is not None:
             last_state = data.get("last_state_logged")
             if last_state == state:
                 return
             data["last_state_logged"] = state
+            expires_ts = data.get("expires_ts")
+            if expires_ts:
+                try:
+                    expires_at = datetime.utcfromtimestamp(int(expires_ts))
+                except Exception:
+                    expires_at = None
+            self.login_sessions.update_qr_state(
+                login_id,
+                status=state,
+                expires_at=expires_at,
+                payload_updates={
+                    "scan_seen": bool(data.get("scan_seen")),
+                    "authorized": bool(data.get("authorized")),
+                    "expires_at": data.get("expires_at"),
+                    "proxy": data.get("proxy"),
+                    "api_id": data.get("api_id"),
+                    "api_hash": data.get("api_hash"),
+                    "migrate_dc_id": data.get("migrate_dc_id"),
+                },
+            )
         logger.info("qr_login state=%s login_id=%s", state, login_id)
 
     async def _apply_migrate_auth(self, client, data: Dict[str, Any]) -> None:
@@ -938,7 +947,7 @@ class TelegramService:
             pass
 
     async def _cleanup_qr_login(self, login_id: str, preserve_session: bool = False) -> None:
-        data = _qr_login_sessions.pop(login_id, None)
+        data = self.login_sessions.remove_qr_session(login_id)
         if not data:
             return
         client = data.get("client")
@@ -986,13 +995,25 @@ class TelegramService:
         if current < min_expires:
             data["expires_ts"] = min_expires
             data["expires_at"] = datetime.utcfromtimestamp(min_expires).isoformat() + "Z"
+            login_id = data.get("login_id")
+            if login_id:
+                self.login_sessions.update_qr_state(
+                    login_id,
+                    status=str(data.get("status") or "waiting_scan"),
+                    expires_at=datetime.utcfromtimestamp(min_expires),
+                    payload_updates={
+                        "scan_seen": bool(data.get("scan_seen")),
+                        "authorized": bool(data.get("authorized")),
+                        "expires_at": data.get("expires_at"),
+                    },
+                )
 
     async def _expire_qr_login(self, login_id: str, expires_ts: int) -> None:
         while True:
             wait_seconds = max(0, int(expires_ts - time.time()))
             if wait_seconds:
                 await asyncio.sleep(wait_seconds)
-            data = _qr_login_sessions.get(login_id)
+            data = self.login_sessions.get_qr_session(login_id)
             if not data:
                 return
             current_expires = int(data.get("expires_ts") or 0)
@@ -1012,16 +1033,13 @@ class TelegramService:
         from pyrogram import Client, handlers, raw
         from pyrogram.errors import FloodWait
 
-        from tg_signer.core import close_client_by_name
-
         account_lock = get_account_lock(account_name)
         session_mode = get_session_mode()
         global_semaphore = get_global_semaphore()
 
         # 清理同账号残留的扫码会话
-        for key, value in list(_qr_login_sessions.items()):
-            if value.get("account_name") == account_name:
-                await self._cleanup_qr_login(key)
+        for key, _value in self.login_sessions.list_qr_sessions_for_account(account_name):
+            await self._cleanup_qr_login(key)
 
         await account_lock.acquire()
 
@@ -1031,7 +1049,7 @@ class TelegramService:
 
         # 清理后台客户端
         try:
-            await close_client_by_name(account_name, workdir=self.session_dir)
+            await self.telegram_engine.close_client(account_name, workdir=self.session_dir)
         except Exception:
             pass
 
@@ -1118,6 +1136,7 @@ class TelegramService:
             login_id = secrets.token_urlsafe(16)
 
             session_data = {
+                "login_id": login_id,
                 "account_name": account_name,
                 "proxy": proxy,
                 "client": client,
@@ -1132,7 +1151,11 @@ class TelegramService:
                 "api_hash": api_hash,
                 "handler": None,
             }
-            _qr_login_sessions[login_id] = session_data
+            self.login_sessions.register_qr_session(
+                login_id,
+                session_data,
+                expires_at=datetime.utcfromtimestamp(expires_ts),
+            )
             self._log_qr_state(login_id, "waiting_scan", session_data)
 
             # 监听扫码更新
@@ -1150,7 +1173,7 @@ class TelegramService:
                 async def _raw_handler(_, update, __, ___):
                     if not isinstance(update, raw.types.UpdateLoginToken):
                         return
-                    data = _qr_login_sessions.get(login_id)
+                    data = self.login_sessions.get_qr_session(login_id)
                     if data and data.get("status") in ("waiting_scan", "scanned_wait_confirm"):
                         new_token = getattr(update, "token", None)
                         if new_token:
@@ -1200,7 +1223,7 @@ class TelegramService:
         from pyrogram.errors import FloodWait, SessionPasswordNeeded, Unauthorized
         from pyrogram.methods.messages.inline_session import get_session
 
-        data = _qr_login_sessions.get(login_id)
+        data = self.login_sessions.get_qr_session(login_id)
         if not data:
             return {
                 "status": "expired",
@@ -1477,7 +1500,7 @@ class TelegramService:
                 "message": f"请求过于频繁,请等待 {e.value} 秒后重试",
             }
         except SessionPasswordNeeded:
-            data = _qr_login_sessions.get(login_id)
+            data = self.login_sessions.get_qr_session(login_id)
             if data:
                 data["status"] = "password_required"
                 data["scan_seen"] = True
@@ -1519,7 +1542,7 @@ class TelegramService:
         if not password:
             raise ValueError("2FA 密码不能为空")
 
-        data = _qr_login_sessions.get(login_id)
+        data = self.login_sessions.get_qr_session(login_id)
         if not data:
             raise ValueError("二维码已过期或不存在")
 
@@ -1891,7 +1914,7 @@ class TelegramService:
             raise ValueError("登录失败,请重试")
 
     async def cancel_qr_login(self, login_id: str) -> bool:
-        data = _qr_login_sessions.get(login_id)
+        data = self.login_sessions.get_qr_session(login_id)
         if not data:
             return False
         self._log_qr_state(login_id, "cancelled", data)

@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import (
@@ -23,9 +24,11 @@ from sqlalchemy.orm import Session
 
 from backend.core.auth import get_current_user, verify_token
 from backend.core.database import get_db
+from backend.services.audit import get_audit_service
 from backend.services.sign_tasks import get_sign_task_service
 
 router = APIRouter()
+logger = logging.getLogger("backend.sign_tasks.api")
 
 
 # Pydantic 模型定义
@@ -223,9 +226,7 @@ async def get_account_chats(
             )
         raise HTTPException(status_code=400, detail=detail)
     except Exception as e:
-        import traceback
-
-        traceback.print_exc()
+        logger.exception("获取对话列表失败 account=%s: %s", account_name, e)
         raise HTTPException(status_code=500, detail=f"获取对话列表失败: {str(e)}")
 
 
@@ -252,7 +253,6 @@ async def create_sign_task(
     current_user=Depends(get_current_user),
 ):
     """创建新的签到任务"""
-    import traceback
 
     try:
         # 转换 chats 为字典列表
@@ -277,8 +277,12 @@ async def create_sign_task(
 
         return task
     except Exception as e:
-        print(f"创建任务失败: {str(e)}")
-        traceback.print_exc()
+        logger.exception(
+            "创建任务失败 task=%s account=%s: %s",
+            payload.name,
+            payload.account_name,
+            e,
+        )
         raise HTTPException(status_code=500, detail=f"创建任务失败: {str(e)}")
 
 
@@ -335,10 +339,7 @@ async def update_sign_task(
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-
-        print(f"更新任务失败: {str(e)}")
-        traceback.print_exc()
+        logger.exception("更新任务失败 task=%s account=%s: %s", task_name, account_name, e)
         raise HTTPException(status_code=500, detail=f"更新任务失败: {str(e)}")
 
 
@@ -357,6 +358,13 @@ async def delete_sign_task(
     from backend.scheduler import sync_jobs
 
     await sync_jobs()
+    get_audit_service().record_action(
+        action="delete_sign_task",
+        resource_type="sign_task",
+        resource_id=task_name,
+        actor=getattr(current_user, "username", None),
+        details={"task_name": task_name, "account_name": account_name},
+    )
 
     return {"ok": True}
 

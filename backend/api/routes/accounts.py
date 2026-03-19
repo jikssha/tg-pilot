@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from backend.core.auth import get_current_user
 from backend.models.user import User
+from backend.services.audit import get_audit_service
 from backend.services.telegram import get_telegram_service
 
 router = APIRouter()
@@ -511,6 +512,13 @@ async def delete_account(
         success = await get_telegram_service().delete_account(account_name)
 
         if success:
+            get_audit_service().record_action(
+                action="delete_account",
+                resource_type="account",
+                resource_id=account_name,
+                actor=current_user.username,
+                details={"account_name": account_name},
+            )
             return DeleteAccountResponse(
                 success=True, message=f"账号 {account_name} 已删除"
             )

@@ -32,20 +32,29 @@ async def test_sync_jobs_registers_database_and_sign_tasks(db_session, monkeypat
     )
     db_session.commit()
 
-    dummy_sign_task_service = SimpleNamespace(
+    dummy_sign_task_store = SimpleNamespace(
         list_tasks=lambda force_refresh=False: [
-            {
-                "account_name": "alpha",
-                "name": "sign_task",
-                "sign_at": "0 7 * * *",
-                "enabled": True,
-                "execution_mode": "fixed",
-            }
+            SimpleNamespace(
+                account_name="alpha",
+                name="sign_task",
+                sign_at="0 7 * * *",
+                enabled=True,
+                execution_mode="fixed",
+                range_start="",
+                to_dict=lambda: {
+                    "account_name": "alpha",
+                    "name": "sign_task",
+                    "sign_at": "0 7 * * *",
+                    "enabled": True,
+                    "execution_mode": "fixed",
+                    "range_start": "",
+                },
+            )
         ]
     )
     monkeypatch.setattr(
-        "backend.services.sign_tasks.get_sign_task_service",
-        lambda: dummy_sign_task_service,
+        "backend.scheduler.get_sign_task_store",
+        lambda: dummy_sign_task_store,
     )
 
     scheduler_module.scheduler = AsyncIOScheduler()

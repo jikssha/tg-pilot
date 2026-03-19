@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from backend.core.database import get_session_local
 from backend.models.task import Task
 from backend.services.tasks import run_task_once
+from backend.stores import get_sign_task_store
 
 scheduler: AsyncIOScheduler | None = None
 logger = logging.getLogger("backend.scheduler")
@@ -53,7 +54,8 @@ async def _job_run_sign_task(account_name: str, task_name: str) -> None:
 
         # 获取任务配置,检查是否为随机时间段模式
         sign_task_service = get_sign_task_service()
-        task_config = sign_task_service.get_task(task_name, account_name)
+        task_config = get_sign_task_store().get_task(task_name, account_name)
+        task_config = task_config.to_dict() if task_config else None
         if task_config and task_config.get("execution_mode") == "range":
             range_start_str = task_config.get("range_start")
             range_end_str = task_config.get("range_end")
@@ -125,7 +127,7 @@ async def _job_maintenance() -> None:
         logger.info("Maintenance cleaned %s database task logs", count)
 
         # 清理签到任务日志
-        get_sign_task_service()._cleanup_old_logs()
+        get_sign_task_service().cleanup_old_logs()
     finally:
         db.close()
 
@@ -136,8 +138,6 @@ async def sync_jobs() -> None:
     """
     if scheduler is None:
         return
-
-    from backend.services.sign_tasks import get_sign_task_service
 
     db: Session = get_session_local()()
     try:
@@ -171,10 +171,10 @@ async def sync_jobs() -> None:
 
         # 2. 同步签到任务 (SignTask)
         # 使用缓存的任务列表,减少 I/O
-        sign_task_service = get_sign_task_service()
-        sign_tasks = sign_task_service.list_tasks(force_refresh=False)
-        for st in sign_tasks:
-            job_id = f"sign-{st['account_name']}-{st['name']}"
+        sign_tasks = get_sign_task_store().list_tasks(force_refresh=False)
+        for sign_task in sign_tasks:
+            st = sign_task.to_dict()
+            job_id = f"sign-{sign_task.account_name}-{sign_task.name}"
             desired_ids.add(job_id)
 
             # SignTask 目前默认都是启用的,或者根据 st['enabled']

@@ -19,6 +19,7 @@ from pydantic import BaseModel
 
 from backend.core.auth import get_current_user
 from backend.models.user import User
+from backend.services.audit import get_audit_service
 from backend.services.config import get_config_service
 
 router = APIRouter()
@@ -28,7 +29,7 @@ def _clear_sign_task_cache() -> None:
     try:
         from backend.services.sign_tasks import get_sign_task_service
 
-        get_sign_task_service()._tasks_cache = None
+        get_sign_task_service().invalidate_cache()
     except Exception:
         # Best-effort cache invalidation; import should still succeed.
         pass
@@ -105,6 +106,14 @@ def export_sign_task(
                 detail=f"Task {task_name} not found",
             )
 
+        get_audit_service().record_action(
+            action="export_sign_task",
+            resource_type="sign_task",
+            resource_id=task_name,
+            actor=current_user.username,
+            details={"task_name": task_name, "account_name": account_name},
+        )
+
         return Response(
             content=config_json.encode("utf-8"),
             media_type="application/json; charset=utf-8",
@@ -150,6 +159,17 @@ def import_sign_task(
             # Fallback for no running loop
             pass
 
+        get_audit_service().record_action(
+            action="import_sign_task",
+            resource_type="sign_task",
+            resource_id=request.task_name or "imported",
+            actor=current_user.username,
+            details={
+                "task_name": request.task_name,
+                "account_name": request.account_name,
+            },
+        )
+
         return ImportTaskResponse(
             success=True,
             task_name=request.task_name or "imported",
@@ -170,6 +190,13 @@ async def export_sessions_zip(current_user: User = Depends(get_current_user)):
     try:
         service = get_config_service()
         zip_data = service.export_sessions_zip()
+
+        get_audit_service().record_action(
+            action="export_sessions_zip",
+            resource_type="session_bundle",
+            resource_id="all",
+            actor=current_user.username,
+        )
 
         return StreamingResponse(
             io.BytesIO(zip_data),
@@ -204,6 +231,14 @@ async def import_sessions_zip(
                 detail="Failed to import sessions. Invalid zip file or data error."
             )
 
+        get_audit_service().record_action(
+            action="import_sessions_zip",
+            resource_type="session_bundle",
+            resource_id=file.filename or "upload",
+            actor=current_user.username,
+            details={"filename": file.filename},
+        )
+
         return {"success": True, "message": "Sessions imported successfully"}
     except Exception as e:
         raise HTTPException(
@@ -216,6 +251,12 @@ async def import_sessions_zip(
 def export_all_configs(current_user: User = Depends(get_current_user)):
     try:
         config_json = get_config_service().export_all_configs()
+        get_audit_service().record_action(
+            action="export_all_configs",
+            resource_type="config_bundle",
+            resource_id="all",
+            actor=current_user.username,
+        )
         return Response(
             content=config_json.encode("utf-8"),
             media_type="application/json; charset=utf-8",
@@ -260,6 +301,18 @@ async def import_all_configs(
         _clear_sign_task_cache()
         await sync_jobs()
 
+        get_audit_service().record_action(
+            action="import_all_configs",
+            resource_type="config_bundle",
+            resource_id="all",
+            actor=current_user.username,
+            details={
+                "overwrite": request.overwrite,
+                "signs_imported": int(result.get("signs_imported", 0)),
+                "monitors_imported": int(result.get("monitors_imported", 0)),
+            },
+        )
+
         return ImportAllResponse(
             signs_imported=int(result.get("signs_imported", 0)),
             signs_skipped=int(result.get("signs_skipped", 0)),
@@ -295,6 +348,14 @@ async def delete_sign_task(
 
         _clear_sign_task_cache()
         await sync_jobs()
+
+        get_audit_service().record_action(
+            action="delete_sign_config",
+            resource_type="sign_task",
+            resource_id=task_name,
+            actor=current_user.username,
+            details={"task_name": task_name, "account_name": account_name},
+        )
 
         return {"success": True, "message": f"Task {task_name} deleted"}
     except ValueError as e:
@@ -527,6 +588,12 @@ def save_telegram_config(
 def reset_telegram_config(current_user: User = Depends(get_current_user)):
     try:
         get_config_service().reset_telegram_config()
+        get_audit_service().record_action(
+            action="reset_telegram_config",
+            resource_type="telegram_config",
+            resource_id="default",
+            actor=current_user.username,
+        )
         return TelegramConfigSaveResponse(success=True, message="Telegram config reset")
     except Exception as e:
         raise HTTPException(
@@ -649,6 +716,12 @@ async def delete_bot_notify_config(current_user: User = Depends(get_current_user
 
         get_bot_notify_service().delete_config()
         await sync_jobs()
+        get_audit_service().record_action(
+            action="delete_bot_notify_config",
+            resource_type="bot_notify_config",
+            resource_id="default",
+            actor=current_user.username,
+        )
         return AIConfigSaveResponse(success=True, message="Bot notify config deleted")
     except Exception as e:
         raise HTTPException(

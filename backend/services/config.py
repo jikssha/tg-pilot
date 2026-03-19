@@ -442,11 +442,11 @@ class ConfigService:
             # 关键修复:清除 SignTaskService 缓存,否则前端刷新也看不到新任务
             try:
                 from backend.services.sign_tasks import get_sign_task_service
-                get_sign_task_service()._tasks_cache = None
+                get_sign_task_service().invalidate_cache()
 
                 # 可选:触发调度同步?
                 # 如果导入了新任务,调度器并不知道。
-                # 只有 _tasks_cache 清除后,下次调用 list_tasks 才会读文件,但调度器是内存常驻的。
+                # 只有刷新任务 store 缓存后,下次调用 list_tasks 才会读文件,但调度器是内存常驻的。
                 # 我们应该调用 sync_jobs!
 
                 # 由于 sync_jobs 是 async 的,而这里是同步方法,可能不太好直接调。
