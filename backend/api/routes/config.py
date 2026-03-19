@@ -2,18 +2,24 @@
 
 from __future__ import annotations
 
-import json
 import io
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status, UploadFile, File
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Response,
+    UploadFile,
+    status,
+)
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from backend.core.auth import get_current_user
 from backend.models.user import User
 from backend.services.config import get_config_service
-from backend.utils.storage import is_writable_dir
 
 router = APIRouter()
 
@@ -131,8 +137,9 @@ def import_sign_task(
                 message="Import failed. Invalid configuration format.",
             )
 
-        from backend.scheduler import sync_jobs
         import asyncio
+
+        from backend.scheduler import sync_jobs
 
         _clear_sign_task_cache()
         try:
@@ -163,7 +170,7 @@ async def export_sessions_zip(current_user: User = Depends(get_current_user)):
     try:
         service = get_config_service()
         zip_data = service.export_sessions_zip()
-        
+
         return StreamingResponse(
             io.BytesIO(zip_data),
             media_type="application/zip",
@@ -190,13 +197,13 @@ async def import_sessions_zip(
         content = await file.read()
         service = get_config_service()
         success = service.import_sessions_zip(content)
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to import sessions. Invalid zip file or data error."
             )
-            
+
         return {"success": True, "message": "Sessions imported successfully"}
     except Exception as e:
         raise HTTPException(
@@ -609,8 +616,8 @@ async def save_bot_notify_config(
 ):
     """保存 Bot 通知配置"""
     try:
-        from backend.services.bot_notify import get_bot_notify_service
         from backend.scheduler import sync_jobs
+        from backend.services.bot_notify import get_bot_notify_service
 
         get_bot_notify_service().save_config(
             bot_token=request.bot_token,
@@ -637,8 +644,8 @@ async def save_bot_notify_config(
 async def delete_bot_notify_config(current_user: User = Depends(get_current_user)):
     """删除 Bot 通知配置"""
     try:
-        from backend.services.bot_notify import get_bot_notify_service
         from backend.scheduler import sync_jobs
+        from backend.services.bot_notify import get_bot_notify_service
 
         get_bot_notify_service().delete_config()
         await sync_jobs()

@@ -1,16 +1,14 @@
 <div align="center">
-  <img src="C:/Users/zzz/.gemini/antigravity/brain/52f166f2-22c1-440c-b753-3911411030f1/tg_pilot_banner_linear_1773759662317.png" width="800" alt="TG-Pilot Banner">
-
 # 🚀 TG-Pilot
 
 **The Next-Generation Telegram Automation & Account Manager**
 
-[![Version](https://img.shields.io/badge/version-v3.6-purple.svg)](https://github.com/jikssha/tg-pilot)
+[![Version](https://img.shields.io/badge/version-v3.6.1-purple.svg)](https://github.com/jikssha/tg-pilot)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 [![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 
-[中文文档](README.md) · [Changelog](CHANGELOG.md) · [Report Bug](https://github.com/jikssha/tg-pilot/issues)
+[中文文档](README.md) · [Changelog](CHANGELOG.md) · [Architecture](docs/architecture.md) · [Lightweight ADR](docs/adr/0001-lightweight-product-line.md) · [Report Bug](https://github.com/jikssha/tg-pilot/issues)
 
 </div>
 
@@ -23,7 +21,7 @@ Built with **native AI integration (Vision & Computation)**, TG-Pilot handles co
 ## ✨ Key Features
 
 - **🎮 Multi-Account Fleet Management**: Consolidate and monitor unlimited Telegram sessions through a single dashboard.
-- **💎 Minimalist Linear Aesthetic (v3.5/v3.6)**: Completely refactored Pure Dark console. v3.6 refines the **Settings UI** with cleaner typography and intuitive layouts.
+- **💎 Minimalist Linear Aesthetic (v3.5/v3.6.1)**: Completely refactored Pure Dark console. v3.6 refines the **Settings UI**, while v3.6.1 hardens the engineering baseline for long-term maintenance.
 - **⚙️ Versatile Action Sequences**: Natively supports `Text`, `Buttons`, `Dices`, `AI Vision`, and `Math Challenges`.
 - **📱 Hidden Device Fingerprinting**: Auto-spoofs official device fingerprints (MacBook/iPhone) to minimize detection.
 - **📈 Real-time Task Radar**: Integrated task cards with one-click run, history log filtering (failures only), and config cloning.
@@ -73,7 +71,6 @@ EOF
 
 ### 3. Launch
 
-```bash
 Once started, navigate to `http://YOUR_SERVER_IP:9987` in your browser.
 
 ### Option 2: Docker Run (Quick Single Command)
@@ -135,6 +132,18 @@ Designed with a modern decoupled approach:
 - **Frontend**: Next.js 14, React, Tailwind CSS, Phosphor Icons
 - **Backend**: FastAPI, Uvicorn, SQLite
 - **Core Engine**: Pyrogram / Kurigram (Telegram Protocol), APScheduler, OpenAI SDK
+
+Current product-line boundaries:
+
+- **Product entrypoint**: `frontend + backend`
+- **Execution engine and CLI compatibility layer**: `tg_signer`
+- **Legacy entrypoint**: `tg_signer/webui`, kept for compatibility only and no longer expanded
+
+See the supporting docs for details:
+
+- [Architecture](docs/architecture.md)
+- [Lightweight ADR](docs/adr/0001-lightweight-product-line.md)
+- [Stage Gates](docs/stage-gates.md)
 
 ## 🛡️ Privacy & Security
 

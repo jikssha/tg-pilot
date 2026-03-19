@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy.orm import Session
@@ -9,6 +11,7 @@ from backend.models.task import Task
 from backend.services.tasks import run_task_once
 
 scheduler: AsyncIOScheduler | None = None
+logger = logging.getLogger("backend.scheduler")
 
 
 def time_to_cron(time_str: str) -> str:
@@ -40,7 +43,7 @@ async def _job_run_sign_task(account_name: str, task_name: str) -> None:
     import asyncio
     import logging
     import random
-    from datetime import datetime, time, timedelta
+    from datetime import datetime, timedelta
 
     from backend.services.sign_tasks import get_sign_task_service
 
@@ -119,7 +122,7 @@ async def _job_maintenance() -> None:
 
         # 清理数据库任务日志
         count = cleanup_old_logs(db, days=3)
-        print(f"Maintenance: 已清理 {count} 条数据库任务日志")
+        logger.info("Maintenance cleaned %s database task logs", count)
 
         # 清理签到任务日志
         get_sign_task_service()._cleanup_old_logs()
@@ -164,7 +167,7 @@ async def sync_jobs() -> None:
                         replace_existing=True,
                     )
             except Exception as e:
-                print(f"Error scheduling DB task {task.id}: {e}")
+                logger.error("Error scheduling DB task %s: %s", task.id, e)
 
         # 2. 同步签到任务 (SignTask)
         # 使用缓存的任务列表,减少 I/O
@@ -198,27 +201,30 @@ async def sync_jobs() -> None:
                         replace_existing=True,
                     )
             except Exception as e:
-                print(f"Error scheduling sign task {st['name']}: {e}")
+                logger.error("Error scheduling sign task %s: %s", st["name"], e)
 
         # 3. 同步每日汇总 (Bot Notification Summary)
         from backend.services.bot_notify import get_bot_notify_service
         bot_notify = get_bot_notify_service()
         bot_config = bot_notify.get_config() or {}
         summary_job_id = "notify-summary"
-        
+
         if bot_config.get("enabled") and bot_config.get("daily_summary"):
             desired_ids.add(summary_job_id)
             hour = bot_config.get("daily_summary_hour", 22)
             minute = bot_config.get("daily_summary_minute", 0)
-            
+
             try:
                 # 每天指定时分运行
-                from apscheduler.triggers.cron import CronTrigger
                 trigger = CronTrigger(hour=hour, minute=minute, second=0)
-                
+
                 if summary_job_id in existing_ids:
                     scheduler.reschedule_job(summary_job_id, trigger=trigger)
-                    print(f"Scheduler: 已更新每日汇总任务 -> {hour:02d}:{minute:02d}")
+                    logger.info(
+                        "Scheduler updated daily summary job -> %02d:%02d",
+                        hour,
+                        minute,
+                    )
                 else:
                     scheduler.add_job(
                         bot_notify.send_daily_summary,
@@ -226,9 +232,13 @@ async def sync_jobs() -> None:
                         id=summary_job_id,
                         replace_existing=True,
                     )
-                    print(f"Scheduler: 已添加每日汇总任务 -> {hour:02d}:{minute:02d}")
+                    logger.info(
+                        "Scheduler added daily summary job -> %02d:%02d",
+                        hour,
+                        minute,
+                    )
             except Exception as e:
-                print(f"Error scheduling notify summary: {e}")
+                logger.error("Error scheduling notify summary: %s", e)
 
         # remove obsolete jobs
         for job_id in existing_ids - desired_ids:
@@ -299,9 +309,9 @@ def add_or_update_sign_task_job(
             args=[account_name, task_name],
             replace_existing=True,
         )
-        print(f"Scheduler: 已添加/更新任务 {job_id} -> {cron}")
+        logger.info("Scheduler added or updated sign task %s -> %s", job_id, cron)
     except Exception as e:
-        print(f"Scheduler: 添加任务 {job_id} 失败: {e}")
+        logger.error("Scheduler failed to add task %s: %s", job_id, e)
 
 
 def remove_sign_task_job(account_name: str, task_name: str) -> None:
@@ -314,6 +324,6 @@ def remove_sign_task_job(account_name: str, task_name: str) -> None:
     try:
         if scheduler.get_job(job_id):
             scheduler.remove_job(job_id)
-            print(f"Scheduler: 已移除任务 {job_id}")
+            logger.info("Scheduler removed task %s", job_id)
     except Exception as e:
-        print(f"Scheduler: 移除任务 {job_id} 失败: {e}")
+        logger.error("Scheduler failed to remove task %s: %s", job_id, e)

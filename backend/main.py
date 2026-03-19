@@ -29,10 +29,21 @@ sqlite3.connect = _patched_sqlite3_connect
 
 from backend.api import router as api_router  # noqa: E402
 from backend.core.config import get_settings  # noqa: E402
-from backend.core.database import Base, get_engine, get_session_local, init_engine  # noqa: E402
-from backend.scheduler import init_scheduler, shutdown_scheduler, sync_jobs  # noqa: E402
+from backend.core.database import (  # noqa: E402
+    check_database_connection,
+    get_session_local,
+    init_engine,
+)
+from backend.core.migrations import run_migrations  # noqa: E402
+from backend.scheduler import (  # noqa: E402
+    init_scheduler,
+    shutdown_scheduler,
+    sync_jobs,
+)
 from backend.services.users import ensure_admin  # noqa: E402
 from backend.utils.paths import ensure_data_dirs  # noqa: E402
+from backend.utils.storage import is_writable_dir  # noqa: E402
+from tg_signer import __version__ as APP_VERSION  # noqa: E402
 
 
 # Silence /health check logs
@@ -50,8 +61,15 @@ logging.getLogger("uvicorn.access").addFilter(HealthCheckFilter())
 
 settings = get_settings()
 
-app = FastAPI(title=settings.app_name, version="0.1.0")
+app = FastAPI(title=settings.app_name, version=APP_VERSION)
 app.state.ready = False
+app.state.readiness_checks = {
+    "storage": False,
+    "database": False,
+    "scheduler": False,
+    "jobs_synced": False,
+}
+app.state.readiness_details = {}
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
@@ -71,20 +89,26 @@ app.include_router(api_router, prefix="/api")
 
 @app.get("/health")
 def health_check() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "version": APP_VERSION}
 
 
 @app.get("/healthz")
 def health_checkz() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "version": APP_VERSION}
 
 
 @app.get("/readyz")
 def ready_check(response: Response) -> dict[str, str]:
+    payload = {
+        "status": "ready" if app.state.ready else "starting",
+        "checks": app.state.readiness_checks,
+    }
+    if app.state.readiness_details:
+        payload["details"] = app.state.readiness_details
     if app.state.ready:
-        return {"status": "ready"}
+        return payload
     response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    return {"status": "starting"}
+    return payload
 
 
 # 静态前端托管逻辑优化
@@ -137,22 +161,57 @@ async def serve_spa(full_path: str):
 
 @app.on_event("startup")
 async def on_startup() -> None:
+    startup_logger = logging.getLogger("backend.startup")
+
+    def set_readiness(name: str, ok: bool, detail: str = "") -> None:
+        checks = dict(app.state.readiness_checks)
+        details = dict(app.state.readiness_details)
+        checks[name] = ok
+        if detail:
+            details[name] = detail
+        else:
+            details.pop(name, None)
+        app.state.readiness_checks = checks
+        app.state.readiness_details = details
+
+    def verify_storage() -> None:
+        paths_to_check = {
+            settings.resolve_base_dir(),
+            settings.resolve_workdir(),
+            settings.resolve_session_dir(),
+            settings.resolve_logs_dir(),
+            settings.resolve_db_path().parent,
+        }
+        for path in paths_to_check:
+            if not is_writable_dir(path):
+                raise RuntimeError(f"Path is not writable: {path}")
+
     ensure_data_dirs(settings)
+    verify_storage()
+    set_readiness("storage", True)
+
+    run_migrations()
     init_engine()
-    Base.metadata.create_all(bind=get_engine())
+    check_database_connection()
+    set_readiness("database", True)
+
     with get_session_local()() as db:
         ensure_admin(db)
     await init_scheduler(sync_on_startup=False)
+    set_readiness("scheduler", True)
 
     async def _post_startup() -> None:
         try:
             await sync_jobs()
+            set_readiness("jobs_synced", True)
         except Exception as exc:
-            logging.getLogger("backend.startup").error(
-                f"Delayed scheduler sync failed: {exc}"
+            set_readiness("jobs_synced", False, str(exc))
+            startup_logger.exception(
+                "Delayed scheduler sync failed: %s",
+                exc,
             )
         finally:
-            app.state.ready = True
+            app.state.ready = all(app.state.readiness_checks.values())
 
     asyncio.create_task(_post_startup())
 

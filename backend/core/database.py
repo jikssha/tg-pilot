@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -55,3 +55,16 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def check_database_connection() -> None:
+    with get_engine().connect() as connection:
+        connection.execute(text("SELECT 1"))
+
+
+def reset_engine_state() -> None:
+    global _engine, _SessionLocal
+    if _engine is not None:
+        _engine.dispose()
+    _engine = None
+    _SessionLocal = None

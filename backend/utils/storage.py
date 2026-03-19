@@ -9,6 +9,7 @@ from typing import Optional
 _BASE_DIR: Optional[Path] = None
 _DATA_DIR_OVERRIDE_FILE_ENV = "APP_DATA_DIR_OVERRIDE_FILE"
 _DEFAULT_DATA_DIR_OVERRIDE_FILE = Path.cwd() / ".tg_pilot_data_dir"
+logger = logging.getLogger("backend.storage")
 
 def _probe_writable_dir(base: Path) -> bool:
     probe_dir = base / ".probe"
@@ -97,7 +98,6 @@ def get_writable_base_dir() -> Path:
         f"WARNING: /data is not writable. Falling back to {fallback}; "
         "data may be non-persistent."
     )
-    print(message)
-    logging.getLogger("backend.storage").warning(message)
+    logger.warning(message)
     _BASE_DIR = fallback
     return _BASE_DIR

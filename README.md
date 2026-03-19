@@ -4,12 +4,12 @@
 
 **Telegram 多账号自动化批量签到任务管理面板**
 
-[![Version](https://img.shields.io/badge/version-v3.6-purple.svg)](https://github.com/jikssha/tg-pilot)
+[![Version](https://img.shields.io/badge/version-v3.6.1-purple.svg)](https://github.com/jikssha/tg-pilot)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 [![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 
-[英文 / English](README_EN.md) · [更新日志 / CHANGELOG](CHANGELOG.md) · [反馈问题](https://github.com/jikssha/tg-pilot/issues)
+[英文 / English](README_EN.md) · [更新日志 / CHANGELOG](CHANGELOG.md) · [架构说明 / Architecture](docs/architecture.md) · [轻量化 ADR](docs/adr/0001-lightweight-product-line.md) · [反馈问题](https://github.com/jikssha/tg-pilot/issues)
 
 </div>
 
@@ -21,7 +21,7 @@
 ## ✨ 核心特性
 
 - **🎮 多账号矩阵管理**：支持单面板统一管理无限个 Telegram 会话账号，随时查看状态。
-- **💎 极简 Linear 审美 (v3.5/v3.6)**：全新重构的 Pure Dark 风格控制台。v3.6 进一步优化了 **设置页面 UI**，移除了突兀的斜体标题，使排版更符合中式审美。
+- **💎 极简 Linear 审美 (v3.5/v3.6.1)**：全新重构的 Pure Dark 风格控制台。v3.6 进一步优化了 **设置页面 UI**，v3.6.1 则补齐了工程基线与交付护栏。
 - **⚙️ 全能动作序列**：原生支持「发送文本 / 点击按钮 / 发送特定骰子表情 / AI 智能识图 / AI 计算解密」。
 - **📱 隐匿设备伪装**：底层通信自带官方设备指纹伪装（如 MacBook / iPhone），抹除脚本执行痕迹。
 - **📈 实时任务雷达**：集成化任务卡片，支持一键执行、历史日志筛选（仅看失败）、快捷配置复制。
@@ -70,9 +70,7 @@ EOF
 
 ### 3. 一键启动
 
-```bash
 启动完成后，打开浏览器访问：`http://服务器IP:9987`
-```
 ### 方法二：Docker Run
 
 运行以下命令（请根据需要修改 `APP_SECRET_KEY`）：
@@ -131,6 +129,18 @@ docker compose up -d
 - **Frontend**: Next.js 14, React, Tailwind CSS, Phosphor Icons
 - **Backend**: FastAPI, Uvicorn, SQLite
 - **Core Engine**: Pyrogram / Kurigram (Telegram 协议), APScheduler, OpenAI SDK
+
+当前产品主线与兼容策略如下：
+
+- **产品入口**：`frontend + backend`
+- **执行内核与 CLI 兼容层**：`tg_signer`
+- **Legacy 入口**：`tg_signer/webui` 仅保留兼容，不再继续扩展
+
+更多约束与阶段门禁请参阅：
+
+- [架构说明](docs/architecture.md)
+- [轻量化 ADR](docs/adr/0001-lightweight-product-line.md)
+- [阶段门禁](docs/stage-gates.md)
 
 ## 🛡️ 数据与安全申明
 

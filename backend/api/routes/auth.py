@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -14,6 +15,7 @@ from backend.models.user import User
 from backend.schemas.auth import LoginRequest, TokenResponse, UserOut
 
 router = APIRouter()
+logger = logging.getLogger("backend.auth")
 
 
 class ResetTOTPRequest(BaseModel):
@@ -32,24 +34,26 @@ class ResetTOTPResponse(BaseModel):
 
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
-    print(f"[DEBUG] Login attempt for user: {payload.username}")
     user = authenticate_user(db, payload.username, payload.password)
     if not user:
-        print(f"[DEBUG] Authentication failed for user: {payload.username}")
+        logger.warning("Login failed for user=%s: invalid credentials", payload.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
         )
-    print(f"[DEBUG] User authenticated: {user.username}, TOTP Secret: {bool(user.totp_secret)}")
     if user.totp_secret:
         if not payload.totp_code or not verify_totp(
             user.totp_secret, payload.totp_code
         ):
-            print(f"[DEBUG] TOTP verification failed for user: {user.username}")
+            logger.warning(
+                "Login failed for user=%s: TOTP required or invalid",
+                user.username,
+            )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="TOTP_REQUIRED_OR_INVALID",
             )
+    logger.info("Login succeeded for user=%s", user.username)
     access_token = create_access_token(
         data={"sub": user.username},
         expires_delta=timedelta(hours=12),
@@ -89,5 +93,6 @@ def reset_totp(request: ResetTOTPRequest, db: Session = Depends(get_db)):
     # 清除 TOTP secret
     user.totp_secret = None
     db.commit()
+    logger.info("TOTP reset for user=%s", user.username)
 
     return ResetTOTPResponse(success=True, message="两步验证已重置,现在可以正常登录")

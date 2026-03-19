@@ -21,8 +21,8 @@ from backend.utils.proxy import build_proxy_dict
 from backend.utils.tg_session import (
     delete_account_session_string,
     delete_session_string_file,
-    get_account_session_string,
     get_account_profile,
+    get_account_session_string,
     get_global_semaphore,
     get_session_mode,
     is_string_session_mode,
@@ -33,7 +33,7 @@ from backend.utils.tg_session import (
 )
 
 settings = get_settings()
-logger = logging.getLogger("backend.qr_login")
+logger = logging.getLogger("backend.telegram")
 
 # 全局存储临时的登录 session
 _login_sessions = {}
@@ -434,7 +434,7 @@ class TelegramService:
         try:
             await close_client_by_name(account_name, workdir=self.session_dir)
         except Exception as e:
-            print(f"DEBUG: 关闭 Account Client 失败: {e}")
+            logger.warning("Failed to close account client for %s: %s", account_name, e)
 
         session_file = self.session_dir / f"{account_name}.session"
         journal_file = self.session_dir / f"{account_name}.session-journal"
@@ -464,32 +464,25 @@ class TelegramService:
             return False
 
         try:
-            removed_any = False
             if session_file.exists():
                 session_file.unlink()
-                removed_any = True
 
             # 同时删除可能存在的 .session-journal 文件
             if journal_file.exists():
                 journal_file.unlink()
-                removed_any = True
 
             # 删除 shm 和 wal 文件 (sqlite3)
             if shm_file.exists():
                 shm_file.unlink()
-                removed_any = True
 
             if wal_file.exists():
                 wal_file.unlink()
-                removed_any = True
 
             if session_string_file.exists():
                 session_string_file.unlink()
-                removed_any = True
 
             if has_session_string or account_in_store:
                 delete_account_session_string(account_name)
-                removed_any = True
 
             # 确保 .session_string 残留被清理
             delete_session_string_file(self.session_dir, account_name)
@@ -564,7 +557,7 @@ class TelegramService:
         try:
             await close_client_by_name(account_name, workdir=self.session_dir)
         except Exception as e:
-            print(f"DEBUG: start_login 清理后台客户端失败: {e}")
+            logger.warning("Failed to cleanup background client before login for %s: %s", account_name, e)
 
         # 3. 强制垃圾回收,释放可能的未关闭文件句柄 (Windows 特性)
         gc.collect()
@@ -613,7 +606,11 @@ class TelegramService:
                             aux_file.unlink()
                 except OSError as e:
                     # 如果删除失败,说明真的被锁得很死,或者权限问题
-                    print(f"DEBUG: 删除旧 Session 文件失败: {e} - 可能文件仍被占用")
+                    logger.warning(
+                        "Failed to delete legacy session file for %s: %s",
+                        account_name,
+                        e,
+                    )
                     # 这里不抛出异常,尝试继续,也许 Pyrogram 能处理?
                     # 但通常 "unable to open database file" 就是因为这个。
                     pass
@@ -1012,7 +1009,7 @@ class TelegramService:
     ) -> Dict[str, Any]:
         import gc
 
-        from pyrogram import Client, filters, handlers, raw
+        from pyrogram import Client, handlers, raw
         from pyrogram.errors import FloodWait
 
         from tg_signer.core import close_client_by_name

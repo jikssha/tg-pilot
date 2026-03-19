@@ -9,7 +9,7 @@ description = "Automated Telegram tasks (check-ins, sending messages, keyboard c
 authors = [
     { name = "jikssha" }
 ]
-license = "BSD-3-Clause"
+license = "MIT"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -17,6 +17,7 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only"
 ]
 dependencies = [
+    "alembic",
     "kurigram<=2.2.7",
     "click",
     "pydantic<2",
@@ -33,7 +34,7 @@ dependencies = [
     "python-multipart",
     "pyotp",
     "passlib[bcrypt]",
-    "bcrypt",
+    "bcrypt==4.0.1",
     "qrcode[pil]",
 ]
 
@@ -90,3 +91,4 @@ ignore = [
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
