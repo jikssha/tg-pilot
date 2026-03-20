@@ -87,6 +87,16 @@ def _create_pre_alembic_legacy_db(db_path: Path) -> None:
         connection.close()
 
 
+def _create_legacy_db_with_empty_alembic_version(db_path: Path) -> None:
+    _create_pre_alembic_legacy_db(db_path)
+    connection = sqlite3.connect(db_path)
+    try:
+        connection.execute("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)")
+        connection.commit()
+    finally:
+        connection.close()
+
+
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
@@ -166,6 +176,34 @@ def test_run_migrations_bootstraps_pre_alembic_sqlite_and_preserves_configs(
     assert get_config_service().get_global_settings()["sign_interval"] == 33
     assert get_config_service().get_ai_config()["api_key"] == "sk-test"
     assert BotNotifyService().get_config()["chat_id"] == "456"
+
+
+def test_run_migrations_recovers_when_alembic_table_exists_but_is_empty(isolated_env):
+    from backend.core.config import get_settings
+    from backend.core.migrations import run_migrations
+
+    settings = get_settings()
+    db_path = settings.resolve_db_path()
+    _create_legacy_db_with_empty_alembic_version(db_path)
+
+    run_migrations()
+
+    connection = sqlite3.connect(db_path)
+    try:
+        revision = connection.execute(
+            "SELECT version_num FROM alembic_version"
+        ).fetchall()
+        tables = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+    finally:
+        connection.close()
+
+    assert revision == [("202603190003",)]
+    assert {"audit_events", "login_session_states", "sign_tasks"}.issubset(tables)
 
 
 def test_startup_legacy_bootstrap_reconciles_accounts_and_sign_tasks(isolated_env):

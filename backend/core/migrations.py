@@ -15,6 +15,11 @@ logger = logging.getLogger("backend.migrations")
 BASELINE_REVISION: Final[str] = "202603190001"
 PHASE2_REVISION: Final[str] = "202603190002"
 PHASE3_REVISION: Final[str] = "202603190003"
+_KNOWN_REVISIONS: Final[set[str]] = {
+    BASELINE_REVISION,
+    PHASE2_REVISION,
+    PHASE3_REVISION,
+}
 
 _BASELINE_TABLES: Final[set[str]] = {"accounts", "users", "tasks", "task_logs"}
 _PHASE2_TABLES: Final[set[str]] = {"audit_events", "login_session_states"}
@@ -45,6 +50,21 @@ def _load_column_names(connection: sqlite3.Connection, table_name: str) -> set[s
     return {row[1] for row in rows if len(row) > 1 and row[1]}
 
 
+def _load_alembic_versions(connection: sqlite3.Connection) -> list[str]:
+    rows = connection.execute("SELECT version_num FROM alembic_version").fetchall()
+    versions: list[str] = []
+    for row in rows:
+        if not row:
+            continue
+        value = row[0]
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            versions.append(text)
+    return versions
+
+
 def _detect_legacy_revision(db_path: Path) -> str | None:
     if not db_path.exists():
         return None
@@ -52,7 +72,16 @@ def _detect_legacy_revision(db_path: Path) -> str | None:
     with sqlite3.connect(db_path) as connection:
         table_names = _load_table_names(connection)
         if "alembic_version" in table_names:
-            return None
+            versions = _load_alembic_versions(connection)
+            valid_versions = [version for version in versions if version in _KNOWN_REVISIONS]
+            if valid_versions:
+                return None
+            logger.warning(
+                "Detected alembic_version table without a valid revision in %s; "
+                "stored values=%s. Falling back to legacy schema detection.",
+                db_path,
+                versions,
+            )
 
         if "sign_tasks" in table_names:
             account_columns = (
