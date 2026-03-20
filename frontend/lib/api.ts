@@ -1,6 +1,7 @@
 import { Account, Task, TaskLog, TokenResponse } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/api";
+const HEALTH_BASE = process.env.NEXT_PUBLIC_APP_HEALTH_PATH || "/health";
 
 const toRecord = (headers?: HeadersInit): Record<string, string> => {
   if (!headers) return {};
@@ -185,7 +186,7 @@ export interface AccountStatusCheckRequest {
 export interface AccountStatusItem {
   account_name: string;
   ok: boolean;
-  status: "connected" | "invalid" | "error" | "not_found" | string;
+  status: "connected" | "valid" | "checking" | "invalid" | "error" | "not_found" | string;
   message?: string;
   code?: string;
   checked_at?: string;
@@ -195,6 +196,11 @@ export interface AccountStatusItem {
 
 export interface AccountStatusCheckResponse {
   results: AccountStatusItem[];
+}
+
+export interface AppHealthResponse {
+  status: string;
+  version: string;
 }
 
 export const startAccountLogin = (token: string, data: LoginStartRequest) =>
@@ -217,6 +223,16 @@ export const checkAccountsStatus = (token: string, data: AccountStatusCheckReque
     method: "POST",
     body: JSON.stringify(data),
   }, token);
+
+export const getAppHealth = async (): Promise<AppHealthResponse> => {
+  const res = await fetch(HEALTH_BASE, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error("Failed to load app health");
+  }
+  return res.json();
+};
 
 export const deleteAccount = (token: string, accountName: string) =>
   request<{ success: boolean; message: string }>(`/accounts/${accountName}`, {

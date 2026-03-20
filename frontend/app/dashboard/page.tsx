@@ -180,6 +180,7 @@ export default function Dashboard() {
   const dashboardOverview = useDashboardOverview(token);
   const accounts = dashboardOverview.accounts;
   const tasks = dashboardOverview.tasks;
+  const appVersion = dashboardOverview.appVersion;
   const dataLoaded = dashboardOverview.isFetched;
   const dashboardLoading = dashboardOverview.isLoading && accounts.length === 0;
   const refetchDashboardOverview = dashboardOverview.refetch;
@@ -1158,6 +1159,7 @@ export default function Dashboard() {
       <AccountSidebar
         accounts={accounts}
         loading={dashboardLoading}
+        appVersion={appVersion}
         isSelectionMode={isSelectionMode}
         selectedAccounts={selectedAccounts}
         selectedAccountName={selectedAccountName}

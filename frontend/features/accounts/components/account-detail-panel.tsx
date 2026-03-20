@@ -3,6 +3,8 @@
 import { Clock, Gear, ShieldCheck, TerminalWindow, Trash } from "@phosphor-icons/react";
 import { PropsWithChildren } from "react";
 import { AccountInfo, AccountStatusItem } from "@/lib/api";
+import { AccountStatusLamp } from "@/features/accounts/components/account-status-lamp";
+import { normalizeAccountStatus } from "@/features/accounts/lib/account-status";
 
 interface AccountDetailPanelProps extends PropsWithChildren {
   selectedAccount: AccountInfo;
@@ -26,18 +28,17 @@ export function AccountDetailPanel({
   onEditAccount,
   children,
 }: AccountDetailPanelProps) {
+  const presentation = normalizeAccountStatus(selectedStatus);
+  const checkedAtLabel = selectedStatus?.checked_at
+    ? new Date(selectedStatus.checked_at).toLocaleTimeString()
+    : t("account_status_unknown");
+
   return (
     <>
       <div className="mb-8 group">
         <h1 className="text-2xl font-semibold mb-1 flex items-center gap-3 text-[var(--text-main)]">
           {selectedAccount.name}
-          {selectedStatus?.status === "valid" ? (
-            <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.3)] inline-block" />
-          ) : selectedStatus?.status === "checking" ? (
-            <span className="w-2.5 h-2.5 bg-amber-400/50 rounded-full animate-pulse inline-block" />
-          ) : (
-            <span className="w-2.5 h-2.5 border border-rose-500 rounded-full inline-block" />
-          )}
+          <AccountStatusLamp status={selectedStatus} t={t} size="md" testId="account-detail-lamp" />
 
           <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
@@ -63,10 +64,12 @@ export function AccountDetailPanel({
           </div>
         </h1>
         <div className="flex flex-wrap items-center gap-3 mt-4">
-          <div className="flex items-center gap-1.5 bg-white/5 py-1.5 px-3 rounded-md border border-white/5">
+          <div
+            data-testid="account-detail-status"
+            className="flex items-center gap-1.5 bg-white/5 py-1.5 px-3 rounded-md border border-white/5"
+          >
             <Clock weight="bold" />
-            {selectedStatus?.checked_at ? new Date(selectedStatus.checked_at).toLocaleTimeString() : t("account_status_checking")}{" "}
-            {selectedStatus?.status === "valid" ? ` (${t("connected")})` : ` (${t("account_status_invalid")})`}
+            {checkedAtLabel} ({t(presentation.labelKey)})
           </div>
           <span className="bg-white/5 border border-[var(--border-color)] px-2.5 py-1 rounded-md text-xs text-[var(--text-sub)] inline-flex items-center gap-1.5">
             <ShieldCheck weight="bold" /> 安全监控中

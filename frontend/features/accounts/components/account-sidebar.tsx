@@ -3,10 +3,14 @@
 import Link from "next/link";
 import { CheckSquare, CheckSquareOffset, Gear, ListChecks, Plus, Square, Spinner, Warning } from "@phosphor-icons/react";
 import { AccountInfo, AccountStatusItem } from "@/lib/api";
+import { AccountStatusLamp } from "@/features/accounts/components/account-status-lamp";
+import { normalizeAccountStatus } from "@/features/accounts/lib/account-status";
+import { formatAppVersion } from "@/lib/version";
 
 interface AccountSidebarProps {
   accounts: AccountInfo[];
   loading: boolean;
+  appVersion: string;
   isSelectionMode: boolean;
   selectedAccounts: Set<string>;
   selectedAccountName: string | null;
@@ -23,6 +27,7 @@ interface AccountSidebarProps {
 export function AccountSidebar({
   accounts,
   loading,
+  appVersion,
   isSelectionMode,
   selectedAccounts,
   selectedAccountName,
@@ -43,8 +48,11 @@ export function AccountSidebar({
             <CheckSquareOffset weight="fill" className="text-xs" />
           </div>
           TG-Pilot
-          <span className="text-[10px] font-mono bg-white/5 border border-white/10 px-1 rounded-sm text-main/30 ml-0.5">
-            v3.6.1
+          <span
+            data-testid="app-version-badge"
+            className="text-[10px] font-mono bg-white/5 border border-white/10 px-1 rounded-sm text-main/30 ml-0.5"
+          >
+            {formatAppVersion(appVersion)}
           </span>
         </div>
         <Link
@@ -89,9 +97,8 @@ export function AccountSidebar({
         ) : (
           accounts.map((account) => {
             const statusInfo = accountStatusMap[account.name];
-            const isChecking = statusInfo?.status === "checking";
-            const isInvalid = statusInfo?.status === "error" && statusInfo?.needs_relogin;
-            const isOnline = statusInfo?.status === "valid";
+            const presentation = normalizeAccountStatus(statusInfo);
+            const isInvalid = presentation.tone === "invalid";
             const isActive = selectedAccountName === account.name;
             const isSelected = selectedAccounts.has(account.name);
 
@@ -110,14 +117,11 @@ export function AccountSidebar({
                     {isSelected ? <CheckSquare weight="fill" size={16} /> : <Square weight="bold" size={16} />}
                   </div>
                 ) : null}
-                <div
-                  className={`w-2 h-2 rounded-full shrink-0 ${
-                    isChecking
-                      ? "bg-amber-400/50 animate-pulse"
-                      : isOnline
-                        ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.3)]"
-                        : "border border-rose-500/50 bg-transparent"
-                  }`}
+                <AccountStatusLamp
+                  status={statusInfo}
+                  t={t}
+                  size="sm"
+                  testId={`account-status-lamp-${account.name}`}
                 />
                 <div className="flex-1 truncate">{account.name}</div>
                 {!isSelectionMode ? (

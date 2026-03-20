@@ -84,57 +84,34 @@ class TelegramService:
         # 扫描 session 目录
         try:
             if is_string_session_mode():
-                seen = set()
-                for session_file in self.session_store.list_session_files(self.session_dir):
-                    account_name = session_file.stem
-                    seen.add(account_name)
-                    if account_name in pending_accounts:
-                        continue
-                    profile = self.session_store.get_account_profile(account_name)
-                    self.account_store.sync_from_session(
-                        account_name,
-                        legacy_profile=profile,
-                        session_file=session_file,
-                        session_backend="string",
-                    )
-                    accounts.append(
-                        {
-                            "name": account_name,
-                            "session_file": str(session_file),
-                            "exists": session_file.exists(),
-                            "size": session_file.stat().st_size
-                            if session_file.exists()
-                            else 0,
-                            "remark": profile.get("remark"),
-                            "proxy": profile.get("proxy"),
-                        }
-                    )
+                session_names = {
+                    path.stem for path in self.session_store.list_session_files(self.session_dir)
+                }
+                session_names.update(path.stem for path in self.session_dir.glob("*.session"))
+                session_names.update(self.session_store.list_account_names())
 
-                for account_name in self.session_store.list_account_names():
-                    if account_name in seen:
-                        continue
+                for account_name in sorted(session_names):
                     if account_name in pending_accounts:
                         continue
-                    session_file = self.session_dir / f"{account_name}.session_string"
-                    session_string = self.session_store.get_session_string(
-                        self.session_dir, account_name
-                    )
-                    if not session_file.exists() and not session_string:
+                    material = self._resolve_session_material(account_name)
+                    if not material["exists"]:
                         continue
                     profile = self.session_store.get_account_profile(account_name)
                     self.account_store.sync_from_session(
                         account_name,
                         legacy_profile=profile,
-                        session_file=session_file,
-                        session_backend="string",
+                        session_file=material["session_file"],
+                        session_backend=material["session_backend"],
                     )
                     accounts.append(
                         {
                             "name": account_name,
-                            "session_file": str(session_file),
-                            "exists": session_file.exists(),
-                            "size": session_file.stat().st_size
-                            if session_file.exists()
+                            "session_file": str(material["session_file"]),
+                            "exists": bool(material["session_file"])
+                            and material["session_file"].exists(),
+                            "size": material["session_file"].stat().st_size
+                            if material["session_file"]
+                            and material["session_file"].exists()
                             else 0,
                             "remark": profile.get("remark"),
                             "proxy": profile.get("proxy"),
@@ -190,6 +167,42 @@ class TelegramService:
             return now + 300
         return expires_ts
 
+    def _resolve_session_material(self, account_name: str) -> dict[str, Any]:
+        session_string = self.session_store.get_session_string(
+            self.session_dir, account_name
+        )
+        session_string_file = self.session_dir / f"{account_name}.session_string"
+        file_session = self.session_dir / f"{account_name}.session"
+
+        if session_string:
+            return {
+                "exists": True,
+                "session_backend": "string",
+                "session_ref": session_string_file.name,
+                "session_string": session_string,
+                "in_memory": True,
+                "session_file": session_string_file,
+            }
+
+        if file_session.exists():
+            return {
+                "exists": True,
+                "session_backend": "file",
+                "session_ref": file_session.name,
+                "session_string": None,
+                "in_memory": False,
+                "session_file": file_session,
+            }
+
+        return {
+            "exists": False,
+            "session_backend": None,
+            "session_ref": None,
+            "session_string": None,
+            "in_memory": False,
+            "session_file": None,
+        }
+
     def account_exists(self, account_name: str) -> bool:
         """检查账号是否存在"""
         # 优先查缓存
@@ -203,11 +216,7 @@ class TelegramService:
             # 但为了稳妥,如果缓存没命中,再查文件
             pass
 
-        if is_string_session_mode():
-            return bool(self.session_store.get_session_string(self.session_dir, account_name))
-
-        session_file = self.session_dir / f"{account_name}.session"
-        return session_file.exists()
+        return bool(self._resolve_session_material(account_name)["exists"])
 
     async def check_account_status(
         self, account_name: str, timeout_seconds: float = 8.0
@@ -249,29 +258,37 @@ class TelegramService:
             proxy_dict = None
 
         session_mode = get_session_mode()
-        session_string = None
-        in_memory = False
-        if session_mode == "string":
-            session_string = self.session_store.get_session_string(
-                self.session_dir, account_name
+        material = self._resolve_session_material(account_name)
+        session_string = material["session_string"]
+        in_memory = bool(material["in_memory"])
+        session_backend = material["session_backend"]
+        session_ref = material["session_ref"]
+
+        if not material["exists"]:
+            missing_message = (
+                "session_string 不存在或已失效"
+                if session_mode == "string"
+                else "session 文件不存在或已失效"
             )
-            if not session_string:
-                self.account_store.upsert_profile(
-                    account_name,
-                    status="invalid",
-                    last_status_message="session_string 不存在或已失效",
-                    last_checked_at=datetime.utcnow(),
-                )
-                return {
-                    "account_name": account_name,
-                    "ok": False,
-                    "status": "invalid",
-                    "message": "session_string 不存在或已失效",
-                    "code": "ACCOUNT_SESSION_INVALID",
-                    "checked_at": checked_at,
-                    "needs_relogin": True,
-                }
-            in_memory = True
+            self.account_store.upsert_profile(
+                account_name,
+                status="invalid",
+                session_backend="string" if session_mode == "string" else "file",
+                session_ref=f"{account_name}.session_string"
+                if session_mode == "string"
+                else f"{account_name}.session",
+                last_status_message=missing_message,
+                last_checked_at=datetime.utcnow(),
+            )
+            return {
+                "account_name": account_name,
+                "ok": False,
+                "status": "invalid",
+                "message": missing_message,
+                "code": "ACCOUNT_SESSION_INVALID",
+                "checked_at": checked_at,
+                "needs_relogin": True,
+            }
 
         timeout_seconds = max(1.0, min(float(timeout_seconds or 8.0), 20.0))
 
@@ -322,6 +339,8 @@ class TelegramService:
             self.account_store.upsert_profile(
                 account_name,
                 status="valid",
+                session_backend=session_backend,
+                session_ref=session_ref,
                 last_status_message="",
                 last_checked_at=datetime.utcnow(),
             )

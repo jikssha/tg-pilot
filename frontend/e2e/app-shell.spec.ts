@@ -9,6 +9,14 @@ async function setToken(page: Page) {
 }
 
 async function mockDashboardApis(page: Page) {
+  await page.route("**/health", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ status: "ok", version: "3.7.0" }),
+    });
+  });
+
   await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
     const path = url.pathname;
@@ -223,8 +231,11 @@ test("dashboard loads accounts and renders the detail workspace", async ({ page 
   await page.goto("/dashboard");
 
   await expect(page.getByText("demo-main")).toBeVisible();
+  await expect(page.getByTestId("app-version-badge")).toHaveText("v3.7.0");
+  await expect(page.getByTestId("account-status-lamp-demo-main")).toHaveAttribute("data-status-tone", "online");
   await page.getByText("demo-main").click();
   await expect(page.getByText("签到任务")).toBeVisible();
+  await expect(page.getByTestId("account-detail-status")).toContainText("已连接");
 });
 
 test("sign task create route opens the editor when account is provided", async ({ page }) => {
@@ -249,4 +260,61 @@ test("settings page renders system control center with mocked config", async ({ 
   await expect(page.getByRole("heading", { name: "系统运维概览" })).toBeVisible();
   await page.getByRole("button", { name: "审计事件追踪" }).click();
   await expect(page.getByRole("heading", { name: "审计事件追踪" })).toBeVisible();
+});
+
+test("toasts auto dismiss after task create success and failure", async ({ page }) => {
+  await setToken(page);
+  await mockDashboardApis(page);
+
+  let createAttempt = 0;
+  await page.route("**/api/sign-tasks", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.fallback();
+      return;
+    }
+
+    createAttempt += 1;
+    if (createAttempt === 1) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          name: "toast-success-task",
+          account_name: "demo-main",
+          sign_at: "0 6 * * *",
+          random_seconds: 0,
+          execution_mode: "fixed",
+          range_start: null,
+          range_end: null,
+          chats: [{ chat_id: -100123, name: "签到频道", actions: [{ action: 1, text: "/checkin" }], action_interval: 10 }],
+          last_run: null,
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({ detail: "save_failed" }),
+    });
+  });
+
+  await page.goto("/dashboard/sign-tasks/create?name=demo-main");
+  let taskDialog = page.locator(".modal-content").last();
+  await taskDialog.getByLabel("任务名称").fill("toast-success-task");
+  await taskDialog.locator("input[placeholder='手动输入 Chat ID...']").fill("-100123");
+  await taskDialog.locator("input[placeholder='发送的文本内容']").fill("/checkin");
+  await taskDialog.getByRole("button", { name: "新增任务" }).click();
+  await expect(page.getByTestId("toast-success")).toContainText("创建成功");
+  await expect(page.getByTestId("toast-success")).toBeHidden({ timeout: 7000 });
+
+  await page.goto("/dashboard/sign-tasks/create?name=demo-main&retry=1");
+  taskDialog = page.locator(".modal-content").last();
+  await taskDialog.getByLabel("任务名称").fill("toast-error-task");
+  await taskDialog.locator("input[placeholder='手动输入 Chat ID...']").fill("-100123");
+  await taskDialog.locator("input[placeholder='发送的文本内容']").fill("/checkin");
+  await taskDialog.getByRole("button", { name: "新增任务" }).click();
+  await expect(page.getByTestId("toast-error")).toContainText("创建失败");
+  await expect(page.getByTestId("toast-error")).toBeHidden({ timeout: 7000 });
 });
