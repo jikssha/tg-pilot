@@ -472,25 +472,28 @@ async def check_accounts_status(
             names = [n for n in names if n]
 
         timeout_seconds = max(1.0, min(float(request.timeout_seconds or 8.0), 20.0))
-        results: list[AccountStatusItem] = []
-        for idx, name in enumerate(names):
-            try:
-                item = await service.check_account_status(
-                    name, timeout_seconds=timeout_seconds
-                )
-            except Exception as exc:
-                item = {
-                    "account_name": name,
-                    "ok": False,
-                    "status": "error",
-                    "message": str(exc) or "status check failed",
-                    "code": "STATUS_CHECK_FAILED",
-                    "checked_at": None,
-                    "needs_relogin": False,
-                }
-            results.append(AccountStatusItem(**item))
-            if idx < len(names) - 1:
-                await asyncio.sleep(0.15)
+        concurrency = max(1, min(4, len(names) or 1))
+        semaphore = asyncio.Semaphore(concurrency)
+
+        async def _check_one(name: str) -> AccountStatusItem:
+            async with semaphore:
+                try:
+                    item = await service.check_account_status(
+                        name, timeout_seconds=timeout_seconds
+                    )
+                except Exception as exc:
+                    item = {
+                        "account_name": name,
+                        "ok": False,
+                        "status": "error",
+                        "message": str(exc) or "status check failed",
+                        "code": "STATUS_CHECK_FAILED",
+                        "checked_at": None,
+                        "needs_relogin": False,
+                    }
+                return AccountStatusItem(**item)
+
+        results = await asyncio.gather(*(_check_one(name) for name in names))
 
         return AccountStatusCheckResponse(results=results)
     except Exception as e:

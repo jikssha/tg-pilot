@@ -54,6 +54,7 @@ import { useLanguage } from "../../../context/LanguageContext";
 import { useAccountTaskData } from "@/features/sign-tasks/hooks/use-account-task-data";
 import { SignTaskDialogs } from "@/features/sign-tasks/components/sign-task-dialogs";
 import { TaskEditorDialog } from "@/features/sign-tasks/components/task-editor-dialog";
+import { cronToFixedTime, fixedTimeToCron, formatTaskScheduleDisplay } from "@/features/sign-tasks/lib/schedule";
 import { EmptyState } from "@/components/ui/empty-state";
 
 type ActionTypeOption = "1" | "2" | "3" | "ai_vision" | "ai_logic";
@@ -99,9 +100,7 @@ const TaskItem = memo(({ task, loading, isRunning, onEdit, onRun, onViewLogs, on
                         <div className="flex items-center gap-1.5 text-main/40">
                             <Clock weight="bold" size={12} />
                             <span className="text-[10px] font-bold font-mono uppercase tracking-wider">
-                                {task.execution_mode === "range" && task.range_start && task.range_end
-                                    ? `${task.range_start} - ${task.range_end}`
-                                    : task.sign_at}
+                                {formatTaskScheduleDisplay(task.execution_mode, task.sign_at, task.range_start, task.range_end)}
                             </span>
                         </div>
                         {task.random_seconds > 0 && (
@@ -775,7 +774,7 @@ export default function AccountTasksContent({
             const request: CreateSignTaskRequest = {
                 name: finalTaskName,
                 account_name: accountName,
-                sign_at: newTask.sign_at,
+                sign_at: newTask.execution_mode === "fixed" ? fixedTimeToCron(newTask.sign_at) : newTask.sign_at,
                 chats: [{
                     chat_id: chatId,
                     name: newTask.chat_name || t("chat_default_name").replace("{id}", String(chatId)),
@@ -864,7 +863,7 @@ export default function AccountTasksContent({
             setLoading(true);
 
             await updateSignTask(token, editingTaskName, {
-                sign_at: editTask.sign_at,
+                sign_at: editTask.execution_mode === "fixed" ? fixedTimeToCron(editTask.sign_at) : editTask.sign_at,
                 random_seconds: editTask.random_minutes * 60,
                 chats: [{
                     chat_id: chatId,
@@ -1100,7 +1099,7 @@ export default function AccountTasksContent({
                 refreshingChats={refreshingChats}
                 taskName={showCreateDialog ? newTask.name : editingTaskName}
                 executionMode={showCreateDialog ? newTask.execution_mode : editTask.execution_mode}
-                signAt={showCreateDialog ? newTask.sign_at : editTask.sign_at}
+                fixedTime={showCreateDialog ? cronToFixedTime(newTask.sign_at) : cronToFixedTime(editTask.sign_at)}
                 rangeStart={showCreateDialog ? newTask.range_start : editTask.range_start}
                 rangeEnd={showCreateDialog ? newTask.range_end : editTask.range_end}
                 actionInterval={showCreateDialog ? newTask.action_interval : editTask.action_interval}
@@ -1125,9 +1124,9 @@ export default function AccountTasksContent({
                     ? setNewTask({ ...newTask, action_interval: value })
                     : setEditTask({ ...editTask, action_interval: value })
                 }
-                onSignAtChange={(value) => showCreateDialog
-                    ? setNewTask({ ...newTask, sign_at: value })
-                    : setEditTask({ ...editTask, sign_at: value })
+                onFixedTimeChange={(value) => showCreateDialog
+                    ? setNewTask({ ...newTask, sign_at: fixedTimeToCron(value) })
+                    : setEditTask({ ...editTask, sign_at: fixedTimeToCron(value) })
                 }
                 onRangeStartChange={(value) => showCreateDialog
                     ? setNewTask({ ...newTask, range_start: value })

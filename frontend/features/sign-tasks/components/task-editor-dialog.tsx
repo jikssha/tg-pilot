@@ -47,7 +47,7 @@ interface TaskEditorDialogProps {
   refreshingChats: boolean;
   taskName: string;
   executionMode: "fixed" | "range";
-  signAt: string;
+  fixedTime: string;
   rangeStart: string;
   rangeEnd: string;
   actionInterval: number;
@@ -59,7 +59,7 @@ interface TaskEditorDialogProps {
   onTaskNameChange: (value: string) => void;
   onExecutionModeChange: (value: "fixed" | "range") => void;
   onActionIntervalChange: (value: number) => void;
-  onSignAtChange: (value: string) => void;
+  onFixedTimeChange: (value: string) => void;
   onRangeStartChange: (value: string) => void;
   onRangeEndChange: (value: string) => void;
   onChatSearchChange: (value: string) => void;
@@ -111,7 +111,7 @@ export function TaskEditorDialog({
   refreshingChats,
   taskName,
   executionMode,
-  signAt,
+  fixedTime,
   rangeStart,
   rangeEnd,
   actionInterval,
@@ -123,7 +123,7 @@ export function TaskEditorDialog({
   onTaskNameChange,
   onExecutionModeChange,
   onActionIntervalChange,
-  onSignAtChange,
+  onFixedTimeChange,
   onRangeStartChange,
   onRangeEndChange,
   onChatSearchChange,
@@ -141,7 +141,7 @@ export function TaskEditorDialog({
   return (
     <div className="modal-overlay active" onClick={onClose}>
       <div
-        className="glass-panel modal-content !max-w-xl !p-0 overflow-hidden animate-zoom-in border-white/5 flex flex-col !h-[85vh] shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+        className="glass-panel modal-content !max-w-2xl !p-0 overflow-hidden animate-zoom-in border-white/5 flex flex-col !h-[85vh] shadow-[0_0_50px_rgba(0,0,0,0.5)]"
         onClick={(event) => event.stopPropagation()}
       >
         <header className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
@@ -160,7 +160,7 @@ export function TaskEditorDialog({
         </header>
 
         <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar bg-black/10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label htmlFor="task-name-input" className={fieldLabelClass}>
                 {t("task_name")}
@@ -193,15 +193,38 @@ export function TaskEditorDialog({
               {executionMode === "fixed" ? (
                 <>
                   <label className={fieldLabelClass}>{t("sign_time_cron")}</label>
-                  <input className="!mb-0" placeholder="0 6 * * *" value={signAt} onChange={(event) => onSignAtChange(event.target.value)} />
+                  <input
+                    type="time"
+                    step={60}
+                    className="!mb-0 !w-full min-w-0"
+                    aria-label={t("sign_time_cron")}
+                    value={fixedTime}
+                    onChange={(event) => onFixedTimeChange(event.target.value)}
+                  />
                   <div className="text-[10px] text-main/30 mt-1 italic">{t("cron_example")}</div>
                 </>
               ) : (
                 <>
                   <label className={fieldLabelClass}>{t("time_range")}</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input type="time" className="!mb-0" aria-label={t("start_label")} title={t("start_label")} value={rangeStart} onChange={(event) => onRangeStartChange(event.target.value)} />
-                    <input type="time" className="!mb-0" aria-label={t("end_label")} title={t("end_label")} value={rangeEnd} onChange={(event) => onRangeEndChange(event.target.value)} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      type="time"
+                      step={60}
+                      className="!mb-0 !w-full min-w-0"
+                      aria-label={t("start_label")}
+                      title={t("start_label")}
+                      value={rangeStart}
+                      onChange={(event) => onRangeStartChange(event.target.value)}
+                    />
+                    <input
+                      type="time"
+                      step={60}
+                      className="!mb-0 !w-full min-w-0"
+                      aria-label={t("end_label")}
+                      title={t("end_label")}
+                      value={rangeEnd}
+                      onChange={(event) => onRangeEndChange(event.target.value)}
+                    />
                   </div>
                   <div className="text-[10px] text-main/30 mt-1 italic">{t("random_time_hint")}</div>
                 </>

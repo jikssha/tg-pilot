@@ -16,6 +16,11 @@ class _DummyClient:
         return SimpleNamespace(id=123456)
 
 
+class _TimeoutClient(_DummyClient):
+    async def get_me(self):
+        raise TimeoutError("request timed out")
+
+
 @pytest.mark.asyncio
 async def test_legacy_file_session_accounts_are_valid_in_string_mode(isolated_env, monkeypatch):
     from backend.services.telegram import TelegramService
@@ -61,3 +66,22 @@ async def test_missing_session_material_reports_invalid(isolated_env):
 
     assert result["status"] in {"invalid", "not_found"}
     assert result["needs_relogin"] is True
+
+
+@pytest.mark.asyncio
+async def test_timeout_status_is_reported_as_error(isolated_env, monkeypatch):
+    from backend.services.telegram import TelegramService
+
+    session_file = isolated_env / "sessions" / "slow.session"
+    session_file.parent.mkdir(parents=True, exist_ok=True)
+    session_file.write_text("legacy-file-session", encoding="utf-8")
+
+    service = TelegramService()
+
+    monkeypatch.setattr(service.telegram_engine, "get_client", lambda *args, **kwargs: _TimeoutClient())
+
+    result = await service.check_account_status("slow", timeout_seconds=1)
+
+    assert result["status"] == "error"
+    assert result["code"] == "TIMEOUT"
+    assert result["needs_relogin"] is False

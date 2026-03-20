@@ -235,7 +235,13 @@ test("dashboard loads accounts and renders the detail workspace", async ({ page 
   await expect(page.getByTestId("account-status-lamp-demo-main")).toHaveAttribute("data-status-tone", "online");
   await page.getByText("demo-main").click();
   await expect(page.getByText("签到任务")).toBeVisible();
+  await expect(page.getByText("daily-checkin")).toBeVisible();
   await expect(page.getByTestId("account-detail-status")).toContainText("已连接");
+
+  await page.locator("aside").getByText("demo-backup").click();
+  await expect(page).toHaveURL(/account=demo-backup/);
+  await expect(page.getByRole("heading", { name: "demo-backup" })).toBeVisible();
+  await expect(page.getByText("daily-checkin")).toBeVisible();
 });
 
 test("legacy task routes redirect back to dashboard workspace", async ({ page }) => {
@@ -252,6 +258,8 @@ test("legacy task routes redirect back to dashboard workspace", async ({ page })
   await expect(page).toHaveURL(/account=demo-main/);
   await expect(page.getByText("创建签到任务")).toBeVisible();
   await expect(page.getByLabel("任务名称")).toBeVisible();
+  await page.locator(".modal-content select").first().selectOption("fixed");
+  await expect(page.locator(".modal-content input[type='time']")).toBeVisible();
 });
 
 test("settings page renders system control center with mocked config", async ({ page }) => {

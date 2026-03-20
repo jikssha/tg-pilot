@@ -182,6 +182,7 @@ export default function Dashboard() {
   const [checking, setChecking] = useState(true);
   const [accountStatusMap, setAccountStatusMap] = useState<Record<string, AccountStatusItem>>({});
   const statusCheckedRef = useRef(false);
+  const statusCheckRequestIdRef = useRef(0);
   const dashboardOverview = useDashboardOverview(token);
   const accounts = dashboardOverview.accounts;
   const tasks = dashboardOverview.tasks;
@@ -285,6 +286,10 @@ export default function Dashboard() {
 
       const query = params.toString();
       const nextUrl = query ? `/dashboard?${query}` : "/dashboard";
+      const currentQuery = searchParams.toString();
+      if (currentQuery === query) {
+        return;
+      }
       router.replace(nextUrl, { scroll: false });
     },
     [router, searchParams]
@@ -296,79 +301,30 @@ export default function Dashboard() {
       setAccountStatusMap({});
       return;
     }
-
-    setAccountStatusMap((prev) => {
-      const next = { ...prev };
-      for (const name of accountNames) {
-        next[name] = {
-          account_name: name,
-          ok: false,
-          status: "checking",
-          message: "",
-          needs_relogin: false,
-        };
-      }
-      return next;
-    });
+    const requestId = statusCheckRequestIdRef.current + 1;
+    statusCheckRequestIdRef.current = requestId;
 
     try {
-      const firstPass = await checkAccountsStatus(tokenStr, {
+      const response = await checkAccountsStatus(tokenStr, {
         account_names: accountNames,
-        timeout_seconds: 8,
+        timeout_seconds: 6,
       });
-
-      const firstMap: Record<string, AccountStatusItem> = {};
-      for (const item of firstPass.results || []) {
-        firstMap[item.account_name] = item;
-      }
-
-      const retryNames = accountNames.filter((name) => {
-        const item = firstMap[name];
-        if (!item) return true;
-        if (item.needs_relogin) return false;
-        return item.status === "error" || item.status === "checking";
-      });
-
-      const retryMap: Record<string, AccountStatusItem> = {};
-      if (retryNames.length > 0) {
-        try {
-          const retryPass = await checkAccountsStatus(tokenStr, {
-            account_names: retryNames,
-            timeout_seconds: 12,
-          });
-          for (const item of retryPass.results || []) {
-            retryMap[item.account_name] = item;
-          }
-        } catch {
-          // keep first-pass result
-        }
+      if (statusCheckRequestIdRef.current !== requestId) {
+        return;
       }
 
       setAccountStatusMap((prev) => {
         const merged: Record<string, AccountStatusItem> = {};
         for (const name of accountNames) {
-          const incomingRaw = retryMap[name] || firstMap[name];
-          const incoming =
-            incomingRaw && incomingRaw.status === "error" && !incomingRaw.needs_relogin
-              ? { ...incomingRaw, status: "checking" as const }
-              : incomingRaw;
+          const incoming = (response.results || []).find((item) => item.account_name === name);
           if (incoming) {
-            const prevItem = prev[name];
-            if (
-              incoming.status === "error" &&
-              !incoming.needs_relogin &&
-              prevItem?.status === "connected"
-            ) {
-              merged[name] = prevItem;
-              continue;
-            }
             merged[name] = incoming;
             continue;
           }
           merged[name] = prev[name] || {
             account_name: name,
             ok: false,
-            status: "checking",
+            status: "unknown",
             message: "",
             needs_relogin: false,
           };
@@ -376,19 +332,7 @@ export default function Dashboard() {
         return merged;
       });
     } catch {
-      setAccountStatusMap((prev) => {
-        const merged: Record<string, AccountStatusItem> = {};
-        for (const name of accountNames) {
-          merged[name] = prev[name] || {
-            account_name: name,
-            ok: false,
-            status: "checking",
-            message: "",
-            needs_relogin: false,
-          };
-        }
-        return merged;
-      });
+      // Keep previous statuses on transient failures to avoid perpetual "checking" loops.
     }
   }, []);
 
@@ -417,9 +361,10 @@ export default function Dashboard() {
       if (dataLoaded && accounts.length === 0) setAccountStatusMap({});
       return;
     }
-    if (statusCheckedRef.current) return;
-    
-    if (shouldRunStatusCheck()) {
+    const missingStatuses = accounts.some((account) => !accountStatusMap[account.name]);
+    if (statusCheckedRef.current && !missingStatuses) return;
+
+    if (shouldRunStatusCheck() || missingStatuses) {
       statusCheckedRef.current = true;
       try {
         sessionStorage.setItem(DASHBOARD_STATUS_CHECKED_KEY, "1");
@@ -430,7 +375,7 @@ export default function Dashboard() {
     } else {
       statusCheckedRef.current = true;
     }
-  }, [token, dataLoaded, accounts, checkAccountStatusOnce, shouldRunStatusCheck]);
+  }, [token, dataLoaded, accounts, accountStatusMap, checkAccountStatusOnce, shouldRunStatusCheck]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -683,9 +628,12 @@ export default function Dashboard() {
       openReloginDialog(acc);
       return;
     }
+    if (selectedAccountName === acc.name && searchParams.get("account") === acc.name) {
+      return;
+    }
     setSelectedAccountName(acc.name);
     updateDashboardRoute(acc.name);
-  }, [accountStatusMap, openReloginDialog, updateDashboardRoute]);
+  }, [accountStatusMap, openReloginDialog, searchParams, selectedAccountName, updateDashboardRoute]);
 
   const performQrLoginStart = useCallback(async (options?: { autoRefresh?: boolean; silent?: boolean; reason?: string }) => {
     if (!token) return null;

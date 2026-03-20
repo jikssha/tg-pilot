@@ -24,10 +24,11 @@ export function useAccountTaskData(token: string | null, accountName: string) {
     chatsQuery,
     tasks: tasksQuery.data ?? [],
     chats: chatsQuery.data ?? [],
-    isLoading: tasksQuery.isLoading || chatsQuery.isLoading,
+    isLoading: tasksQuery.isLoading,
+    isChatsLoading: chatsQuery.isLoading,
     isFetching: tasksQuery.isFetching || chatsQuery.isFetching,
     async refetchAll() {
-      await Promise.all([tasksQuery.refetch(), chatsQuery.refetch()]);
+      await Promise.allSettled([tasksQuery.refetch(), chatsQuery.refetch()]);
     },
     async refreshChats(forceRefresh = false) {
       const chats = await getAccountChats(token!, accountName, forceRefresh);

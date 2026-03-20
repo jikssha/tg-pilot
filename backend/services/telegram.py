@@ -357,14 +357,14 @@ class TelegramService:
         except asyncio.TimeoutError:
             self.account_store.upsert_profile(
                 account_name,
-                status="checking",
+                status="error",
                 last_status_message="Request timed out",
                 last_checked_at=datetime.utcnow(),
             )
             return {
                 "account_name": account_name,
                 "ok": False,
-                "status": "checking",
+                "status": "error",
                 "message": "Request timed out",
                 "code": "TIMEOUT",
                 "checked_at": checked_at,
@@ -373,14 +373,14 @@ class TelegramService:
         except ConnectionError as e:
             self.account_store.upsert_profile(
                 account_name,
-                status="checking",
+                status="error",
                 last_status_message=str(e),
                 last_checked_at=datetime.utcnow(),
             )
             return {
                 "account_name": account_name,
                 "ok": False,
-                "status": "checking",
+                "status": "error",
                 "message": str(e),
                 "code": "CONNECTION_ERROR",
                 "checked_at": checked_at,
@@ -397,14 +397,14 @@ class TelegramService:
             ):
                 self.account_store.upsert_profile(
                     account_name,
-                    status="checking",
+                    status="error",
                     last_status_message=err_text,
                     last_checked_at=datetime.utcnow(),
                 )
                 return {
                     "account_name": account_name,
                     "ok": False,
-                    "status": "checking",
+                    "status": "error",
                     "message": err_text,
                     "code": "STORAGE_PERMISSION_DENIED",
                     "checked_at": checked_at,
@@ -445,14 +445,14 @@ class TelegramService:
             if "FLOOD_WAIT" in err_upper or "TRANSPORT FLOOD" in err_lower:
                 self.account_store.upsert_profile(
                     account_name,
-                    status="checking",
+                    status="error",
                     last_status_message=err_text,
                     last_checked_at=datetime.utcnow(),
                 )
                 return {
                     "account_name": account_name,
                     "ok": False,
-                    "status": "checking",
+                    "status": "error",
                     "message": err_text,
                     "code": "FLOOD_WAIT",
                     "checked_at": checked_at,
@@ -466,14 +466,14 @@ class TelegramService:
             ):
                 self.account_store.upsert_profile(
                     account_name,
-                    status="checking",
+                    status="error",
                     last_status_message=err_text,
                     last_checked_at=datetime.utcnow(),
                 )
                 return {
                     "account_name": account_name,
                     "ok": False,
-                    "status": "checking",
+                    "status": "error",
                     "message": err_text,
                     "code": "TIMEOUT",
                     "checked_at": checked_at,
@@ -487,14 +487,14 @@ class TelegramService:
             ):
                 self.account_store.upsert_profile(
                     account_name,
-                    status="checking",
+                    status="error",
                     last_status_message=err_text,
                     last_checked_at=datetime.utcnow(),
                 )
                 return {
                     "account_name": account_name,
                     "ok": False,
-                    "status": "checking",
+                    "status": "error",
                     "message": err_text,
                     "code": "CONNECTION_ERROR",
                     "checked_at": checked_at,
