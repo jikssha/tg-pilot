@@ -14,6 +14,7 @@ MODULES_TO_RELOAD = [
     "backend.adapters",
     "backend.core.config",
     "backend.core.database",
+    "backend.core.migrations",
     "backend.models.audit_event",
     "backend.models.account",
     "backend.models.login_session_state",
@@ -38,6 +39,8 @@ MODULES_TO_RELOAD = [
     "backend.stores",
     "backend.api.routes.auth",
     "backend.api.routes.insights",
+    "backend.main",
+    "backend.services.bot_notify",
     "backend.services.users",
 ]
 
