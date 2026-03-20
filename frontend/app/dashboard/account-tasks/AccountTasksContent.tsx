@@ -231,10 +231,14 @@ export default function AccountTasksContent({
     embedded = false, 
     initialAccountName = "",
     autoOpenCreate = false,
+    createRequestKey = null,
+    addToastOverride,
 }: { 
     embedded?: boolean; 
     initialAccountName?: string;
     autoOpenCreate?: boolean;
+    createRequestKey?: string | null;
+    addToastOverride?: (message: string, type?: "success" | "error" | "info", duration?: number) => string | null;
 }) {
     const router = useRouter();
     const { t, language } = useLanguage();
@@ -242,7 +246,9 @@ export default function AccountTasksContent({
     const searchParams = useSearchParams();
     const accountNameFromUrl = searchParams.get("name") || "";
     const accountName = initialAccountName || accountNameFromUrl;
-    const { toasts, addToast, removeToast } = useToast();
+    const localToastApi = useToast();
+    const { toasts, removeToast } = localToastApi;
+    const addToast = addToastOverride || localToastApi.addToast;
     const fieldLabelClass = "text-xs font-bold uppercase tracking-wider text-main/40 mb-1 block";
 
     const [token, setLocalToken] = useState<string | null>(null);
@@ -258,6 +264,7 @@ export default function AccountTasksContent({
     const [showFailedOnly, setShowFailedOnly] = useState(false);
     const [showDeleteTaskDialog, setShowDeleteTaskDialog] = useState(false);
     const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+    const lastAutoOpenRequestRef = useRef<string | null>(null);
 
     const addToastRef = useRef(addToast);
     const tRef = useRef(t);
@@ -281,10 +288,11 @@ export default function AccountTasksContent({
             toast(message, "error");
         }
         setTimeout(() => {
-            router.replace("/dashboard");
+            const nextUrl = accountName ? `/dashboard?account=${encodeURIComponent(accountName)}` : "/dashboard";
+            router.replace(nextUrl);
         }, 800);
         return true;
-    }, [router]);
+    }, [accountName, router]);
 
     // 任务弹窗状态控制
     const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -466,11 +474,15 @@ export default function AccountTasksContent({
     }, [showCreateDialog, showEditDialog, accountName]);
 
     useEffect(() => {
-        if (!autoOpenCreate) return;
+        if (!autoOpenCreate && !createRequestKey) return;
         if (!accountName || !token) return;
         if (showCreateDialog || showEditDialog) return;
+        if (createRequestKey && lastAutoOpenRequestRef.current === createRequestKey) return;
+        if (createRequestKey) {
+            lastAutoOpenRequestRef.current = createRequestKey;
+        }
         setShowCreateDialog(true);
-    }, [accountName, autoOpenCreate, showCreateDialog, showEditDialog, token]);
+    }, [accountName, autoOpenCreate, createRequestKey, showCreateDialog, showEditDialog, token]);
 
     const handleRefreshChats = async () => {
         if (!token || !accountName) return;
@@ -911,7 +923,16 @@ export default function AccountTasksContent({
     }, [showCreateDialog]);
 
     if (checking) {
-        return null;
+        return (
+            <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-8 h-8 border-2 border-[var(--accent-glow)]/20 border-t-[var(--accent-glow)] rounded-full animate-spin"></div>
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent-glow)]/40 font-bold animate-pulse">
+                        Loading Task Workspace
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     if (!accountName && !embedded) {

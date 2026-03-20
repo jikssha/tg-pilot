@@ -20,9 +20,17 @@ export default function Home() {
     }
   }, []);
 
-  // 正在检查或有 token 时不显示登录表单
   if (checking || hasToken) {
-    return null;
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="w-8 h-8 border-2 border-[var(--accent-glow)]/20 border-t-[var(--accent-glow)] rounded-full animate-spin"></div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent-glow)]/40 font-bold animate-pulse">
+            {hasToken ? "Redirecting to Dashboard" : "Checking Session"}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -31,4 +39,3 @@ export default function Home() {
     </div>
   );
 }
-

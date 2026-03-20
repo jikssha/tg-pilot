@@ -1,21 +1,30 @@
 "use client";
 
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import AccountTasksContent from "../../account-tasks/AccountTasksContent";
+import { Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "../../../../context/LanguageContext";
 
 function CreateTaskContent() {
-  const { t } = useLanguage();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const accountName = searchParams.get("name") || "";
+  const nextUrl = accountName
+    ? `/dashboard?account=${encodeURIComponent(accountName)}&dialog=create`
+    : "/dashboard";
+
+  useEffect(() => {
+    router.replace(nextUrl);
+  }, [nextUrl, router]);
 
   return (
-    <AccountTasksContent
-      embedded={false}
-      initialAccountName={accountName}
-      autoOpenCreate={Boolean(accountName)}
-    />
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-white/60">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-8 h-8 border-2 border-[var(--accent-glow)]/20 border-t-[var(--accent-glow)] rounded-full animate-spin"></div>
+        <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent-glow)]/40 font-bold animate-pulse">
+          Redirecting to Dashboard
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -23,7 +32,7 @@ export default function CreateSignTaskPage() {
   const { t } = useLanguage();
 
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">{t("loading")}</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-white/60">{t("loading")}</div>}>
       <CreateTaskContent />
     </Suspense>
   );

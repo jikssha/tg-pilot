@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getToken } from "../../lib/auth";
 import {
   checkAccountsStatus,
@@ -62,6 +62,9 @@ const EMPTY_LOGIN_DATA = {
 };
 const DASHBOARD_STATUS_CHECKED_KEY = "tg-pilot:dashboard-status-checked";
 const DASHBOARD_STATUS_CACHE_KEY = "tg-pilot:dashboard-status-cache";
+const DASHBOARD_STATUS_CACHE_TS_KEY = "tg-pilot:dashboard-status-cache-ts";
+const DASHBOARD_SELECTED_ACCOUNT_KEY = "tg-pilot:dashboard-selected-account";
+const STATUS_CACHE_MAX_AGE_MS = 60_000;
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
@@ -74,12 +77,14 @@ export default function Dashboard() {
   const [bulkImportConfig, setBulkImportConfig] = useState("");
   const [bulkImportLoading, setBulkImportLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t, language } = useLanguage();
   const isZh = language === "zh";
   const { toasts, addToast, removeToast } = useToast();
   const [token, setLocalToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedAccountName, setSelectedAccountName] = useState<string | null>(null);
+  const [taskCreateRequestKey, setTaskCreateRequestKey] = useState<string | null>(null);
 
   // 日志原生显示 (替代弹窗)
   const [accountLogs, setAccountLogs] = useState<AccountLog[]>([]);
@@ -231,6 +236,10 @@ export default function Dashboard() {
     }
 
     try {
+      const lastCheckedAt = Number(sessionStorage.getItem(DASHBOARD_STATUS_CACHE_TS_KEY) || "0");
+      if (!lastCheckedAt || Date.now() - lastCheckedAt > STATUS_CACHE_MAX_AGE_MS) {
+        return true;
+      }
       return sessionStorage.getItem(DASHBOARD_STATUS_CHECKED_KEY) !== "1";
     } catch {
       return true;
@@ -249,6 +258,37 @@ export default function Dashboard() {
       // ignore cache parse errors
     }
   }, []);
+
+  const restoreSelectedAccount = useCallback(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      return sessionStorage.getItem(DASHBOARD_SELECTED_ACCOUNT_KEY);
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const updateDashboardRoute = useCallback(
+    (nextAccountName?: string | null, options?: { dialog?: string | null }) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (nextAccountName) {
+        params.set("account", nextAccountName);
+      } else {
+        params.delete("account");
+      }
+
+      if (options?.dialog) {
+        params.set("dialog", options.dialog);
+      } else {
+        params.delete("dialog");
+      }
+
+      const query = params.toString();
+      const nextUrl = query ? `/dashboard?${query}` : "/dashboard";
+      router.replace(nextUrl, { scroll: false });
+    },
+    [router, searchParams]
+  );
 
   const checkAccountStatusOnce = useCallback(async (tokenStr: string, accountList: AccountInfo[]) => {
     const accountNames = accountList.map((item) => item.name).filter(Boolean);
@@ -367,10 +407,9 @@ export default function Dashboard() {
       return;
     }
     setLocalToken(tokenStr);
+    restoreCachedStatus();
     setChecking(false);
     statusCheckedRef.current = false;
-    // 不再恢复 sessionStorage 中缓存的旧状态，避免误显示"登录失效"
-    // restoreCachedStatus();
     void refetchDashboardOverview();
   }, [refetchDashboardOverview, restoreCachedStatus]);
   useEffect(() => {
@@ -399,6 +438,7 @@ export default function Dashboard() {
     if (keys.length === 0) return;
     try {
       sessionStorage.setItem(DASHBOARD_STATUS_CACHE_KEY, JSON.stringify(accountStatusMap));
+      sessionStorage.setItem(DASHBOARD_STATUS_CACHE_TS_KEY, String(Date.now()));
     } catch {
       // ignore storage write errors
     }
@@ -643,8 +683,9 @@ export default function Dashboard() {
       openReloginDialog(acc);
       return;
     }
-    router.push(`/dashboard/account-tasks?name=${acc.name}`);
-  }, [accountStatusMap, openReloginDialog, router]);
+    setSelectedAccountName(acc.name);
+    updateDashboardRoute(acc.name);
+  }, [accountStatusMap, openReloginDialog, updateDashboardRoute]);
 
   const performQrLoginStart = useCallback(async (options?: { autoRefresh?: boolean; silent?: boolean; reason?: string }) => {
     if (!token) return null;
@@ -1009,14 +1050,50 @@ export default function Dashboard() {
     };
   }, [token, qrLogin?.login_id, loginMode, showAddDialog, qrPhase, startQrPolling]);
 
-  // 如果初次加载没有选定账号且有账号存在，自动选定第一个
   useEffect(() => {
-    if (!selectedAccountName && accounts.length > 0) {
-      setSelectedAccountName(accounts[0].name);
-    } else if (accounts.length === 0 && selectedAccountName) {
+    if (accounts.length === 0) {
+      if (selectedAccountName) {
+        setSelectedAccountName(null);
+      }
+      return;
+    }
+
+    const queryAccount = searchParams.get("account");
+    const preferredAccount = queryAccount || restoreSelectedAccount();
+
+    if (preferredAccount && accounts.some((account) => account.name === preferredAccount)) {
+      if (selectedAccountName !== preferredAccount) {
+        setSelectedAccountName(preferredAccount);
+      }
+      return;
+    }
+
+    const fallbackAccount = accounts[0]?.name || null;
+    if (fallbackAccount && selectedAccountName !== fallbackAccount) {
+      setSelectedAccountName(fallbackAccount);
+      updateDashboardRoute(fallbackAccount);
+    } else if (!fallbackAccount && selectedAccountName) {
       setSelectedAccountName(null);
     }
-  }, [accounts, selectedAccountName]);
+  }, [accounts, restoreSelectedAccount, searchParams, selectedAccountName, updateDashboardRoute]);
+
+  useEffect(() => {
+    if (!selectedAccountName || typeof window === "undefined") return;
+    try {
+      sessionStorage.setItem(DASHBOARD_SELECTED_ACCOUNT_KEY, selectedAccountName);
+    } catch {
+      // ignore storage write errors
+    }
+  }, [selectedAccountName]);
+
+  useEffect(() => {
+    const dialog = searchParams.get("dialog");
+    if (dialog !== "create" || !selectedAccountName) {
+      return;
+    }
+    setTaskCreateRequestKey(`${selectedAccountName}-${Date.now()}`);
+    updateDashboardRoute(selectedAccountName, { dialog: null });
+  }, [searchParams, selectedAccountName, updateDashboardRoute]);
 
   const handleShowLogs = async (accountName: string) => {
     if (!token) return;
@@ -1136,7 +1213,7 @@ export default function Dashboard() {
     }
   };
 
-  if (!mounted) {
+  if (!mounted || checking || (token && dashboardLoading && !dataLoaded)) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -1216,7 +1293,12 @@ export default function Dashboard() {
               onRelogin={openReloginDialog}
               onEditAccount={handleEditAccount}
             >
-              <AccountTasksContent embedded={true} initialAccountName={selectedAccount.name} />
+              <AccountTasksContent
+                embedded={true}
+                initialAccountName={selectedAccount.name}
+                createRequestKey={taskCreateRequestKey}
+                addToastOverride={addToast}
+              />
             </AccountDetailPanel>
           )}
         </div>

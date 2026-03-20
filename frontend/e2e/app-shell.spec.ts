@@ -88,7 +88,7 @@ async function mockDashboardApis(page: Page) {
       return;
     }
 
-    if (path === "/api/sign-tasks/chats/demo-main") {
+    if (path.startsWith("/api/sign-tasks/chats/") && !path.endsWith("/search")) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -100,7 +100,7 @@ async function mockDashboardApis(page: Page) {
       return;
     }
 
-    if (path === "/api/sign-tasks/chats/demo-main/search") {
+    if (path.startsWith("/api/sign-tasks/chats/") && path.endsWith("/search")) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -238,12 +238,18 @@ test("dashboard loads accounts and renders the detail workspace", async ({ page 
   await expect(page.getByTestId("account-detail-status")).toContainText("已连接");
 });
 
-test("sign task create route opens the editor when account is provided", async ({ page }) => {
+test("legacy task routes redirect back to dashboard workspace", async ({ page }) => {
   await setToken(page);
   await mockDashboardApis(page);
 
-  await page.goto("/dashboard/sign-tasks/create?name=demo-main");
+  await page.goto("/dashboard/account-tasks?name=demo-backup");
+  await page.waitForURL(/\/dashboard(\?.*)?$/);
+  await expect(page).toHaveURL(/account=demo-backup/);
+  await expect(page.getByRole("heading", { name: "demo-backup" })).toBeVisible();
 
+  await page.goto("/dashboard/sign-tasks/create?name=demo-main");
+  await page.waitForURL(/\/dashboard(\?.*)?$/);
+  await expect(page).toHaveURL(/account=demo-main/);
   await expect(page.getByText("创建签到任务")).toBeVisible();
   await expect(page.getByLabel("任务名称")).toBeVisible();
 });
@@ -260,6 +266,22 @@ test("settings page renders system control center with mocked config", async ({ 
   await expect(page.getByRole("heading", { name: "系统运维概览" })).toBeVisible();
   await page.getByRole("button", { name: "审计事件追踪" }).click();
   await expect(page.getByRole("heading", { name: "审计事件追踪" })).toBeVisible();
+});
+
+test("dashboard restores the previously selected account after leaving and returning", async ({ page }) => {
+  await setToken(page);
+  await mockDashboardApis(page);
+
+  await page.goto("/dashboard");
+  await page.locator("aside").getByText("demo-backup").click();
+  await expect(page).toHaveURL(/account=demo-backup/);
+  await expect(page.getByRole("heading", { name: "demo-backup" })).toBeVisible();
+
+  await page.goto("/dashboard/settings");
+  await expect(page.getByText("系统控制面板")).toBeVisible();
+
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "demo-backup" })).toBeVisible();
 });
 
 test("toasts auto dismiss after task create success and failure", async ({ page }) => {
@@ -300,18 +322,19 @@ test("toasts auto dismiss after task create success and failure", async ({ page 
     });
   });
 
-  await page.goto("/dashboard/sign-tasks/create?name=demo-main");
+  await page.goto("/dashboard?account=demo-main");
+  await page.getByRole("button", { name: "新增任务" }).click();
   let taskDialog = page.locator(".modal-content").last();
-  await taskDialog.getByLabel("任务名称").fill("toast-success-task");
+  await taskDialog.locator("#task-name-input").fill("toast-success-task");
   await taskDialog.locator("input[placeholder='手动输入 Chat ID...']").fill("-100123");
   await taskDialog.locator("input[placeholder='发送的文本内容']").fill("/checkin");
   await taskDialog.getByRole("button", { name: "新增任务" }).click();
   await expect(page.getByTestId("toast-success")).toContainText("创建成功");
   await expect(page.getByTestId("toast-success")).toBeHidden({ timeout: 7000 });
 
-  await page.goto("/dashboard/sign-tasks/create?name=demo-main&retry=1");
+  await page.getByRole("button", { name: "新增任务" }).click();
   taskDialog = page.locator(".modal-content").last();
-  await taskDialog.getByLabel("任务名称").fill("toast-error-task");
+  await taskDialog.locator("#task-name-input").fill("toast-error-task");
   await taskDialog.locator("input[placeholder='手动输入 Chat ID...']").fill("-100123");
   await taskDialog.locator("input[placeholder='发送的文本内容']").fill("/checkin");
   await taskDialog.getByRole("button", { name: "新增任务" }).click();
