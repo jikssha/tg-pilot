@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { getToken } from "../../lib/auth";
 import {
   checkAccountsStatus,
@@ -43,6 +44,7 @@ import { ThemeLanguageToggle } from "../../components/ThemeLanguageToggle";
 import { useLanguage } from "../../context/LanguageContext";
 import AccountTasksContent from "./account-tasks/AccountTasksContent";
 import { useDashboardOverview } from "@/features/accounts/hooks/use-dashboard-overview";
+import { queryKeys } from "@/lib/query-keys";
 import { AccountSidebar } from "@/features/accounts/components/account-sidebar";
 import { DashboardEmptyState } from "@/features/accounts/components/dashboard-empty-state";
 import { AccountDetailPanel } from "@/features/accounts/components/account-detail-panel";
@@ -81,6 +83,7 @@ export default function Dashboard() {
   const { t, language } = useLanguage();
   const isZh = language === "zh";
   const { toasts, addToast, removeToast } = useToast();
+  const queryClient = useQueryClient();
   const [token, setLocalToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedAccountName, setSelectedAccountName] = useState<string | null>(null);
@@ -379,10 +382,13 @@ export default function Dashboard() {
   const loadData = useCallback(async () => {
     try {
       await refetchDashboardOverview();
+      if (token) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.operationsOverview(token) });
+      }
     } catch (err: any) {
       addToastRef.current(formatErrorMessage("load_failed", err), "error");
     }
-  }, [formatErrorMessage, refetchDashboardOverview]);
+  }, [formatErrorMessage, queryClient, refetchDashboardOverview, token]);
 
   useEffect(() => {
     const tokenStr = getToken();

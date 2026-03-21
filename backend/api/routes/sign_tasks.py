@@ -190,7 +190,9 @@ class TaskHistoryItem(BaseModel):
 
 @router.get("", response_model=List[SignTaskOut])
 def list_sign_tasks(
-    account_name: Optional[str] = None, current_user=Depends(get_current_user)
+    account_name: Optional[str] = None,
+    force_refresh: bool = False,
+    current_user=Depends(get_current_user),
 ):
     """
     获取所有签到任务列表
@@ -198,7 +200,9 @@ def list_sign_tasks(
     Args:
         account_name: 可选,按账号名筛选任务
     """
-    tasks = get_sign_task_service().list_tasks(account_name=account_name)
+    tasks = get_sign_task_service().list_tasks(
+        account_name=account_name, force_refresh=force_refresh
+    )
     return tasks
 
 
@@ -270,10 +274,17 @@ async def create_sign_task(
             range_end=payload.range_end,
         )
 
-        # 同步调度器
-        from backend.scheduler import sync_jobs
+        try:
+            from backend.scheduler import sync_jobs
 
-        await sync_jobs()
+            await sync_jobs()
+        except Exception as sync_exc:
+            logger.warning(
+                "创建任务后同步调度器失败 task=%s account=%s: %s",
+                payload.name,
+                payload.account_name,
+                sync_exc,
+            )
 
         return task
     except Exception as e:
@@ -330,10 +341,17 @@ async def update_sign_task(
             range_end=payload.range_end,
         )
 
-        # 同步调度器
-        from backend.scheduler import sync_jobs
+        try:
+            from backend.scheduler import sync_jobs
 
-        await sync_jobs()
+            await sync_jobs()
+        except Exception as sync_exc:
+            logger.warning(
+                "更新任务后同步调度器失败 task=%s account=%s: %s",
+                task_name,
+                account_name,
+                sync_exc,
+            )
 
         return task
     except HTTPException:
@@ -354,10 +372,17 @@ async def delete_sign_task(
     if not success:
         raise HTTPException(status_code=404, detail=f"任务 {task_name} 不存在")
 
-    # 同步调度器
-    from backend.scheduler import sync_jobs
+    try:
+        from backend.scheduler import sync_jobs
 
-    await sync_jobs()
+        await sync_jobs()
+    except Exception as sync_exc:
+        logger.warning(
+            "删除任务后同步调度器失败 task=%s account=%s: %s",
+            task_name,
+            account_name,
+            sync_exc,
+        )
     get_audit_service().record_action(
         action="delete_sign_task",
         resource_type="sign_task",

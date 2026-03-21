@@ -1,35 +1,48 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from types import SimpleNamespace
 
 
-def test_operations_service_builds_lightweight_overview(db_session):
+def test_operations_service_builds_lightweight_overview(db_session, monkeypatch):
     from backend.models.account import Account
     from backend.models.audit_event import AuditEvent
     from backend.models.daily_task_run import DailyTaskRun
-    from backend.models.sign_task import SignTask
     from backend.services.operations import OperationsService
+
+    monkeypatch.setattr(
+        "backend.services.operations.get_telegram_service",
+        lambda: SimpleNamespace(
+            list_accounts=lambda force_refresh=False: [
+                {"name": "main-a"},
+                {"name": "main-b"},
+            ]
+        ),
+    )
+    monkeypatch.setattr(
+        "backend.services.operations.get_sign_task_service",
+        lambda: SimpleNamespace(
+            list_tasks=lambda force_refresh=False: [
+                {
+                    "name": "daily-a",
+                    "account_name": "main-a",
+                    "enabled": True,
+                    "last_run": {"success": True},
+                },
+                {
+                    "name": "daily-b",
+                    "account_name": "main-b",
+                    "enabled": False,
+                    "last_run": {"success": False},
+                },
+            ]
+        ),
+    )
 
     db_session.add_all(
         [
             Account(account_name="main-a", api_id="1", api_hash="hash", status="valid"),
             Account(account_name="main-b", api_id="1", api_hash="hash", status="invalid"),
-            SignTask(
-                name="daily-a",
-                account_name="main-a",
-                enabled=True,
-                sign_at="0 6 * * *",
-                chats_json="[]",
-                last_run_success=True,
-            ),
-            SignTask(
-                name="daily-b",
-                account_name="main-b",
-                enabled=False,
-                sign_at="0 8 * * *",
-                chats_json="[]",
-                last_run_success=False,
-            ),
             AuditEvent(
                 action="import_all_configs",
                 resource_type="config_bundle",

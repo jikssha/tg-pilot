@@ -4,15 +4,14 @@ from collections import Counter
 from datetime import date
 from typing import Any
 
-from sqlalchemy import func
-
 import backend.scheduler as scheduler_module
 from backend.core.database import get_session_local
 from backend.models.account import Account
 from backend.models.audit_event import AuditEvent
 from backend.models.daily_task_run import DailyTaskRun
-from backend.models.sign_task import SignTask
 from backend.services.audit import get_audit_service
+from backend.services.sign_tasks import get_sign_task_service
+from backend.services.telegram import get_telegram_service
 
 
 class OperationsService:
@@ -25,34 +24,6 @@ class OperationsService:
     ) -> dict[str, Any]:
         db = get_session_local()()
         try:
-            accounts_total = db.query(func.count(Account.id)).scalar() or 0
-            account_status_rows = (
-                db.query(Account.status, func.count(Account.id))
-                .group_by(Account.status)
-                .all()
-            )
-            account_statuses = {
-                str(status or "unknown"): int(count)
-                for status, count in account_status_rows
-            }
-
-            sign_tasks_total = db.query(func.count(SignTask.id)).scalar() or 0
-            sign_tasks_enabled = (
-                db.query(func.count(SignTask.id))
-                .filter(SignTask.enabled.is_(True))
-                .scalar()
-                or 0
-            )
-            sign_tasks_disabled = max(int(sign_tasks_total) - int(sign_tasks_enabled), 0)
-            last_run_rows = db.query(SignTask.last_run_success).all()
-            last_run_counter = Counter()
-            never_run = 0
-            for (flag,) in last_run_rows:
-                if flag is None:
-                    never_run += 1
-                else:
-                    last_run_counter["success" if flag else "failed"] += 1
-
             latest_audit_at = (
                 db.query(AuditEvent.created_at)
                 .order_by(AuditEvent.created_at.desc(), AuditEvent.id.desc())
@@ -91,6 +62,36 @@ class OperationsService:
             ]
         finally:
             db.close()
+
+        live_accounts = get_telegram_service().list_accounts(force_refresh=True)
+        accounts_total = len(live_accounts)
+        live_account_names = [str(item.get("name") or "") for item in live_accounts if item.get("name")]
+        account_statuses: dict[str, int] = Counter()
+        db = get_session_local()()
+        try:
+            status_rows = (
+                db.query(Account.account_name, Account.status)
+                .filter(Account.account_name.in_(live_account_names))
+                .all()
+            )
+        finally:
+            db.close()
+        status_by_name = {str(account_name): str(status or "unknown") for account_name, status in status_rows}
+        for account_name in live_account_names:
+            account_statuses[status_by_name.get(account_name, "unknown")] += 1
+
+        sign_tasks = get_sign_task_service().list_tasks(force_refresh=True)
+        sign_tasks_total = len(sign_tasks)
+        sign_tasks_enabled = sum(1 for task in sign_tasks if task.get("enabled", True))
+        sign_tasks_disabled = max(int(sign_tasks_total) - int(sign_tasks_enabled), 0)
+        last_run_counter = Counter()
+        never_run = 0
+        for task in sign_tasks:
+            last_run = task.get("last_run")
+            if not last_run:
+                never_run += 1
+                continue
+            last_run_counter["success" if last_run.get("success") else "failed"] += 1
 
         active_scheduler = scheduler_module.scheduler
         jobs = []

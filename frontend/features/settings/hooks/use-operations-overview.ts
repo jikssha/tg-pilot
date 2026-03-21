@@ -10,5 +10,8 @@ export function useOperationsOverview(token: string | null) {
     queryKey: token ? queryKeys.operationsOverview(token) : ["operations-overview", "anonymous"],
     queryFn: () => getOperationsOverview(token!),
     enabled: Boolean(token),
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 15_000,
   });
 }

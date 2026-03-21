@@ -3,6 +3,7 @@
 import { useEffect, useState, memo, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { getToken } from "../../../lib/auth";
 import {
     deleteSignTask,
@@ -52,6 +53,7 @@ import {
 import { ToastContainer, useToast } from "../../../components/ui/toast";
 import { useLanguage } from "../../../context/LanguageContext";
 import { useAccountTaskData } from "@/features/sign-tasks/hooks/use-account-task-data";
+import { queryKeys } from "@/lib/query-keys";
 import { SignTaskDialogs } from "@/features/sign-tasks/components/sign-task-dialogs";
 import { TaskEditorDialog } from "@/features/sign-tasks/components/task-editor-dialog";
 import { cronToFixedTime, fixedTimeToCron, formatTaskScheduleDisplay } from "@/features/sign-tasks/lib/schedule";
@@ -240,6 +242,7 @@ export default function AccountTasksContent({
     addToastOverride?: (message: string, type?: "success" | "error" | "info", duration?: number) => string | null;
 }) {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { t, language } = useLanguage();
     const isZh = language === "zh";
     const searchParams = useSearchParams();
@@ -403,6 +406,12 @@ export default function AccountTasksContent({
     const loadData = useCallback(async () => {
         try {
             await refetchTaskData();
+            if (token) {
+                await Promise.allSettled([
+                    queryClient.invalidateQueries({ queryKey: queryKeys.dashboardOverview(token) }),
+                    queryClient.invalidateQueries({ queryKey: queryKeys.operationsOverview(token) }),
+                ]);
+            }
         } catch (err: any) {
             if (handleAccountSessionInvalid(err)) return;
             const toast = addToastRef.current;
@@ -410,7 +419,7 @@ export default function AccountTasksContent({
                 toast(formatErrorMessage("load_failed", err), "error");
             }
         }
-    }, [formatErrorMessage, handleAccountSessionInvalid, refetchTaskData]);
+    }, [formatErrorMessage, handleAccountSessionInvalid, queryClient, refetchTaskData, token]);
 
     useEffect(() => {
         const tokenStr = getToken();
