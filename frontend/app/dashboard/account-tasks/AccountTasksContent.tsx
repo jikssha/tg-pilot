@@ -84,143 +84,187 @@ const TaskItem = memo(({ task, loading, isRunning, onEdit, onRun, onViewLogs, on
     language: string;
 }) => {
     const copyTaskTitle = language === "zh" ? "\u590D\u5236\u4EFB\u52A1" : "Copy Task";
+    const primaryChat = task.chats[0];
+    const actionCount = primaryChat?.actions?.length || 0;
+    const scheduleDisplay = formatTaskScheduleDisplay(task.execution_mode, task.sign_at, task.range_start, task.range_end);
+    const lastRunLabel = task.last_run
+        ? new Date(task.last_run.time).toLocaleString(language === "zh" ? "zh-CN" : "en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+        })
+        : null;
+    const lastRunClass = task.last_run?.success
+        ? "border-emerald-400/15 bg-emerald-400/[0.08] text-emerald-300"
+        : "border-rose-400/15 bg-rose-400/[0.08] text-rose-300";
+    const iconClass = isRunning
+        ? "bg-emerald-400/[0.12] text-emerald-300 border-emerald-400/15"
+        : "bg-[var(--accent-glow)]/10 text-[#b57dff] border-[var(--accent-glow)]/15";
+    const desktopActionClass = "w-9 h-9 rounded-[12px] border border-white/8 bg-white/[0.03] flex items-center justify-center transition-colors";
+    const mobileActionClass = "h-11 rounded-[14px] border border-white/8 bg-white/[0.03] flex items-center justify-center transition-colors";
 
     return (
-        <div className={`glass-panel p-4 md:p-5 group transition-all duration-300 ${isRunning ? 'ring-2 ring-emerald-500/20 border-emerald-500/30 animate-pulse-subtle' : 'hover:border-[var(--accent-glow)]/30'}`}>
-            <div className="flex items-start gap-4 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-[var(--accent-glow)]/10 flex items-center justify-center text-[#b57dff] shrink-0">
-                    <ChatCircleText weight="bold" size={20} />
-                </div>
-                <div className="min-w-0 flex-1 flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                        <h3 className="font-bold truncate text-sm" title={task.name}>{task.name}</h3>
-                        <span className="text-[9px] font-mono text-main/30 bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
-                            {task.chats[0]?.chat_id || "-"}
-                        </span>
+        <div className={`group rounded-[22px] border overflow-hidden transition-all duration-300 ${
+            isRunning
+                ? "border-emerald-400/22 bg-[linear-gradient(180deg,rgba(52,211,153,0.06),rgba(255,255,255,0.028))] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_16px_30px_rgba(0,0,0,0.18)]"
+                : "border-white/[0.07] bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.02))] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] hover:border-white/[0.11] hover:-translate-y-px"
+        }`}>
+            <div className="px-5 md:px-6 py-5">
+                <div className="flex items-start gap-4 min-w-0">
+                    <div className={`w-11 h-11 rounded-[15px] border flex items-center justify-center shrink-0 ${iconClass}`}>
+                        {isRunning ? <Lightning weight="fill" size={18} /> : <ChatCircleText weight="bold" size={19} />}
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5 text-main/40">
-                            <Clock weight="bold" size={12} />
-                            <span className="text-[10px] font-bold font-mono uppercase tracking-wider">
-                                {formatTaskScheduleDisplay(task.execution_mode, task.sign_at, task.range_start, task.range_end)}
+
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                            <h3 className="truncate text-[16px] font-semibold text-[var(--text-main)]" title={task.name}>
+                                {task.name}
+                            </h3>
+                            <span className="h-6 px-2.5 rounded-full border border-white/10 bg-white/[0.04] text-[10px] font-mono text-white/55 inline-flex items-center justify-center whitespace-nowrap">
+                                {primaryChat?.chat_id || "-"}
+                            </span>
+                            <span className="h-6 px-2.5 rounded-full border border-[var(--accent-glow)]/15 bg-[var(--accent-glow)]/8 text-[10px] font-bold text-[var(--accent-glow)]/80 inline-flex items-center justify-center whitespace-nowrap">
+                                {t("contains_actions").replace("{count}", String(actionCount))}
                             </span>
                         </div>
-                        {task.random_seconds > 0 && (
-                            <div className="flex items-center gap-1 text-[var(--accent-glow)]/60">
-                                <Hourglass weight="bold" size={12} />
-                                <span className="text-[10px] font-bold">~{Math.round(task.random_seconds / 60)}m</span>
-                            </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2.5 text-[11px]">
+                            <span className="h-8 px-3 rounded-full border border-white/10 bg-white/[0.03] text-white/70 inline-flex items-center gap-2">
+                                <Clock weight="bold" size={13} />
+                                <span className="font-mono font-semibold tracking-[0.05em]">{scheduleDisplay}</span>
+                            </span>
+                            {task.random_seconds > 0 ? (
+                                <span className="h-8 px-3 rounded-full border border-[var(--accent-glow)]/15 bg-[var(--accent-glow)]/8 text-[var(--accent-glow)]/75 inline-flex items-center gap-2">
+                                    <Hourglass weight="bold" size={13} />
+                                    <span className="font-semibold">~{Math.round(task.random_seconds / 60)}m</span>
+                                </span>
+                            ) : null}
+                            <span className="h-8 px-3 rounded-full border border-white/[0.08] bg-white/[0.025] text-[var(--text-sub)] inline-flex items-center gap-2">
+                                <Hash weight="bold" size={13} />
+                                <span className="truncate max-w-[220px]">{primaryChat?.name || t("no_data")}</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="hidden md:flex items-center gap-2 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
+                        <button
+                            onClick={() => onRun(task.name)}
+                            disabled={loading || isRunning}
+                            className={`${desktopActionClass} ${isRunning ? "text-white/30 cursor-not-allowed" : "text-emerald-300 hover:text-emerald-200 hover:bg-emerald-400/[0.08] hover:border-emerald-400/15"}`}
+                            title={t("run")}
+                        >
+                            {isRunning ? <Spinner weight="bold" size={15} className="animate-spin" /> : <Play weight="fill" size={15} />}
+                        </button>
+                        <button
+                            onClick={() => onEdit(task)}
+                            disabled={loading}
+                            className={`${desktopActionClass} text-white/60 hover:text-white hover:bg-white/[0.06]`}
+                            title={t("edit")}
+                        >
+                            <PencilSimple weight="bold" size={15} />
+                        </button>
+                        <button
+                            onClick={() => onViewLogs(task)}
+                            disabled={loading}
+                            className={`${desktopActionClass} text-[var(--accent-glow)]/85 hover:text-[var(--accent-glow)] hover:bg-[var(--accent-glow)]/10`}
+                            title={t("task_history_logs")}
+                        >
+                            <ListDashes weight="bold" size={15} />
+                        </button>
+                        <button
+                            onClick={() => onCopy(task.name)}
+                            disabled={loading}
+                            className={`${desktopActionClass} text-sky-300 hover:text-sky-200 hover:bg-sky-400/[0.08]`}
+                            title={copyTaskTitle}
+                        >
+                            <Copy weight="bold" size={15} />
+                        </button>
+                        <button
+                            onClick={() => onDelete(task.name)}
+                            disabled={loading}
+                            className={`${desktopActionClass} text-rose-300 hover:text-rose-200 hover:bg-rose-400/[0.08]`}
+                            title={t("delete")}
+                        >
+                            <Trash weight="bold" size={15} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="px-5 md:px-6 py-4 border-t border-white/[0.05] bg-white/[0.015]">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        {task.last_run ? (
+                            <span className={`h-8 px-3 rounded-full border inline-flex items-center gap-2 text-[11px] font-semibold ${lastRunClass}`}>
+                                {task.last_run.success ? <CheckCircle weight="bold" size={14} /> : <XCircle weight="bold" size={14} />}
+                                <span>{task.last_run.success ? (language === "zh" ? "最近成功" : "Last success") : (language === "zh" ? "最近失败" : "Last failure")}</span>
+                                <span className="font-mono text-white/60">{lastRunLabel}</span>
+                            </span>
+                        ) : (
+                            <span className="h-8 px-3 rounded-full border border-white/[0.08] bg-white/[0.025] text-[11px] font-semibold text-white/35 inline-flex items-center gap-2">
+                                <Timer weight="bold" size={14} />
+                                {t("no_data")}
+                            </span>
                         )}
+
+                        <span className="h-8 px-3 rounded-full border border-white/[0.08] bg-white/[0.025] text-[11px] font-semibold text-white/60 inline-flex items-center gap-2">
+                            <CirclesThree weight="fill" size={14} />
+                            {actionCount} {language === "zh" ? "个动作" : `action${actionCount === 1 ? "" : "s"}`}
+                        </span>
+                    </div>
+
+                    <div className="text-[11px] text-[var(--text-sub)] md:text-right">
+                        <span className="font-mono">
+                            {language === "zh"
+                                ? `间隔 ${primaryChat?.action_interval ?? task.sign_interval ?? 10}s`
+                                : `Interval ${primaryChat?.action_interval ?? task.sign_interval ?? 10}s`}
+                        </span>
                     </div>
                 </div>
 
-                <div className="hidden md:flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                <div className="mt-3 grid grid-cols-5 gap-2 md:hidden">
                     <button
                         onClick={() => onRun(task.name)}
                         disabled={loading || isRunning}
-                        className={`action-btn !w-8 !h-8 ${isRunning ? 'text-main/20' : '!text-emerald-400 hover:bg-emerald-500/10'}`}
+                        className={`${mobileActionClass} ${isRunning ? "text-white/30 cursor-not-allowed" : "text-emerald-300 hover:bg-emerald-400/[0.08] hover:border-emerald-400/15"}`}
                         title={t("run")}
                     >
-                        {isRunning ? <Spinner weight="bold" size={14} className="animate-spin" /> : <Play weight="fill" size={14} />}
+                        {isRunning ? <Spinner weight="bold" size={16} className="animate-spin" /> : <Play weight="fill" size={16} />}
                     </button>
                     <button
                         onClick={() => onEdit(task)}
                         disabled={loading}
-                        className="action-btn !w-8 !h-8 hover:text-white"
+                        className={`${mobileActionClass} text-white/60 hover:text-white hover:bg-white/[0.06]`}
                         title={t("edit")}
                     >
-                        <PencilSimple weight="bold" size={14} />
+                        <PencilSimple weight="bold" size={16} />
                     </button>
                     <button
                         onClick={() => onViewLogs(task)}
                         disabled={loading}
-                        className="action-btn !w-8 !h-8 !text-[var(--accent-glow)] hover:bg-[var(--accent-glow)]/10"
+                        className={`${mobileActionClass} text-[var(--accent-glow)]/85 hover:text-[var(--accent-glow)] hover:bg-[var(--accent-glow)]/10`}
                         title={t("task_history_logs")}
                     >
-                        <ListDashes weight="bold" size={14} />
+                        <ListDashes weight="bold" size={16} />
                     </button>
                     <button
                         onClick={() => onCopy(task.name)}
                         disabled={loading}
-                        className="action-btn !w-8 !h-8 !text-sky-400 hover:bg-sky-500/10"
+                        className={`${mobileActionClass} text-sky-300 hover:text-sky-200 hover:bg-sky-400/[0.08]`}
                         title={copyTaskTitle}
                     >
-                        <Copy weight="bold" size={14} />
+                        <Copy weight="bold" size={16} />
                     </button>
                     <button
                         onClick={() => onDelete(task.name)}
                         disabled={loading}
-                        className="action-btn !w-8 !h-8 !text-rose-400 hover:bg-rose-500/10"
+                        className={`${mobileActionClass} text-rose-300 hover:text-rose-200 hover:bg-rose-400/[0.08]`}
                         title={t("delete")}
                     >
-                        <Trash weight="bold" size={14} />
+                        <Trash weight="bold" size={16} />
                     </button>
                 </div>
-            </div>
-
-            <div className="mt-3 md:mt-4 flex flex-col md:flex-row md:items-center justify-between gap-3 border-t border-white/5 pt-3">
-                <div className="flex items-center gap-4">
-                    {task.last_run ? (
-                        <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest ${task.last_run.success ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {task.last_run.success ? <CheckCircle weight="bold" /> : <XCircle weight="bold" />}
-                            <span className="text-main/60 font-mono normal-case tracking-normal">
-                                {new Date(task.last_run.time).toLocaleString(language === "zh" ? 'zh-CN' : 'en-US', {
-                                    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
-                                })}
-                            </span>
-                        </div>
-                    ) : (
-                        <div className="text-[10px] text-main/20 font-bold uppercase tracking-widest italic">{t("no_data")}</div>
-                    )}
-                </div>
-                
-                <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--accent-glow)]/60">
-                    <CirclesThree weight="fill" /> 
-                    {t("contains_actions").replace("{count}", String(task.chats[0]?.actions?.length || 0))}
-                </div>
-            </div>
-
-            <div className="mt-3 grid grid-cols-5 gap-2 md:hidden">
-                <button
-                    onClick={() => onRun(task.name)}
-                    disabled={loading}
-                    className="action-btn !w-full !h-10 !text-emerald-400 hover:bg-emerald-500/10"
-                    title={t("run")}
-                >
-                    <Play weight="fill" size={14} />
-                </button>
-                <button
-                    onClick={() => onEdit(task)}
-                    disabled={loading}
-                    className="action-btn !w-full !h-10"
-                    title={t("edit")}
-                >
-                    <PencilSimple weight="bold" size={14} />
-                </button>
-                <button
-                    onClick={() => onViewLogs(task)}
-                    disabled={loading}
-                    className="action-btn !w-full !h-10 !text-[var(--accent-glow)] hover:bg-[var(--accent-glow)]/10"
-                    title={t("task_history_logs")}
-                >
-                    <ListDashes weight="bold" size={14} />
-                </button>
-                <button
-                    onClick={() => onCopy(task.name)}
-                    disabled={loading}
-                    className="action-btn !w-full !h-10 !text-sky-400 hover:bg-sky-500/10"
-                    title={copyTaskTitle}
-                >
-                    <Copy weight="bold" size={14} />
-                </button>
-                <button
-                    onClick={() => onDelete(task.name)}
-                    disabled={loading}
-                    className="action-btn !w-full !h-10 !text-rose-400 hover:bg-rose-500/10"
-                    title={t("delete")}
-                >
-                    <Trash weight="bold" size={14} />
-                </button>
             </div>
         </div>
     );
