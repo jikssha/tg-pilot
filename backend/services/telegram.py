@@ -26,6 +26,8 @@ from backend.utils.tg_session import (
     get_session_mode,
     is_string_session_mode,
 )
+from tg_signer.core import Client as ProbeClient
+from tg_signer.core import get_api_config
 
 settings = get_settings()
 logger = logging.getLogger("backend.telegram")
@@ -203,6 +205,40 @@ class TelegramService:
             "session_file": None,
         }
 
+    def _build_probe_client(
+        self,
+        account_name: str,
+        *,
+        proxy: dict[str, Any] | None,
+        session_string: str | None,
+        in_memory: bool,
+    ) -> ProbeClient:
+        api_id, api_hash = get_api_config()
+        device_fp = _get_device_fingerprint(account_name)
+        probe_key = (
+            f"{(self.session_dir / account_name).resolve()}#probe:{time.monotonic_ns()}"
+        )
+        return ProbeClient(
+            account_name,
+            api_id=api_id,
+            api_hash=api_hash,
+            proxy=proxy,
+            workdir=self.session_dir,
+            session_string=session_string,
+            in_memory=in_memory,
+            no_updates=True,
+            key=probe_key,
+            **device_fp,
+        )
+
+    @staticmethod
+    async def _close_probe_client(client: ProbeClient | Any) -> None:
+        try:
+            if getattr(client, "is_connected", False):
+                await client.disconnect()
+        except Exception:
+            pass
+
     def account_exists(self, account_name: str) -> bool:
         """检查账号是否存在"""
         # 优先查缓存
@@ -343,10 +379,9 @@ class TelegramService:
         timeout_seconds = max(2.0, min(float(timeout_seconds or 8.0), 20.0))
 
         try:
-            client = self.telegram_engine.get_client(
+            client = self._build_probe_client(
                 account_name,
                 proxy=proxy_dict,
-                workdir=self.session_dir,
                 session_string=session_string,
                 in_memory=in_memory,
             )
@@ -389,6 +424,7 @@ class TelegramService:
                     await asyncio.wait_for(client.connect(), timeout=timeout_seconds)
                 me = await asyncio.wait_for(client.get_me(), timeout=timeout_seconds)
             finally:
+                await self._close_probe_client(client)
                 if acquired:
                     lock.release()
             self.account_store.upsert_profile(
@@ -451,7 +487,11 @@ class TelegramService:
                     "checked_at": checked_at,
                     "needs_relogin": False,
                 }
-            if "SESSION" in err_upper and "INVALID" in err_upper:
+            if (
+                ("SESSION" in err_upper and "INVALID" in err_upper)
+                or "AUTH_KEY_UNREGISTERED" in err_upper
+                or "AUTH_KEY" in err_upper and "UNREGISTERED" in err_upper
+            ):
                 self.account_store.upsert_profile(
                     account_name,
                     status="invalid",
@@ -467,7 +507,11 @@ class TelegramService:
                     "checked_at": checked_at,
                     "needs_relogin": True,
                 }
-            if "UNAUTHORIZED" in err_upper or "AUTH_KEY_UNREGISTERED" in err_upper:
+            if (
+                "UNAUTHORIZED" in err_upper
+                or "USER_DEACTIVATED" in err_upper
+                or "SESSION_REVOKED" in err_upper
+            ):
                 self.account_store.upsert_profile(
                     account_name,
                     status="invalid",
@@ -497,6 +541,8 @@ class TelegramService:
                 or "TIMED OUT" in err_upper
                 or "REQUEST TIMED OUT" in err_upper
                 or "REQUEST TIME OUT" in err_upper
+                or "DATABASE IS LOCKED" in err_upper
+                or "BUSY" in err_upper
             ):
                 return self._build_soft_status_result(
                     account_name,
@@ -520,21 +566,14 @@ class TelegramService:
                     session_backend=session_backend,
                     session_ref=session_ref,
                 )
-            self.account_store.upsert_profile(
+            return self._build_soft_status_result(
                 account_name,
-                status="error",
-                last_status_message=err_text,
-                last_checked_at=datetime.utcnow(),
+                checked_at=checked_at,
+                code="PROBE_ERROR",
+                message=err_text,
+                session_backend=session_backend,
+                session_ref=session_ref,
             )
-            return {
-                "account_name": account_name,
-                "ok": False,
-                "status": "error",
-                "message": err_text,
-                "code": type(e).__name__.upper(),
-                "checked_at": checked_at,
-                "needs_relogin": False,
-            }
 
     async def delete_account(self, account_name: str) -> bool:
         """

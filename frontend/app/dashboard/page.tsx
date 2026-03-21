@@ -187,11 +187,14 @@ export default function Dashboard() {
   const accountStatusMapRef = useRef<Record<string, AccountStatusItem>>({});
   const dashboardOverview = useDashboardOverview(token);
   const accounts = dashboardOverview.accounts;
-  const tasks = dashboardOverview.tasks;
+  const taskCountMap = dashboardOverview.taskCountMap;
   const appVersion = dashboardOverview.appVersion;
   const dataLoaded = dashboardOverview.isFetched;
   const dashboardLoading = dashboardOverview.isLoading && accounts.length === 0;
   const refetchDashboardOverview = dashboardOverview.refetch;
+  const queryString = searchParams.toString();
+  const queryAccount = searchParams.get("account");
+  const queryDialog = searchParams.get("dialog");
 
   const isDuplicateAccountName = useCallback((name: string, allowedSameName?: string | null) => {
     const normalized = normalizeAccountName(name).toLowerCase();
@@ -273,7 +276,7 @@ export default function Dashboard() {
 
   const updateDashboardRoute = useCallback(
     (nextAccountName?: string | null, options?: { dialog?: string | null }) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(queryString);
       if (nextAccountName) {
         params.set("account", nextAccountName);
       } else {
@@ -288,13 +291,12 @@ export default function Dashboard() {
 
       const query = params.toString();
       const nextUrl = query ? `/dashboard?${query}` : "/dashboard";
-      const currentQuery = searchParams.toString();
-      if (currentQuery === query) {
+      if (queryString === query) {
         return;
       }
       router.replace(nextUrl, { scroll: false });
     },
-    [router, searchParams]
+    [queryString, router]
   );
 
   const mergeAccountStatuses = useCallback((
@@ -438,7 +440,7 @@ export default function Dashboard() {
   }, [accountStatusMap]);
 
   const getAccountTaskCount = (accountName: string) => {
-    return tasks.filter(task => task.account_name === accountName).length;
+    return taskCountMap.get(accountName) ?? 0;
   };
 
   const openAddDialog = () => {
@@ -1053,7 +1055,6 @@ export default function Dashboard() {
       return;
     }
 
-    const queryAccount = searchParams.get("account");
     if (queryAccount && accounts.some((account) => account.name === queryAccount)) {
       if (selectedAccountNameRef.current !== queryAccount) {
         setSelectedAccountName(queryAccount);
@@ -1082,13 +1083,13 @@ export default function Dashboard() {
     } else if (!fallbackAccount && selectedAccountNameRef.current) {
       setSelectedAccountName(null);
     }
-  }, [accounts, restoreSelectedAccount, searchParams]);
+  }, [accounts, queryAccount, restoreSelectedAccount]);
 
   useEffect(() => {
     if (!selectedAccountName) return;
-    if (searchParams.get("account") === selectedAccountName) return;
+    if (queryAccount === selectedAccountName) return;
     updateDashboardRoute(selectedAccountName);
-  }, [searchParams, selectedAccountName, updateDashboardRoute]);
+  }, [queryAccount, selectedAccountName, updateDashboardRoute]);
 
   useEffect(() => {
     if (!selectedAccountName || typeof window === "undefined") return;
@@ -1100,13 +1101,12 @@ export default function Dashboard() {
   }, [selectedAccountName]);
 
   useEffect(() => {
-    const dialog = searchParams.get("dialog");
-    if (dialog !== "create" || !selectedAccountName) {
+    if (queryDialog !== "create" || !selectedAccountName) {
       return;
     }
     setTaskCreateRequestKey(`${selectedAccountName}-${Date.now()}`);
     updateDashboardRoute(selectedAccountName, { dialog: null });
-  }, [searchParams, selectedAccountName, updateDashboardRoute]);
+  }, [queryDialog, selectedAccountName, updateDashboardRoute]);
 
   const handleShowLogs = async (accountName: string) => {
     if (!token) return;

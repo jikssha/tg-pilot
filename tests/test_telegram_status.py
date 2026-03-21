@@ -22,6 +22,11 @@ class _TimeoutClient(_DummyClient):
         raise TimeoutError("request timed out")
 
 
+class _ProbeErrorClient(_DummyClient):
+    async def get_me(self):
+        raise RuntimeError("temporary transport failure")
+
+
 class _BusyLock:
     async def acquire(self):
         await asyncio.sleep(5)
@@ -49,7 +54,7 @@ async def test_legacy_file_session_accounts_are_valid_in_string_mode(isolated_en
         captured["workdir"] = kwargs.get("workdir")
         return _DummyClient()
 
-    monkeypatch.setattr(service.telegram_engine, "get_client", fake_get_client)
+    monkeypatch.setattr(service, "_build_probe_client", fake_get_client)
 
     accounts = service.list_accounts(force_refresh=True)
     result = await service.check_account_status("legacy", timeout_seconds=2)
@@ -88,7 +93,7 @@ async def test_timeout_status_is_softened_to_checking(isolated_env, monkeypatch)
 
     service = TelegramService()
 
-    monkeypatch.setattr(service.telegram_engine, "get_client", lambda *args, **kwargs: _TimeoutClient())
+    monkeypatch.setattr(service, "_build_probe_client", lambda *args, **kwargs: _TimeoutClient())
 
     result = await service.check_account_status("slow", timeout_seconds=1)
 
@@ -109,7 +114,7 @@ async def test_busy_probe_keeps_last_known_valid_status(isolated_env, monkeypatc
     service.account_store.upsert_profile("stable", status="valid")
 
     monkeypatch.setattr("backend.services.telegram.get_account_lock", lambda _name: _BusyLock())
-    monkeypatch.setattr(service.telegram_engine, "get_client", lambda *args, **kwargs: _DummyClient())
+    monkeypatch.setattr(service, "_build_probe_client", lambda *args, **kwargs: _DummyClient())
 
     result = await service.check_account_status("stable", timeout_seconds=1)
     profile = service.account_store.get_profile("stable")
@@ -118,3 +123,22 @@ async def test_busy_probe_keeps_last_known_valid_status(isolated_env, monkeypatc
     assert result["code"] == "LAST_KNOWN_GOOD"
     assert result["needs_relogin"] is False
     assert profile["status"] == "valid"
+
+
+@pytest.mark.asyncio
+async def test_generic_probe_errors_fall_back_to_soft_status(isolated_env, monkeypatch):
+    from backend.services.telegram import TelegramService
+
+    session_file = isolated_env / "sessions" / "flaky.session"
+    session_file.parent.mkdir(parents=True, exist_ok=True)
+    session_file.write_text("legacy-file-session", encoding="utf-8")
+
+    service = TelegramService()
+
+    monkeypatch.setattr(service, "_build_probe_client", lambda *args, **kwargs: _ProbeErrorClient())
+
+    result = await service.check_account_status("flaky", timeout_seconds=1)
+
+    assert result["status"] == "checking"
+    assert result["code"] == "PROBE_ERROR"
+    assert result["needs_relogin"] is False

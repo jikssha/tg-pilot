@@ -32,14 +32,52 @@ export function AccountDetailPanel({
   const checkedAtLabel = selectedStatus?.checked_at
     ? new Date(selectedStatus.checked_at).toLocaleTimeString()
     : t("account_status_unknown");
+  const statusBadgeClass =
+    presentation.tone === "online"
+      ? "bg-emerald-500/10 border-emerald-400/20 text-emerald-300"
+      : presentation.tone === "checking"
+        ? "bg-amber-500/10 border-amber-400/20 text-amber-200"
+        : presentation.tone === "invalid"
+          ? "bg-rose-500/10 border-rose-400/20 text-rose-200"
+          : presentation.tone === "error"
+            ? "bg-orange-500/10 border-orange-400/20 text-orange-200"
+            : "bg-white/5 border-white/10 text-[var(--text-sub)]";
 
   return (
     <>
       <div className="mb-8 group">
-        <h1 className="text-2xl font-semibold mb-1 flex items-center gap-3 text-[var(--text-main)]">
-          {selectedAccount.name}
-          <AccountStatusLamp status={selectedStatus} t={t} size="md" testId="account-detail-lamp" />
-
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold mb-1 flex items-center gap-3 text-[var(--text-main)]">
+              {selectedAccount.name}
+            </h1>
+            <div className="flex flex-wrap items-center gap-3 mt-4">
+              <span
+                data-testid="account-detail-status"
+                className={`inline-flex items-center gap-2.5 rounded-xl border px-3 py-2 text-sm font-semibold ${statusBadgeClass}`}
+              >
+                <AccountStatusLamp
+                  status={selectedStatus}
+                  t={t}
+                  size="md"
+                  showLabel
+                  labelClassName="text-sm font-semibold"
+                  testId="account-detail-lamp"
+                />
+              </span>
+              <span className="bg-white/5 border border-[var(--border-color)] px-3 py-2 rounded-xl text-xs text-[var(--text-sub)] inline-flex items-center gap-2">
+                <Clock weight="bold" /> {checkedAtLabel}
+              </span>
+              <span className="bg-white/5 border border-[var(--border-color)] px-3 py-2 rounded-xl text-xs text-[var(--text-sub)] inline-flex items-center gap-2">
+                <ShieldCheck weight="bold" /> 安全监控中
+              </span>
+            </div>
+            {selectedStatus?.message ? (
+              <p className="mt-3 text-sm text-[var(--text-sub)]/90 max-w-3xl">
+                {selectedStatus.message}
+              </p>
+            ) : null}
+          </div>
           <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={(event) => {
@@ -62,18 +100,6 @@ export function AccountDetailPanel({
               <Trash weight="bold" size={18} />
             </button>
           </div>
-        </h1>
-        <div className="flex flex-wrap items-center gap-3 mt-4">
-          <div
-            data-testid="account-detail-status"
-            className="flex items-center gap-1.5 bg-white/5 py-1.5 px-3 rounded-md border border-white/5"
-          >
-            <Clock weight="bold" />
-            {checkedAtLabel} ({t(presentation.labelKey)})
-          </div>
-          <span className="bg-white/5 border border-[var(--border-color)] px-2.5 py-1 rounded-md text-xs text-[var(--text-sub)] inline-flex items-center gap-1.5">
-            <ShieldCheck weight="bold" /> 安全监控中
-          </span>
         </div>
       </div>
 

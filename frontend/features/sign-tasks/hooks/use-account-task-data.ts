@@ -9,7 +9,7 @@ export function useAccountTaskData(token: string | null, accountName: string) {
   const queryClient = useQueryClient();
   const tasksQuery = useQuery({
     queryKey: token ? queryKeys.accountTasks(token, accountName) : ["account-tasks", "anonymous", accountName],
-    queryFn: () => listSignTasks(token!, accountName),
+    queryFn: () => listSignTasks(token!, accountName, true),
     enabled: Boolean(token && accountName),
     placeholderData: (previousData) => previousData,
   });

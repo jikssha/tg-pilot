@@ -12,7 +12,7 @@ export function useDashboardOverview(token: string | null) {
     queryFn: async () => {
       const [accountsData, tasksData, healthData] = await Promise.all([
         listAccounts(token!),
-        listSignTasks(token!),
+        listSignTasks(token!, undefined, true),
         getAppHealth().catch(() => ({ status: "unknown", version: BUILD_APP_VERSION })),
       ]);
       const sortedAccounts = [...accountsData.accounts].sort((a, b) =>

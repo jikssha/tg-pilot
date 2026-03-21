@@ -176,7 +176,11 @@ class DbBackedSignTaskStore:
                 db.close()
 
         tasks = [self._row_to_definition(row) for row in rows]
-        self._tasks_cache = list(tasks)
+        # Only hydrate the shared cache from full-list queries.
+        # A filtered account query should never poison the global task list,
+        # otherwise later sidebar/overview reads will incorrectly see a subset.
+        if account_name is None:
+            self._tasks_cache = list(tasks)
         return list(tasks)
 
     def get_task(

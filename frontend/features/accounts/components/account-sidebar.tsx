@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CheckSquare, CheckSquareOffset, Gear, ListChecks, Plus, Square, Spinner, Warning } from "@phosphor-icons/react";
+import { CheckSquare, CheckSquareOffset, Gear, ListChecks, Plus, Square, Spinner } from "@phosphor-icons/react";
 import { AccountInfo, AccountStatusItem } from "@/lib/api";
 import { AccountStatusLamp } from "@/features/accounts/components/account-status-lamp";
 import { normalizeAccountStatus } from "@/features/accounts/lib/account-status";
@@ -101,37 +101,46 @@ export function AccountSidebar({
             const isInvalid = presentation.tone === "invalid";
             const isActive = selectedAccountName === account.name;
             const isSelected = selectedAccounts.has(account.name);
+            const taskCount = getAccountTaskCount(account.name);
 
             return (
               <div
                 key={account.name}
                 onClick={() => (isSelectionMode ? onToggleAccountSelection(account.name) : onSelectAccount(account))}
-                className={`flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer text-[13px] transition-all mb-[2px] relative group/item ${
+                className={`grid grid-cols-[18px_minmax(0,1fr)_auto] items-center gap-3 px-2.5 py-2 rounded-lg cursor-pointer text-[13px] transition-all mb-[4px] relative group/item border ${
                   isActive && !isSelectionMode
-                    ? "bg-white/10 text-[var(--text-main)] font-medium"
-                    : "text-[var(--text-sub)] hover:bg-white/5 hover:text-[var(--text-main)]"
-                } ${isInvalid ? "opacity-60" : ""} ${isSelected && isSelectionMode ? "bg-sky-500/10 !text-sky-400" : ""}`}
+                    ? "bg-white/10 border-white/10 text-[var(--text-main)] font-medium"
+                    : "text-[var(--text-sub)] border-transparent hover:bg-white/5 hover:border-white/5 hover:text-[var(--text-main)]"
+                } ${isInvalid ? "opacity-75" : ""} ${isSelected && isSelectionMode ? "bg-sky-500/10 !text-sky-400 !border-sky-400/20" : ""}`}
               >
                 {isSelectionMode ? (
                   <div className="shrink-0 text-sky-400/60 group-hover/item:text-sky-400 transition-colors">
                     {isSelected ? <CheckSquare weight="fill" size={16} /> : <Square weight="bold" size={16} />}
                   </div>
                 ) : null}
-                <AccountStatusLamp
-                  status={statusInfo}
-                  t={t}
-                  size="sm"
-                  testId={`account-status-lamp-${account.name}`}
-                />
-                <div className="flex-1 truncate">{account.name}</div>
+                <div className="flex items-center justify-center">
+                  <AccountStatusLamp
+                    status={statusInfo}
+                    t={t}
+                    size="sm"
+                    testId={`account-status-lamp-${account.name}`}
+                  />
+                </div>
+                <div className="min-w-0 flex items-center gap-2">
+                  <div className="truncate">{account.name}</div>
+                  {isInvalid && !isSelectionMode ? (
+                    <span className="text-[9px] uppercase tracking-[0.18em] text-rose-300/80 font-black whitespace-nowrap">
+                      {isZh ? "异常" : "Alert"}
+                    </span>
+                  ) : null}
+                </div>
                 {!isSelectionMode ? (
-                  <div className="text-[10px] text-[#555962] font-mono shrink-0 group-hover/item:hidden">
-                    {getAccountTaskCount(account.name)}
-                  </div>
-                ) : null}
-                {isInvalid && !isSelectionMode ? (
-                  <div className="text-rose-500 shrink-0 text-xs">
-                    <Warning weight="bold" />
+                  <div className={`min-w-[28px] h-6 px-2 rounded-full shrink-0 flex items-center justify-center text-[10px] font-mono ${
+                    taskCount > 0
+                      ? "bg-white/6 text-white/80 border border-white/10"
+                      : "bg-white/4 text-white/35 border border-white/5"
+                  }`}>
+                    {taskCount}
                   </div>
                 ) : null}
               </div>
