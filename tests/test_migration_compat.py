@@ -206,6 +206,34 @@ def test_run_migrations_recovers_when_alembic_table_exists_but_is_empty(isolated
     assert {"audit_events", "login_session_states", "sign_tasks", "daily_task_runs"}.issubset(tables)
 
 
+def test_run_migrations_is_idempotent_after_daily_run_revisions_exist(isolated_env):
+    from backend.core.config import get_settings
+    from backend.core.migrations import run_migrations
+
+    settings = get_settings()
+    db_path = settings.resolve_db_path()
+
+    run_migrations()
+    run_migrations()
+
+    connection = sqlite3.connect(db_path)
+    try:
+        revision = connection.execute(
+            "SELECT version_num FROM alembic_version"
+        ).fetchall()
+        tables = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+    finally:
+        connection.close()
+
+    assert revision == [("202603210002",)]
+    assert {"daily_task_runs", "sign_tasks", "audit_events"}.issubset(tables)
+
+
 def test_startup_legacy_bootstrap_reconciles_accounts_and_sign_tasks(isolated_env):
     from backend.contracts import SignTaskDefinition
     from backend.core.database import get_session_local

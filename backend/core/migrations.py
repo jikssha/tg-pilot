@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Final
 
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 
 from alembic import command
 from backend.core.config import get_settings
@@ -15,11 +16,6 @@ logger = logging.getLogger("backend.migrations")
 BASELINE_REVISION: Final[str] = "202603190001"
 PHASE2_REVISION: Final[str] = "202603190002"
 PHASE3_REVISION: Final[str] = "202603190003"
-_KNOWN_REVISIONS: Final[set[str]] = {
-    BASELINE_REVISION,
-    PHASE2_REVISION,
-    PHASE3_REVISION,
-}
 
 _BASELINE_TABLES: Final[set[str]] = {"accounts", "users", "tasks", "task_logs"}
 _PHASE2_TABLES: Final[set[str]] = {"audit_events", "login_session_states"}
@@ -36,6 +32,24 @@ def get_alembic_config() -> Config:
     config.set_main_option("script_location", str(root / "alembic"))
     config.set_main_option("sqlalchemy.url", get_settings().database_url)
     return config
+
+
+def _load_known_revisions(config: Config) -> set[str]:
+    revisions = {
+        BASELINE_REVISION,
+        PHASE2_REVISION,
+        PHASE3_REVISION,
+    }
+    try:
+        script = ScriptDirectory.from_config(config)
+        revisions.update(
+            revision.revision
+            for revision in script.walk_revisions()
+            if getattr(revision, "revision", None)
+        )
+    except Exception as exc:
+        logger.warning("Failed to load alembic revisions dynamically: %s", exc)
+    return revisions
 
 
 def _load_table_names(connection: sqlite3.Connection) -> set[str]:
@@ -65,7 +79,7 @@ def _load_alembic_versions(connection: sqlite3.Connection) -> list[str]:
     return versions
 
 
-def _detect_legacy_revision(db_path: Path) -> str | None:
+def _detect_legacy_revision(db_path: Path, known_revisions: set[str]) -> str | None:
     if not db_path.exists():
         return None
 
@@ -73,7 +87,7 @@ def _detect_legacy_revision(db_path: Path) -> str | None:
         table_names = _load_table_names(connection)
         if "alembic_version" in table_names:
             versions = _load_alembic_versions(connection)
-            valid_versions = [version for version in versions if version in _KNOWN_REVISIONS]
+            valid_versions = [version for version in versions if version in known_revisions]
             if valid_versions:
                 return None
             logger.warning(
@@ -127,7 +141,7 @@ def _detect_legacy_revision(db_path: Path) -> str | None:
 def _bootstrap_legacy_alembic_state(config: Config) -> str | None:
     settings = get_settings()
     db_path = settings.resolve_db_path()
-    revision = _detect_legacy_revision(db_path)
+    revision = _detect_legacy_revision(db_path, _load_known_revisions(config))
     if revision is None:
         return None
 
