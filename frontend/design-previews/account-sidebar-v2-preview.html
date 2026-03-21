@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TG-Pilot Sidebar V2 Preview</title>
+  <style>
+    :root {
+      --bg-body: #0a0a0a;
+      --bg-panel: #0e0e0e;
+      --bg-sidebar: #080808;
+      --surface: rgba(255, 255, 255, 0.035);
+      --surface-strong: rgba(255, 255, 255, 0.055);
+      --surface-active: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.14);
+      --text-main: #ededed;
+      --text-sub: #8a8f98;
+      --text-soft: rgba(237, 237, 237, 0.45);
+      --accent: #8a3ffc;
+      --accent-soft: rgba(138, 63, 252, 0.16);
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #fb7185;
+      --error: #fb923c;
+      --selection: #22d3ee;
+      --shadow-panel: 0 22px 60px rgba(0, 0, 0, 0.38);
+      --shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.22);
+      --radius-xl: 22px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(138, 63, 252, 0.1), transparent 26%),
+        radial-gradient(circle at bottom left, rgba(34, 211, 238, 0.06), transparent 24%),
+        radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: auto, auto, 24px 24px;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      overflow: hidden;
+    }
+
+    .preview-shell {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      height: 100vh;
+    }
+
+    .sidebar {
+      background: linear-gradient(180deg, rgba(8, 8, 8, 0.98), rgba(8, 8, 8, 0.94));
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.02);
+    }
+
+    .sidebar-header {
+      padding: 18px 18px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: #ededed;
+      color: #0a0a0a;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .brand-meta {
+      min-width: 0;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .version-pill {
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      font-family: "Fira Code", monospace;
+      font-size: 10px;
+      color: rgba(237, 237, 237, 0.52);
+    }
+
+    .brand-sub {
+      margin-top: 6px;
+      font-size: 10px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(138, 143, 152, 0.6);
+      white-space: nowrap;
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.03);
+      display: grid;
+      place-items: center;
+      color: var(--text-sub);
+      font-size: 15px;
+    }
+
+    .mode-tabs {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 4px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .mode-tab {
+      height: 38px;
+      border-radius: 12px;
+      border: 0;
+      background: transparent;
+      color: var(--text-sub);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition), transform var(--transition);
+    }
+
+    .mode-tab.active {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .sidebar-tools {
+      padding: 16px 18px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .tools-copy {
+      min-width: 0;
+    }
+
+    .tools-title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(138, 143, 152, 0.72);
+    }
+
+    .tools-meta {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(237, 237, 237, 0.52);
+      font-size: 12px;
+    }
+
+    .mini-badge {
+      height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(237, 237, 237, 0.7);
+      white-space: nowrap;
+    }
+
+    .mini-badge.selection {
+      color: #67e8f9;
+      border-color: rgba(34, 211, 238, 0.2);
+      background: rgba(34, 211, 238, 0.08);
+    }
+
+    .sidebar-list {
+      flex: 1;
+      overflow: auto;
+      padding: 8px 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .account-row {
+      position: relative;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 78px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.025);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      transition:
+        transform var(--transition),
+        border-color var(--transition),
+        background var(--transition),
+        box-shadow var(--transition);
+      cursor: pointer;
+    }
+
+    .account-row:hover {
+      background: rgba(255, 255, 255, 0.045);
+      border-color: rgba(255, 255, 255, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .account-row.active {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.045));
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 12px 24px rgba(0, 0, 0, 0.16);
+    }
+
+    .account-row.selected {
+      background: linear-gradient(180deg, rgba(34, 211, 238, 0.08), rgba(255, 255, 255, 0.04));
+      border-color: rgba(34, 211, 238, 0.18);
+    }
+
+    .select-box {
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #0a0a0a;
+      background: rgba(255, 255, 255, 0.02);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    body.multi-mode .select-box {
+      display: inline-flex;
+    }
+
+    body.multi-mode .select-box.checked {
+      border-color: rgba(34, 211, 238, 0.4);
+      background: #22d3ee;
+    }
+
+    .account-main {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .lamp {
+      position: relative;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .lamp::after {
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.42);
+    }
+
+    .lamp.online {
+      background: rgba(52, 211, 153, 0.22);
+      border-color: rgba(52, 211, 153, 0.46);
+      box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.14), 0 0 14px rgba(52, 211, 153, 0.24);
+    }
+
+    .lamp.online::after {
+      background: #34d399;
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.52);
+    }
+
+    .lamp.checking {
+      background: rgba(251, 191, 36, 0.16);
+      border-color: rgba(251, 191, 36, 0.36);
+      animation: pulse 1.8s infinite ease-in-out;
+    }
+
+    .lamp.checking::after {
+      background: #fbbf24;
+    }
+
+    .lamp.error {
+      background: rgba(251, 146, 60, 0.16);
+      border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .lamp.error::after {
+      background: #fb923c;
+    }
+
+    .lamp.invalid {
+      background: rgba(251, 113, 133, 0.16);
+      border-color: rgba(251, 113, 133, 0.34);
+    }
+
+    .lamp.invalid::after {
+      background: #fb7185;
+    }
+
+    .account-text {
+      min-width: 0;
+    }
+
+    .account-name {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .account-name span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .state-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(237, 237, 237, 0.58);
+      white-space: nowrap;
+    }
+
+    .state-chip.online {
+      color: #a7f3d0;
+      border-color: rgba(52, 211, 153, 0.18);
+      background: rgba(52, 211, 153, 0.08);
+    }
+
+    .state-chip.checking {
+      color: #fde68a;
+      border-color: rgba(251, 191, 36, 0.16);
+      background: rgba(251, 191, 36, 0.08);
+    }
+
+    .state-chip.error {
+      color: #fdba74;
+      border-color: rgba(251, 146, 60, 0.16);
+      background: rgba(251, 146, 60, 0.08);
+    }
+
+    .state-chip.invalid {
+      color: #fda4af;
+      border-color: rgba(251, 113, 133, 0.16);
+      background: rgba(251, 113, 133, 0.08);
+    }
+
+    .account-meta {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-sub);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .count-pill {
+      min-width: 42px;
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Fira Code", monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(237, 237, 237, 0.8);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .count-pill.zero {
+      color: rgba(237, 237, 237, 0.38);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .main {
+      background: linear-gradient(180deg, rgba(14, 14, 14, 0.98), rgba(14, 14, 14, 0.92));
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .main-topbar {
+      height: 56px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      color: var(--text-sub);
+      font-size: 14px;
+      background: rgba(14, 14, 14, 0.86);
+      backdrop-filter: blur(14px);
+    }
+
+    .main-content {
+      padding: 36px 42px;
+      overflow: auto;
+      min-width: 0;
+    }
+
+    .hero {
+      max-width: 760px;
+    }
+
+    .hero h1 {
+      font-size: 42px;
+      margin: 0 0 16px;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .hero-pill {
+      padding: 12px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 13px;
+      color: rgba(237, 237, 237, 0.75);
+    }
+
+    .hero-pill.online {
+      border-color: rgba(52, 211, 153, 0.22);
+      color: #bbf7d0;
+      background: rgba(52, 211, 153, 0.08);
+    }
+
+    .content-grid {
+      display: grid;
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .content-card {
+      padding: 22px 24px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.025);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .content-card h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+
+    .content-card p {
+      margin: 0;
+      color: var(--text-sub);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .preview-note {
+      margin-top: 22px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(138, 63, 252, 0.18);
+      background: rgba(138, 63, 252, 0.08);
+      color: rgba(237, 237, 237, 0.78);
+      font-size: 13px;
+      line-height: 1.65;
+      max-width: 760px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.08); opacity: 0.7; }
+    }
+  </style>
+</head>
+<body class="normal-mode">
+  <div class="preview-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-row">
+          <div class="brand">
+            <div class="brand-mark">■</div>
+            <div class="brand-meta">
+              <div class="brand-title">
+                TG-Pilot
+                <span class="version-pill">v3.7.5</span>
+              </div>
+              <div class="brand-sub">Account Workspace</div>
+            </div>
+          </div>
+          <button class="icon-btn" aria-label="Settings">⚙</button>
+        </div>
+
+        <div class="mode-tabs">
+          <button class="mode-tab active" data-mode="normal">普通模式</button>
+          <button class="mode-tab" data-mode="multi">多选模式</button>
+        </div>
+      </div>
+
+      <div class="sidebar-tools">
+        <div class="tools-copy">
+          <div class="tools-title" id="section-title">账号列表</div>
+          <div class="tools-meta">
+            <span class="mini-badge">14 Accounts</span>
+            <span class="mini-badge selection" id="selection-badge" style="display:none;">已选 4 个</span>
+          </div>
+        </div>
+        <button class="icon-btn" aria-label="Add">＋</button>
+      </div>
+
+      <div class="sidebar-list" id="sidebar-list"></div>
+    </aside>
+
+    <main class="main">
+      <div class="main-topbar">
+        <div>账号管理 / <strong style="color: var(--text-main);">V6</strong></div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span style="font-size:12px; color:rgba(237,237,237,0.35);">Sidebar Preview</span>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <section class="hero">
+          <h1>V6</h1>
+          <div class="hero-meta">
+            <div class="hero-pill online">已连接</div>
+            <div class="hero-pill">22:08:12</div>
+            <div class="hero-pill">安全监控中</div>
+          </div>
+
+          <div class="content-grid">
+            <div class="content-card">
+              <h3>设计目标</h3>
+              <p>侧边栏改成与主界面一致的深色卡片语言，弱化“一个账号一整块白框”的割裂感，统一边框、圆角、悬浮、状态和计数胶囊。</p>
+            </div>
+            <div class="content-card">
+              <h3>关键变化</h3>
+              <p>任务数在普通模式和多选模式下始终保留；状态灯和状态文案分层，不再挤占账号名位置；多选态与当前选中态用不同高亮逻辑表达。</p>
+            </div>
+          </div>
+
+          <div class="preview-note">
+            这是一份独立 HTML 预览稿，不接入现有 React 逻辑。你确认方向后，我再把这套结构正式落回侧边栏组件，避免现在一边改前端一边猜样式。
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const accounts = [
+      { name: "V1", status: "online", label: "已连接", tasks: 2, meta: "最近成功 03/21 15:40", selected: false, active: false },
+      { name: "V3", status: "checking", label: "检测中", tasks: 1, meta: "等待探活更新", selected: true, active: false },
+      { name: "V4", status: "online", label: "已连接", tasks: 2, meta: "最近成功 03/21 16:10", selected: true, active: false },
+      { name: "V5", status: "error", label: "检测异常", tasks: 2, meta: "等待重试", selected: true, active: false },
+      { name: "V6", status: "online", label: "已连接", tasks: 3, meta: "当前工作区", selected: false, active: true },
+      { name: "V7", status: "invalid", label: "需重登", tasks: 2, meta: "session 已失效", selected: false, active: false },
+      { name: "V8", status: "online", label: "已连接", tasks: 2, meta: "最近成功 03/21 16:02", selected: false, active: false },
+      { name: "V9", status: "online", label: "已连接", tasks: 2, meta: "最近成功 03/21 16:24", selected: false, active: false },
+      { name: "V10", status: "checking", label: "检测中", tasks: 1, meta: "探活队列中", selected: false, active: false },
+      { name: "V11", status: "online", label: "已连接", tasks: 1, meta: "最近成功 03/21 15:18", selected: false, active: false },
+    ];
+
+    const list = document.getElementById("sidebar-list");
+    const selectionBadge = document.getElementById("selection-badge");
+    const sectionTitle = document.getElementById("section-title");
+    const modeTabs = [...document.querySelectorAll(".mode-tab")];
+
+    const params = new URLSearchParams(window.location.search);
+    let mode = params.get("mode") === "multi" ? "multi" : "normal";
+
+    function render() {
+      document.body.classList.toggle("multi-mode", mode === "multi");
+      selectionBadge.style.display = mode === "multi" ? "inline-flex" : "none";
+      sectionTitle.textContent = mode === "multi" ? "多选模式" : "账号列表";
+      list.innerHTML = accounts.map((account, index) => {
+        const selected = mode === "multi" && account.selected;
+        const active = mode === "normal" && account.active;
+        const checkboxClass = selected ? "select-box checked" : "select-box";
+        const rowClass = [
+          "account-row",
+          active ? "active" : "",
+          selected ? "selected" : "",
+        ].join(" ").trim();
+        const countClass = account.tasks === 0 ? "count-pill zero" : "count-pill";
+        const showStateChip = mode === "normal" || account.status !== "online";
+
+        return `
+          <div class="${rowClass}" data-account="${account.name}">
+            <div class="${checkboxClass}">${selected ? "✓" : ""}</div>
+            <div class="account-main">
+              <span class="lamp ${account.status}"></span>
+              <div class="account-text">
+                <div class="account-name">
+                  <span>${account.name}</span>
+                  ${showStateChip ? `<span class="state-chip ${account.status}">${account.label}</span>` : ``}
+                </div>
+                <div class="account-meta">
+                  <span>${account.meta}</span>
+                </div>
+              </div>
+            </div>
+            <div class="${countClass}">${account.tasks}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    modeTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        mode = tab.dataset.mode;
+        modeTabs.forEach((node) => node.classList.toggle("active", node === tab));
+        render();
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>
