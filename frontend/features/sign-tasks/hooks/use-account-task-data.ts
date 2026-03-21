@@ -11,12 +11,14 @@ export function useAccountTaskData(token: string | null, accountName: string) {
     queryKey: token ? queryKeys.accountTasks(token, accountName) : ["account-tasks", "anonymous", accountName],
     queryFn: () => listSignTasks(token!, accountName),
     enabled: Boolean(token && accountName),
+    placeholderData: (previousData) => previousData,
   });
 
   const chatsQuery = useQuery({
     queryKey: token ? queryKeys.accountChats(token, accountName) : ["account-chats", "anonymous", accountName],
     queryFn: () => getAccountChats(token!, accountName),
     enabled: Boolean(token && accountName),
+    placeholderData: (previousData) => previousData,
   });
 
   return {

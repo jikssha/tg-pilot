@@ -181,8 +181,10 @@ export default function Dashboard() {
 
   const [checking, setChecking] = useState(true);
   const [accountStatusMap, setAccountStatusMap] = useState<Record<string, AccountStatusItem>>({});
+  const selectedAccountNameRef = useRef<string | null>(null);
   const statusCheckedRef = useRef(false);
   const statusCheckRequestIdRef = useRef(0);
+  const accountStatusMapRef = useRef<Record<string, AccountStatusItem>>({});
   const dashboardOverview = useDashboardOverview(token);
   const accounts = dashboardOverview.accounts;
   const tasks = dashboardOverview.tasks;
@@ -295,6 +297,57 @@ export default function Dashboard() {
     [router, searchParams]
   );
 
+  const mergeAccountStatuses = useCallback((
+    previous: Record<string, AccountStatusItem>,
+    incomingItems: AccountStatusItem[],
+    accountNames: string[]
+  ) => {
+    const nextByName = new Map(incomingItems.map((item) => [item.account_name, item]));
+    let changed = false;
+    const merged: Record<string, AccountStatusItem> = { ...previous };
+
+    for (const name of accountNames) {
+      const previousItem = previous[name];
+      const incoming = nextByName.get(name);
+
+      if (!incoming) {
+        if (!previousItem) {
+          merged[name] = {
+            account_name: name,
+            ok: false,
+            status: "unknown",
+            message: "",
+            needs_relogin: false,
+          };
+          changed = true;
+        }
+        continue;
+      }
+
+      const previousOnline =
+        previousItem?.status === "valid" || previousItem?.status === "connected";
+      const incomingTransient =
+        incoming.status === "checking" ||
+        (incoming.status === "error" && !incoming.needs_relogin);
+
+      const resolved =
+        previousOnline && incomingTransient
+          ? {
+              ...previousItem,
+              checked_at: incoming.checked_at || previousItem.checked_at,
+              code: incoming.code || previousItem.code,
+            }
+          : incoming;
+
+      if (JSON.stringify(previousItem ?? null) !== JSON.stringify(resolved)) {
+        merged[name] = resolved;
+        changed = true;
+      }
+    }
+
+    return changed ? merged : previous;
+  }, []);
+
   const checkAccountStatusOnce = useCallback(async (tokenStr: string, accountList: AccountInfo[]) => {
     const accountNames = accountList.map((item) => item.name).filter(Boolean);
     if (accountNames.length === 0) {
@@ -307,34 +360,19 @@ export default function Dashboard() {
     try {
       const response = await checkAccountsStatus(tokenStr, {
         account_names: accountNames,
-        timeout_seconds: 6,
+        timeout_seconds: 10,
       });
       if (statusCheckRequestIdRef.current !== requestId) {
         return;
       }
 
-      setAccountStatusMap((prev) => {
-        const merged: Record<string, AccountStatusItem> = {};
-        for (const name of accountNames) {
-          const incoming = (response.results || []).find((item) => item.account_name === name);
-          if (incoming) {
-            merged[name] = incoming;
-            continue;
-          }
-          merged[name] = prev[name] || {
-            account_name: name,
-            ok: false,
-            status: "unknown",
-            message: "",
-            needs_relogin: false,
-          };
-        }
-        return merged;
-      });
+      setAccountStatusMap((prev) =>
+        mergeAccountStatuses(prev, response.results || [], accountNames)
+      );
     } catch {
       // Keep previous statuses on transient failures to avoid perpetual "checking" loops.
     }
-  }, []);
+  }, [mergeAccountStatuses]);
 
   const loadData = useCallback(async () => {
     try {
@@ -356,12 +394,22 @@ export default function Dashboard() {
     statusCheckedRef.current = false;
     void refetchDashboardOverview();
   }, [refetchDashboardOverview, restoreCachedStatus]);
+
+  useEffect(() => {
+    selectedAccountNameRef.current = selectedAccountName;
+  }, [selectedAccountName]);
+
+  useEffect(() => {
+    accountStatusMapRef.current = accountStatusMap;
+  }, [accountStatusMap]);
+
   useEffect(() => {
     if (!token || !dataLoaded || accounts.length === 0) {
       if (dataLoaded && accounts.length === 0) setAccountStatusMap({});
       return;
     }
-    const missingStatuses = accounts.some((account) => !accountStatusMap[account.name]);
+    const currentStatusMap = accountStatusMapRef.current;
+    const missingStatuses = accounts.some((account) => !currentStatusMap[account.name]);
     if (statusCheckedRef.current && !missingStatuses) return;
 
     if (shouldRunStatusCheck() || missingStatuses) {
@@ -375,7 +423,7 @@ export default function Dashboard() {
     } else {
       statusCheckedRef.current = true;
     }
-  }, [token, dataLoaded, accounts, accountStatusMap, checkAccountStatusOnce, shouldRunStatusCheck]);
+  }, [token, dataLoaded, accounts, checkAccountStatusOnce, shouldRunStatusCheck]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -628,12 +676,11 @@ export default function Dashboard() {
       openReloginDialog(acc);
       return;
     }
-    if (selectedAccountName === acc.name && searchParams.get("account") === acc.name) {
+    if (selectedAccountName === acc.name) {
       return;
     }
     setSelectedAccountName(acc.name);
-    updateDashboardRoute(acc.name);
-  }, [accountStatusMap, openReloginDialog, searchParams, selectedAccountName, updateDashboardRoute]);
+  }, [accountStatusMap, openReloginDialog, selectedAccountName]);
 
   const performQrLoginStart = useCallback(async (options?: { autoRefresh?: boolean; silent?: boolean; reason?: string }) => {
     if (!token) return null;
@@ -1000,30 +1047,48 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (accounts.length === 0) {
-      if (selectedAccountName) {
+      if (selectedAccountNameRef.current) {
         setSelectedAccountName(null);
       }
       return;
     }
 
     const queryAccount = searchParams.get("account");
-    const preferredAccount = queryAccount || restoreSelectedAccount();
+    if (queryAccount && accounts.some((account) => account.name === queryAccount)) {
+      if (selectedAccountNameRef.current !== queryAccount) {
+        setSelectedAccountName(queryAccount);
+      }
+      return;
+    }
 
-    if (preferredAccount && accounts.some((account) => account.name === preferredAccount)) {
-      if (selectedAccountName !== preferredAccount) {
-        setSelectedAccountName(preferredAccount);
+    if (
+      selectedAccountNameRef.current &&
+      accounts.some((account) => account.name === selectedAccountNameRef.current)
+    ) {
+      return;
+    }
+
+    const restoredAccount = restoreSelectedAccount();
+    if (restoredAccount && accounts.some((account) => account.name === restoredAccount)) {
+      if (selectedAccountNameRef.current !== restoredAccount) {
+        setSelectedAccountName(restoredAccount);
       }
       return;
     }
 
     const fallbackAccount = accounts[0]?.name || null;
-    if (fallbackAccount && selectedAccountName !== fallbackAccount) {
+    if (fallbackAccount && selectedAccountNameRef.current !== fallbackAccount) {
       setSelectedAccountName(fallbackAccount);
-      updateDashboardRoute(fallbackAccount);
-    } else if (!fallbackAccount && selectedAccountName) {
+    } else if (!fallbackAccount && selectedAccountNameRef.current) {
       setSelectedAccountName(null);
     }
-  }, [accounts, restoreSelectedAccount, searchParams, selectedAccountName, updateDashboardRoute]);
+  }, [accounts, restoreSelectedAccount, searchParams]);
+
+  useEffect(() => {
+    if (!selectedAccountName) return;
+    if (searchParams.get("account") === selectedAccountName) return;
+    updateDashboardRoute(selectedAccountName);
+  }, [searchParams, selectedAccountName, updateDashboardRoute]);
 
   useEffect(() => {
     if (!selectedAccountName || typeof window === "undefined") return;

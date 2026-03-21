@@ -177,7 +177,7 @@ class AccountStatusCheckRequest(BaseModel):
     """批量账号状态检测请求"""
 
     account_names: Optional[list[str]] = None
-    timeout_seconds: float = 6.0
+    timeout_seconds: float = 10.0
 
 
 class AccountStatusItem(BaseModel):
@@ -471,8 +471,8 @@ async def check_accounts_status(
             names = [item.get("name", "") for item in service.list_accounts()]
             names = [n for n in names if n]
 
-        timeout_seconds = max(1.0, min(float(request.timeout_seconds or 8.0), 20.0))
-        concurrency = max(1, min(4, len(names) or 1))
+        timeout_seconds = max(2.0, min(float(request.timeout_seconds or 10.0), 20.0))
+        concurrency = max(1, min(2, len(names) or 1))
         semaphore = asyncio.Semaphore(concurrency)
 
         async def _check_one(name: str) -> AccountStatusItem:

@@ -218,6 +218,56 @@ class TelegramService:
 
         return bool(self._resolve_session_material(account_name)["exists"])
 
+    def _build_soft_status_result(
+        self,
+        account_name: str,
+        *,
+        checked_at: str,
+        code: str,
+        message: str,
+        session_backend: str | None,
+        session_ref: str | None,
+    ) -> Dict[str, Any]:
+        now = datetime.utcnow()
+        profile = self.account_store.get_profile(account_name) or {}
+        previous_status = str(profile.get("status") or "").lower()
+
+        if previous_status in {"valid", "connected"}:
+            self.account_store.upsert_profile(
+                account_name,
+                status="valid",
+                session_backend=session_backend,
+                session_ref=session_ref,
+                last_checked_at=now,
+            )
+            return {
+                "account_name": account_name,
+                "ok": True,
+                "status": "valid",
+                "message": "",
+                "code": "LAST_KNOWN_GOOD",
+                "checked_at": checked_at,
+                "needs_relogin": False,
+            }
+
+        self.account_store.upsert_profile(
+            account_name,
+            status="checking",
+            session_backend=session_backend,
+            session_ref=session_ref,
+            last_status_message=message,
+            last_checked_at=now,
+        )
+        return {
+            "account_name": account_name,
+            "ok": False,
+            "status": "checking",
+            "message": message,
+            "code": code,
+            "checked_at": checked_at,
+            "needs_relogin": False,
+        }
+
     async def check_account_status(
         self, account_name: str, timeout_seconds: float = 8.0
     ) -> Dict[str, Any]:
@@ -290,7 +340,7 @@ class TelegramService:
                 "needs_relogin": True,
             }
 
-        timeout_seconds = max(1.0, min(float(timeout_seconds or 8.0), 20.0))
+        timeout_seconds = max(2.0, min(float(timeout_seconds or 8.0), 20.0))
 
         try:
             client = self.telegram_engine.get_client(
@@ -318,20 +368,25 @@ class TelegramService:
             }
 
         try:
-            # 状态检查使用非阻塞模式:如果锁已被任务占用,直接尝试复用已连接的 client
-            # 避免状态检查与任务执行互相饥饿等待
             lock = get_account_lock(account_name)
             acquired = False
             try:
-                # 非阻塞尝试获取锁,超时 2 秒
-                acquired = await asyncio.wait_for(lock.acquire(), timeout=2.0)
+                acquired = await asyncio.wait_for(
+                    lock.acquire(), timeout=min(timeout_seconds, 4.0)
+                )
             except asyncio.TimeoutError:
-                # 锁被占用(有任务在执行),直接尝试复用已连接的 client
-                pass
+                return self._build_soft_status_result(
+                    account_name,
+                    checked_at=checked_at,
+                    code="CHECK_BUSY",
+                    message="Account status check is busy, retrying shortly",
+                    session_backend=session_backend,
+                    session_ref=session_ref,
+                )
 
             try:
                 if not getattr(client, "is_connected", False):
-                    await client.connect()
+                    await asyncio.wait_for(client.connect(), timeout=timeout_seconds)
                 me = await asyncio.wait_for(client.get_me(), timeout=timeout_seconds)
             finally:
                 if acquired:
@@ -355,37 +410,23 @@ class TelegramService:
                 "user_id": getattr(me, "id", None),
             }
         except asyncio.TimeoutError:
-            self.account_store.upsert_profile(
+            return self._build_soft_status_result(
                 account_name,
-                status="error",
-                last_status_message="Request timed out",
-                last_checked_at=datetime.utcnow(),
+                checked_at=checked_at,
+                code="TIMEOUT",
+                message="Request timed out",
+                session_backend=session_backend,
+                session_ref=session_ref,
             )
-            return {
-                "account_name": account_name,
-                "ok": False,
-                "status": "error",
-                "message": "Request timed out",
-                "code": "TIMEOUT",
-                "checked_at": checked_at,
-                "needs_relogin": False,
-            }
         except ConnectionError as e:
-            self.account_store.upsert_profile(
+            return self._build_soft_status_result(
                 account_name,
-                status="error",
-                last_status_message=str(e),
-                last_checked_at=datetime.utcnow(),
+                checked_at=checked_at,
+                code="CONNECTION_ERROR",
+                message=str(e),
+                session_backend=session_backend,
+                session_ref=session_ref,
             )
-            return {
-                "account_name": account_name,
-                "ok": False,
-                "status": "error",
-                "message": str(e),
-                "code": "CONNECTION_ERROR",
-                "checked_at": checked_at,
-                "needs_relogin": False,
-            }
         except Exception as e:
             err_text = str(e) or type(e).__name__
             err_upper = err_text.upper()
@@ -443,63 +484,42 @@ class TelegramService:
                     "needs_relogin": True,
                 }
             if "FLOOD_WAIT" in err_upper or "TRANSPORT FLOOD" in err_lower:
-                self.account_store.upsert_profile(
+                return self._build_soft_status_result(
                     account_name,
-                    status="error",
-                    last_status_message=err_text,
-                    last_checked_at=datetime.utcnow(),
+                    checked_at=checked_at,
+                    code="FLOOD_WAIT",
+                    message=err_text,
+                    session_backend=session_backend,
+                    session_ref=session_ref,
                 )
-                return {
-                    "account_name": account_name,
-                    "ok": False,
-                    "status": "error",
-                    "message": err_text,
-                    "code": "FLOOD_WAIT",
-                    "checked_at": checked_at,
-                    "needs_relogin": False,
-                }
             if (
                 "TIMEOUT" in err_upper
                 or "TIMED OUT" in err_upper
                 or "REQUEST TIMED OUT" in err_upper
                 or "REQUEST TIME OUT" in err_upper
             ):
-                self.account_store.upsert_profile(
+                return self._build_soft_status_result(
                     account_name,
-                    status="error",
-                    last_status_message=err_text,
-                    last_checked_at=datetime.utcnow(),
+                    checked_at=checked_at,
+                    code="TIMEOUT",
+                    message=err_text,
+                    session_backend=session_backend,
+                    session_ref=session_ref,
                 )
-                return {
-                    "account_name": account_name,
-                    "ok": False,
-                    "status": "error",
-                    "message": err_text,
-                    "code": "TIMEOUT",
-                    "checked_at": checked_at,
-                    "needs_relogin": False,
-                }
             if (
                 "CONNECTION" in err_upper
                 or "NETWORK" in err_upper
                 or "CONNECTION RESET" in err_upper
                 or "BROKEN PIPE" in err_upper
             ):
-                self.account_store.upsert_profile(
+                return self._build_soft_status_result(
                     account_name,
-                    status="error",
-                    last_status_message=err_text,
-                    last_checked_at=datetime.utcnow(),
+                    checked_at=checked_at,
+                    code="CONNECTION_ERROR",
+                    message=err_text,
+                    session_backend=session_backend,
+                    session_ref=session_ref,
                 )
-                return {
-                    "account_name": account_name,
-                    "ok": False,
-                    "status": "error",
-                    "message": err_text,
-                    "code": "CONNECTION_ERROR",
-                    "checked_at": checked_at,
-                    "needs_relogin": False,
-                }
             self.account_store.upsert_profile(
                 account_name,
                 status="error",

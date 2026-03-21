@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 
 import pytest
@@ -19,6 +20,15 @@ class _DummyClient:
 class _TimeoutClient(_DummyClient):
     async def get_me(self):
         raise TimeoutError("request timed out")
+
+
+class _BusyLock:
+    async def acquire(self):
+        await asyncio.sleep(5)
+        return True
+
+    def release(self):
+        return None
 
 
 @pytest.mark.asyncio
@@ -69,7 +79,7 @@ async def test_missing_session_material_reports_invalid(isolated_env):
 
 
 @pytest.mark.asyncio
-async def test_timeout_status_is_reported_as_error(isolated_env, monkeypatch):
+async def test_timeout_status_is_softened_to_checking(isolated_env, monkeypatch):
     from backend.services.telegram import TelegramService
 
     session_file = isolated_env / "sessions" / "slow.session"
@@ -82,6 +92,29 @@ async def test_timeout_status_is_reported_as_error(isolated_env, monkeypatch):
 
     result = await service.check_account_status("slow", timeout_seconds=1)
 
-    assert result["status"] == "error"
+    assert result["status"] == "checking"
     assert result["code"] == "TIMEOUT"
     assert result["needs_relogin"] is False
+
+
+@pytest.mark.asyncio
+async def test_busy_probe_keeps_last_known_valid_status(isolated_env, monkeypatch):
+    from backend.services.telegram import TelegramService
+
+    session_file = isolated_env / "sessions" / "stable.session"
+    session_file.parent.mkdir(parents=True, exist_ok=True)
+    session_file.write_text("legacy-file-session", encoding="utf-8")
+
+    service = TelegramService()
+    service.account_store.upsert_profile("stable", status="valid")
+
+    monkeypatch.setattr("backend.services.telegram.get_account_lock", lambda _name: _BusyLock())
+    monkeypatch.setattr(service.telegram_engine, "get_client", lambda *args, **kwargs: _DummyClient())
+
+    result = await service.check_account_status("stable", timeout_seconds=1)
+    profile = service.account_store.get_profile("stable")
+
+    assert result["status"] == "valid"
+    assert result["code"] == "LAST_KNOWN_GOOD"
+    assert result["needs_relogin"] is False
+    assert profile["status"] == "valid"
