@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from backend.core.database import get_session_local
@@ -24,6 +25,9 @@ class DailyTaskRunStore:
             "planned_run_at": row.planned_run_at.isoformat(),
             "status": row.status,
             "attempt_count": row.attempt_count,
+            "max_attempts": row.max_attempts,
+            "next_retry_at": row.next_retry_at.isoformat() if row.next_retry_at else None,
+            "deadline_at": row.deadline_at.isoformat() if row.deadline_at else None,
             "last_error_code": row.last_error_code,
             "last_error_message": row.last_error_message,
             "last_started_at": row.last_started_at.isoformat() if row.last_started_at else None,
@@ -39,6 +43,8 @@ class DailyTaskRunStore:
         window_start: str,
         window_end: str,
         planned_run_at: datetime,
+        deadline_at: datetime | None = None,
+        max_attempts: int = 3,
     ) -> dict[str, object]:
         db = self._session()
         try:
@@ -59,6 +65,8 @@ class DailyTaskRunStore:
                     window_start=window_start,
                     window_end=window_end,
                     planned_run_at=planned_run_at,
+                    deadline_at=deadline_at,
+                    max_attempts=max_attempts,
                     status="pending",
                 )
                 db.add(existing)
@@ -68,6 +76,8 @@ class DailyTaskRunStore:
                 existing.window_start = window_start
                 existing.window_end = window_end
                 existing.planned_run_at = planned_run_at
+                existing.deadline_at = deadline_at
+                existing.max_attempts = max_attempts
                 db.commit()
                 db.refresh(existing)
             return self._row_to_dict(existing)
@@ -133,7 +143,7 @@ class DailyTaskRunStore:
                 db.query(DailyTaskRun)
                 .filter(
                     DailyTaskRun.run_date == run_date,
-                    DailyTaskRun.status == "pending",
+                    DailyTaskRun.status.in_(["pending", "retry_wait"]),
                 )
                 .all()
             )
@@ -162,8 +172,19 @@ class DailyTaskRunStore:
                 db.query(DailyTaskRun)
                 .filter(
                     DailyTaskRun.run_date == now.date(),
-                    DailyTaskRun.status == "pending",
-                    DailyTaskRun.planned_run_at <= now,
+                    DailyTaskRun.status.in_(["pending", "retry_wait"]),
+                    or_(
+                        and_(
+                            DailyTaskRun.status == "pending",
+                            DailyTaskRun.planned_run_at <= now,
+                        ),
+                        and_(
+                            DailyTaskRun.status == "retry_wait",
+                            DailyTaskRun.next_retry_at.isnot(None),
+                            DailyTaskRun.next_retry_at <= now,
+                        ),
+                    ),
+                    or_(DailyTaskRun.deadline_at.is_(None), DailyTaskRun.deadline_at > now),
                 )
                 .order_by(DailyTaskRun.planned_run_at, DailyTaskRun.account_name, DailyTaskRun.task_name)
                 .limit(limit)
@@ -179,13 +200,14 @@ class DailyTaskRunStore:
             row = db.query(DailyTaskRun).filter(DailyTaskRun.id == run_id).first()
             if row is None:
                 return None
-            if row.status != "pending":
+            if row.status not in {"pending", "retry_wait"}:
                 return self._row_to_dict(row)
             row.status = "running"
             row.attempt_count = int(row.attempt_count or 0) + 1
             row.last_started_at = datetime.utcnow()
             row.last_error_code = None
             row.last_error_message = None
+            row.next_retry_at = None
             db.commit()
             db.refresh(row)
             return self._row_to_dict(row)
@@ -205,6 +227,34 @@ class DailyTaskRunStore:
             row.last_finished_at = datetime.utcnow()
             row.last_error_code = None
             row.last_error_message = None
+            row.next_retry_at = None
+            db.commit()
+            db.refresh(row)
+            return self._row_to_dict(row)
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    def mark_retry_wait(
+        self,
+        run_id: int,
+        *,
+        next_retry_at: datetime,
+        error_code: str | None = None,
+        error_message: str = "",
+    ) -> dict[str, object] | None:
+        db = self._session()
+        try:
+            row = db.query(DailyTaskRun).filter(DailyTaskRun.id == run_id).first()
+            if row is None:
+                return None
+            row.status = "retry_wait"
+            row.next_retry_at = next_retry_at
+            row.last_finished_at = datetime.utcnow()
+            row.last_error_code = error_code
+            row.last_error_message = error_message
             db.commit()
             db.refresh(row)
             return self._row_to_dict(row)
@@ -226,6 +276,7 @@ class DailyTaskRunStore:
             row.last_finished_at = datetime.utcnow()
             row.last_error_code = error_code
             row.last_error_message = error_message
+            row.next_retry_at = None
             db.commit()
             db.refresh(row)
             return self._row_to_dict(row)
@@ -247,9 +298,59 @@ class DailyTaskRunStore:
             row.last_finished_at = datetime.utcnow()
             row.last_error_code = error_code
             row.last_error_message = error_message
+            row.next_retry_at = None
             db.commit()
             db.refresh(row)
             return self._row_to_dict(row)
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    def mark_expired(self, run_id: int, *, error_message: str = "") -> dict[str, object] | None:
+        db = self._session()
+        try:
+            row = db.query(DailyTaskRun).filter(DailyTaskRun.id == run_id).first()
+            if row is None:
+                return None
+            row.status = "expired"
+            row.last_finished_at = datetime.utcnow()
+            row.last_error_code = "DEADLINE_EXCEEDED"
+            row.last_error_message = error_message or "任务超过当日补偿截止时间"
+            row.next_retry_at = None
+            db.commit()
+            db.refresh(row)
+            return self._row_to_dict(row)
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    def expire_overdue_runs(self, now: datetime) -> int:
+        db = self._session()
+        try:
+            rows = (
+                db.query(DailyTaskRun)
+                .filter(
+                    DailyTaskRun.run_date == now.date(),
+                    DailyTaskRun.status.in_(["pending", "retry_wait", "running"]),
+                    DailyTaskRun.deadline_at.isnot(None),
+                    DailyTaskRun.deadline_at <= now,
+                )
+                .all()
+            )
+            if not rows:
+                return 0
+            for row in rows:
+                row.status = "expired"
+                row.last_finished_at = now
+                row.last_error_code = "DEADLINE_EXCEEDED"
+                row.last_error_message = "任务超过当日补偿截止时间"
+                row.next_retry_at = None
+            db.commit()
+            return len(rows)
         except Exception:
             db.rollback()
             raise
@@ -271,6 +372,7 @@ class DailyTaskRunStore:
                 return 0
             for row in rows:
                 row.status = "pending"
+                row.next_retry_at = None
             db.commit()
             return len(rows)
         except Exception:

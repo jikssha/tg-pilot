@@ -13,6 +13,9 @@ DEFAULT_FIXED_TIME = "06:00"
 DEFAULT_RANGE_START = "08:00"
 DEFAULT_RANGE_END = "20:00"
 DEFAULT_JITTER_RATIO = 0.25
+DEFAULT_MAX_ATTEMPTS = 3
+DEFAULT_DEADLINE_TIME = "23:00"
+DEFAULT_DEADLINE_GRACE_HOURS = 3
 PLANNER_SALT = "tg-pilot-daily-plan-v1"
 
 
@@ -24,6 +27,8 @@ class PlannedTask:
     window_start: str
     window_end: str
     planned_run_at: datetime
+    deadline_at: datetime
+    max_attempts: int
 
 
 def _normalize_hhmm(value: str | None, fallback: str) -> str:
@@ -63,6 +68,26 @@ def _cron_to_hhmm(sign_at: str | None, fallback: str = DEFAULT_FIXED_TIME) -> st
 def _combine(run_date: date, hhmm: str, fallback: str) -> datetime:
     parsed = _parse_hhmm(hhmm, fallback)
     return datetime.combine(run_date, parsed)
+
+
+def _end_of_day(run_date: date) -> datetime:
+    return datetime.combine(run_date, time(23, 59, 59))
+
+
+def _compute_deadline(
+    *,
+    run_date: date,
+    planned_run_at: datetime,
+    window_end: str,
+) -> datetime:
+    end_dt = _combine(run_date, window_end, DEFAULT_DEADLINE_TIME)
+    deadline_floor = _combine(run_date, DEFAULT_DEADLINE_TIME, DEFAULT_DEADLINE_TIME)
+    candidate = max(
+        planned_run_at + timedelta(hours=DEFAULT_DEADLINE_GRACE_HOURS),
+        end_dt + timedelta(hours=DEFAULT_DEADLINE_GRACE_HOURS),
+        deadline_floor,
+    )
+    return min(candidate, _end_of_day(run_date))
 
 
 def _stable_order_key(task: SignTaskDefinition, run_date: date) -> str:
@@ -116,6 +141,12 @@ def distribute_window_slots(
                 window_start=_normalize_hhmm(window_start, DEFAULT_RANGE_START),
                 window_end=_normalize_hhmm(window_end, DEFAULT_RANGE_END),
                 planned_run_at=planned_at,
+                deadline_at=_compute_deadline(
+                    run_date=run_date,
+                    planned_run_at=planned_at,
+                    window_end=_normalize_hhmm(window_end, DEFAULT_RANGE_END),
+                ),
+                max_attempts=DEFAULT_MAX_ATTEMPTS,
             )
         )
 
@@ -141,6 +172,12 @@ class DailyPlannerService:
             window_start=hhmm,
             window_end=hhmm,
             planned_run_at=planned_at,
+            deadline_at=_compute_deadline(
+                run_date=run_date,
+                planned_run_at=planned_at,
+                window_end=hhmm,
+            ),
+            max_attempts=DEFAULT_MAX_ATTEMPTS,
         )
 
     def build_daily_plan(self, run_date: date | None = None) -> list[dict[str, object]]:
@@ -183,6 +220,8 @@ class DailyPlannerService:
                     window_start=planned.window_start,
                     window_end=planned.window_end,
                     planned_run_at=planned.planned_run_at,
+                    deadline_at=planned.deadline_at,
+                    max_attempts=planned.max_attempts,
                 )
             )
         return sorted(results, key=lambda item: str(item["planned_run_at"]))

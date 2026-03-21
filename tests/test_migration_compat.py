@@ -160,7 +160,7 @@ def test_run_migrations_bootstraps_pre_alembic_sqlite_and_preserves_configs(
     finally:
         connection.close()
 
-    assert revision == "202603210001"
+    assert revision == "202603210002"
     assert {"audit_events", "login_session_states", "sign_tasks", "daily_task_runs"}.issubset(tables)
     assert {"remark", "session_backend", "session_ref", "last_status_message", "last_checked_at"}.issubset(
         account_columns
@@ -202,7 +202,7 @@ def test_run_migrations_recovers_when_alembic_table_exists_but_is_empty(isolated
     finally:
         connection.close()
 
-    assert revision == [("202603210001",)]
+    assert revision == [("202603210002",)]
     assert {"audit_events", "login_session_states", "sign_tasks", "daily_task_runs"}.issubset(tables)
 
 

@@ -69,8 +69,12 @@ def test_build_daily_plan_creates_fixed_and_range_runs(db_session, monkeypatch):
     assert fixed["planned_run_at"].startswith("2026-03-21T09:30:")
     assert fixed["window_start"] == "09:30"
     assert fixed["window_end"] == "09:30"
+    assert fixed["max_attempts"] == 3
+    assert fixed["deadline_at"].startswith("2026-03-21T23:00:")
     assert ranged["window_start"] == "08:00"
     assert ranged["window_end"] == "20:00"
+    assert ranged["max_attempts"] == 3
+    assert ranged["deadline_at"].startswith("2026-03-21T23:00:")
 
 
 def test_build_daily_plan_is_idempotent_for_same_day(db_session, monkeypatch):
