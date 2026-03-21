@@ -13,7 +13,7 @@ async function mockDashboardApis(page: Page) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ status: "ok", version: "3.7.0" }),
+      body: JSON.stringify({ status: "ok", version: "3.7.5" }),
     });
   });
 
@@ -276,7 +276,7 @@ test("dashboard loads accounts and renders the detail workspace", async ({ page 
   await page.goto("/dashboard");
 
   await expect(page.getByText("demo-main")).toBeVisible();
-  await expect(page.getByTestId("app-version-badge")).toHaveText("v3.7.0");
+  await expect(page.getByTestId("app-version-badge")).toHaveText("v3.7.5");
   await expect(page.getByTestId("account-status-lamp-demo-main")).toHaveAttribute("data-status-tone", "online");
   await page.getByText("demo-main").click();
   await expect(page.getByText("签到任务")).toBeVisible();
