@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import date
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -8,11 +9,27 @@ from sqlalchemy.orm import Session
 
 from backend.core.database import get_session_local
 from backend.models.task import Task
+from backend.services.daily_dispatcher import (
+    get_daily_dispatcher_service,
+)
+from backend.services.daily_dispatcher import (
+    use_daily_run_dispatch as should_use_daily_run_dispatch,
+)
 from backend.services.tasks import run_task_once
 from backend.stores import get_sign_task_store
 
 scheduler: AsyncIOScheduler | None = None
 logger = logging.getLogger("backend.scheduler")
+
+
+async def sync_daily_task_runs(run_date: date | None = None) -> list[dict[str, object]]:
+    from backend.services.daily_planner import get_daily_planner_service
+
+    return get_daily_planner_service().build_daily_plan(run_date=run_date)
+
+
+def use_daily_run_dispatch() -> bool:
+    return should_use_daily_run_dispatch()
 
 
 def time_to_cron(time_str: str) -> str:
@@ -132,6 +149,25 @@ async def _job_maintenance() -> None:
         db.close()
 
 
+async def _job_sync_daily_task_runs() -> None:
+    try:
+        plans = await sync_daily_task_runs()
+        logger.info("Daily task plan sync ensured %s planned runs", len(plans))
+    except Exception as exc:
+        logger.error("Daily task plan sync failed: %s", exc, exc_info=True)
+
+
+async def _job_dispatch_due_daily_runs() -> None:
+    from backend.services.daily_dispatcher import get_daily_dispatcher_service
+
+    try:
+        launched = await get_daily_dispatcher_service().dispatch_due_runs()
+        if launched:
+            logger.info("Daily dispatcher launched %s due run(s)", launched)
+    except Exception as exc:
+        logger.error("Daily dispatcher failed: %s", exc, exc_info=True)
+
+
 async def sync_jobs() -> None:
     """
     Sync APScheduler jobs from DB tasks table and file-based sign tasks.
@@ -172,13 +208,20 @@ async def sync_jobs() -> None:
         # 2. 同步签到任务 (SignTask)
         # 使用缓存的任务列表,减少 I/O
         sign_tasks = get_sign_task_store().list_tasks(force_refresh=False)
+        dispatch_mode_enabled = use_daily_run_dispatch()
         for sign_task in sign_tasks:
             st = sign_task.to_dict()
             job_id = f"sign-{sign_task.account_name}-{sign_task.name}"
-            desired_ids.add(job_id)
+            if not dispatch_mode_enabled:
+                desired_ids.add(job_id)
 
             # SignTask 目前默认都是启用的,或者根据 st['enabled']
             if not st.get("enabled", True):
+                if job_id in existing_ids:
+                    scheduler.remove_job(job_id)
+                continue
+
+            if dispatch_mode_enabled:
                 if job_id in existing_ids:
                     scheduler.remove_job(job_id)
                 continue
@@ -243,6 +286,8 @@ async def sync_jobs() -> None:
         # remove obsolete jobs
         for job_id in existing_ids - desired_ids:
             scheduler.remove_job(job_id)
+
+        await sync_daily_task_runs()
     finally:
         db.close()
 
@@ -270,8 +315,26 @@ async def init_scheduler(sync_on_startup: bool = True) -> AsyncIOScheduler:
             id="system-maintenance",
             replace_existing=True,
         )
+        scheduler.add_job(
+            _job_sync_daily_task_runs,
+            trigger=CronTrigger.from_crontab("5 0 * * *"),
+            id="daily-plan-sync",
+            replace_existing=True,
+        )
+        scheduler.add_job(
+            _job_dispatch_due_daily_runs,
+            trigger="interval",
+            seconds=30,
+            id="daily-run-dispatch",
+            replace_existing=True,
+            max_instances=1,
+        )
 
         if sync_on_startup:
+            if use_daily_run_dispatch():
+                recovered = get_daily_dispatcher_service().recover_today_runs()
+                if recovered:
+                    logger.warning("Recovered %s interrupted daily run(s)", recovered)
             await sync_jobs()
     return scheduler
 

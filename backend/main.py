@@ -40,6 +40,7 @@ from backend.scheduler import (  # noqa: E402
     shutdown_scheduler,
     sync_jobs,
 )
+from backend.services.daily_dispatcher import get_daily_dispatcher_service  # noqa: E402
 from backend.services.legacy_migration import get_legacy_migration_service  # noqa: E402
 from backend.services.users import ensure_admin  # noqa: E402
 from backend.utils.paths import ensure_data_dirs  # noqa: E402
@@ -235,6 +236,12 @@ async def on_startup() -> None:
 
     async def _post_startup() -> None:
         try:
+            recovered = get_daily_dispatcher_service().recover_today_runs()
+            if recovered:
+                startup_logger.warning(
+                    "Recovered %s interrupted daily run(s) on startup",
+                    recovered,
+                )
             await sync_jobs()
             set_readiness("jobs_synced", True)
         except Exception as exc:
