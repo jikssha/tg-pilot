@@ -166,6 +166,51 @@ async function mockDashboardApis(page: Page) {
             last_run_failed: 0,
             never_run: 1,
           },
+          daily_runs: {
+            run_date: "2026-03-21",
+            total: 4,
+            pending: 1,
+            running: 0,
+            retry_wait: 1,
+            success: 1,
+            failed: 0,
+            blocked: 0,
+            expired: 1,
+            latest_planned_at: new Date().toISOString(),
+            latest_finished_at: new Date().toISOString(),
+            recent_runs: [
+              {
+                id: 1,
+                task_name: "daily-checkin",
+                account_name: "demo-main",
+                planned_run_at: new Date().toISOString(),
+                status: "success",
+                attempt_count: 1,
+                max_attempts: 3,
+                next_retry_at: null,
+                deadline_at: new Date().toISOString(),
+                last_started_at: new Date().toISOString(),
+                last_finished_at: new Date().toISOString(),
+                last_error_code: null,
+                last_error_message: null,
+              },
+              {
+                id: 2,
+                task_name: "daily-retry",
+                account_name: "demo-backup",
+                planned_run_at: new Date().toISOString(),
+                status: "retry_wait",
+                attempt_count: 1,
+                max_attempts: 3,
+                next_retry_at: new Date().toISOString(),
+                deadline_at: new Date().toISOString(),
+                last_started_at: new Date().toISOString(),
+                last_finished_at: new Date().toISOString(),
+                last_error_code: "RETRYABLE_TASK_FAILURE",
+                last_error_message: "network timeout",
+              },
+            ],
+          },
           recent_audit: [
             {
               id: 1,
@@ -272,6 +317,9 @@ test("settings page renders system control center with mocked config", async ({ 
   await expect(page.getByText("账户安全与验证")).toBeVisible();
   await page.getByRole("button", { name: "系统运维概览" }).click();
   await expect(page.getByRole("heading", { name: "系统运维概览" })).toBeVisible();
+  await expect(page.getByText("今日执行概览")).toBeVisible();
+  await expect(page.locator("span").filter({ hasText: /^重试中$/ }).first()).toBeVisible();
+  await expect(page.getByText("daily-retry")).toBeVisible();
   await page.getByRole("button", { name: "审计事件追踪" }).click();
   await expect(page.getByRole("heading", { name: "审计事件追踪" })).toBeVisible();
 });

@@ -11,6 +11,9 @@ import {
   Lightning,
   ShieldCheck,
   WarningCircle,
+  ClockCountdown,
+  ProhibitInset,
+  XCircle,
 } from "@phosphor-icons/react";
 
 import { useLanguage } from "../../../../context/LanguageContext";
@@ -29,6 +32,49 @@ export default function OperationsOverview({ token }: OperationsOverviewProps) {
     const statuses = overviewQuery.data?.accounts.statuses || {};
     return Object.entries(statuses).sort((a, b) => b[1] - a[1]);
   }, [overviewQuery.data?.accounts.statuses]);
+
+  const dailyRunCards = useMemo(() => {
+    const daily = overviewQuery.data?.daily_runs;
+    if (!daily) return [];
+    return [
+      {
+        key: "success",
+        label: isZh ? "今日成功" : "Today Success",
+        value: daily.success,
+        tone: "emerald" as const,
+      },
+      {
+        key: "pending",
+        label: isZh ? "待执行" : "Pending",
+        value: daily.pending,
+        tone: "slate" as const,
+      },
+      {
+        key: "retry_wait",
+        label: isZh ? "重试中" : "Retrying",
+        value: daily.retry_wait,
+        tone: "amber" as const,
+      },
+      {
+        key: "running",
+        label: isZh ? "执行中" : "Running",
+        value: daily.running,
+        tone: "cyan" as const,
+      },
+      {
+        key: "blocked",
+        label: isZh ? "已阻塞" : "Blocked",
+        value: daily.blocked,
+        tone: "rose" as const,
+      },
+      {
+        key: "expired",
+        label: isZh ? "已过期" : "Expired",
+        value: daily.expired,
+        tone: "violet" as const,
+      },
+    ];
+  }, [isZh, overviewQuery.data?.daily_runs]);
 
   return (
     <div className="space-y-10 animate-float-up">
@@ -166,6 +212,117 @@ export default function OperationsOverview({ token }: OperationsOverviewProps) {
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <section className="rounded-3xl bg-white/[0.02] border border-white/5 p-8 space-y-6 shadow-inner xl:col-span-2">
+              <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h3 className="text-sm font-bold tracking-tight">
+                    {isZh ? "今日执行概览" : "Today Execution Overview"}
+                  </h3>
+                  <p className="text-[10px] text-white/20 uppercase tracking-widest font-bold mt-1">
+                    {isZh ? "daily_task_runs 的今日状态与最近执行记录" : "Today’s daily run states and recent execution records"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-[11px] text-white/45">
+                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 font-semibold">
+                    {isZh ? "运行日期" : "Run Date"}: {overviewQuery.data.daily_runs.run_date}
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 font-semibold">
+                    {isZh ? "总计划数" : "Total Planned"}: {overviewQuery.data.daily_runs.total}
+                  </span>
+                </div>
+              </header>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                {dailyRunCards.map((item) => (
+                  <MiniMetric key={item.key} label={item.label} value={item.value} tone={item.tone} />
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-6">
+                <div className="rounded-2xl bg-black/20 border border-white/5 overflow-hidden">
+                  <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+                    <div className="text-sm font-semibold">
+                      {isZh ? "最近执行记录" : "Recent Runs"}
+                    </div>
+                    <div className="text-[11px] text-white/35">
+                      {isZh ? "最近 10 条" : "Latest 10"}
+                    </div>
+                  </div>
+                  {overviewQuery.data.daily_runs.recent_runs.length ? (
+                    <div className="divide-y divide-white/5">
+                      {overviewQuery.data.daily_runs.recent_runs.map((run) => (
+                        <div key={run.id} className="px-5 py-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-semibold">{run.task_name}</span>
+                              <span className="text-[11px] text-white/40">{run.account_name}</span>
+                              <RunStatusPill status={run.status} isZh={isZh} />
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-white/35">
+                              <span>{isZh ? "计划时间" : "Planned"}: {formatTs(run.planned_run_at, isZh)}</span>
+                              <span>{isZh ? "尝试次数" : "Attempts"}: {run.attempt_count}/{run.max_attempts}</span>
+                              {run.next_retry_at ? (
+                                <span>{isZh ? "下次重试" : "Retry At"}: {formatTs(run.next_retry_at, isZh)}</span>
+                              ) : null}
+                            </div>
+                            {run.last_error_message ? (
+                              <div className="mt-2 text-[12px] text-rose-200/80 break-words">
+                                {run.last_error_message}
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className="text-[11px] text-white/30 shrink-0 md:text-right">
+                            {run.last_finished_at
+                              ? `${isZh ? "完成" : "Finished"}: ${formatTs(run.last_finished_at, isZh)}`
+                              : run.last_started_at
+                                ? `${isZh ? "开始" : "Started"}: ${formatTs(run.last_started_at, isZh)}`
+                                : (isZh ? "尚未开始" : "Not started")}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-5 py-8 text-sm text-white/30">
+                      {isZh ? "今日还没有 daily run 记录" : "No daily runs recorded for today yet"}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-2xl bg-black/20 border border-white/5 p-5">
+                    <div className="text-[10px] uppercase tracking-widest font-bold text-white/25">
+                      {isZh ? "最近计划时间" : "Latest Planned"}
+                    </div>
+                    <div className="mt-3 text-lg font-black">
+                      {overviewQuery.data.daily_runs.latest_planned_at
+                        ? formatTs(overviewQuery.data.daily_runs.latest_planned_at, isZh)
+                        : (isZh ? "暂无" : "N/A")}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-black/20 border border-white/5 p-5">
+                    <div className="text-[10px] uppercase tracking-widest font-bold text-white/25">
+                      {isZh ? "最近完成时间" : "Latest Finished"}
+                    </div>
+                    <div className="mt-3 text-lg font-black">
+                      {overviewQuery.data.daily_runs.latest_finished_at
+                        ? formatTs(overviewQuery.data.daily_runs.latest_finished_at, isZh)
+                        : (isZh ? "暂无" : "N/A")}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-black/20 border border-white/5 p-5 space-y-3">
+                    <div className="text-[10px] uppercase tracking-widest font-bold text-white/25">
+                      {isZh ? "状态说明" : "Status Guide"}
+                    </div>
+                    <LegendRow icon={<CheckCircle size={14} weight="fill" />} label={isZh ? "success: 今日已完成" : "success: completed today"} tone="text-emerald-400" />
+                    <LegendRow icon={<ClockCountdown size={14} weight="fill" />} label={isZh ? "retry_wait: 等待补偿重试" : "retry_wait: queued for retry"} tone="text-amber-400" />
+                    <LegendRow icon={<Lightning size={14} weight="fill" />} label={isZh ? "running: 当前正在执行" : "running: executing now"} tone="text-cyan-400" />
+                    <LegendRow icon={<ProhibitInset size={14} weight="fill" />} label={isZh ? "blocked: 需要人工处理" : "blocked: needs manual action"} tone="text-rose-400" />
+                    <LegendRow icon={<XCircle size={14} weight="fill" />} label={isZh ? "expired: 已超过当日截止" : "expired: missed the daily deadline"} tone="text-violet-400" />
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <section className="rounded-3xl bg-white/[0.02] border border-white/5 p-8 space-y-6 shadow-inner">
               <header>
                 <h3 className="text-sm font-bold tracking-tight">
@@ -283,19 +440,89 @@ function MiniMetric({
 }: {
   label: string;
   value: number;
-  tone: "emerald" | "slate" | "cyan" | "rose";
+  tone: "emerald" | "slate" | "cyan" | "rose" | "amber" | "violet";
 }) {
   const toneClass = {
     emerald: "text-emerald-300 bg-emerald-500/5 border-emerald-500/10",
     slate: "text-white/70 bg-white/[0.03] border-white/10",
     cyan: "text-cyan-300 bg-cyan-500/5 border-cyan-500/10",
     rose: "text-rose-300 bg-rose-500/5 border-rose-500/10",
+    amber: "text-amber-300 bg-amber-500/5 border-amber-500/10",
+    violet: "text-violet-300 bg-violet-500/5 border-violet-500/10",
   } as const;
 
   return (
     <div className={`rounded-2xl border px-4 py-4 ${toneClass[tone]}`}>
       <div className="text-[10px] uppercase tracking-widest font-bold opacity-70">{label}</div>
       <div className="mt-2 text-2xl font-black">{value}</div>
+    </div>
+  );
+}
+
+function formatTs(value: string | null | undefined, isZh: boolean) {
+  if (!value) return "--";
+  try {
+    const normalized = value.endsWith("Z") ? value : `${value}Z`;
+    return new Date(normalized).toLocaleString(isZh ? "zh-CN" : "en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return value;
+  }
+}
+
+function RunStatusPill({ status, isZh }: { status: string; isZh: boolean }) {
+  const normalized = status.toLowerCase();
+  const map = {
+    success: {
+      label: isZh ? "成功" : "Success",
+      className: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
+    },
+    pending: {
+      label: isZh ? "待执行" : "Pending",
+      className: "bg-white/[0.05] text-white/70 border-white/10",
+    },
+    running: {
+      label: isZh ? "执行中" : "Running",
+      className: "bg-cyan-500/10 text-cyan-300 border-cyan-500/20",
+    },
+    retry_wait: {
+      label: isZh ? "重试中" : "Retrying",
+      className: "bg-amber-500/10 text-amber-300 border-amber-500/20",
+    },
+    failed: {
+      label: isZh ? "失败" : "Failed",
+      className: "bg-rose-500/10 text-rose-300 border-rose-500/20",
+    },
+    blocked: {
+      label: isZh ? "阻塞" : "Blocked",
+      className: "bg-rose-500/10 text-rose-300 border-rose-500/20",
+    },
+    expired: {
+      label: isZh ? "过期" : "Expired",
+      className: "bg-violet-500/10 text-violet-300 border-violet-500/20",
+    },
+  } as const;
+  const meta = map[normalized as keyof typeof map] ?? {
+    label: status,
+    className: "bg-white/[0.05] text-white/70 border-white/10",
+  };
+
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${meta.className}`}>
+      {meta.label}
+    </span>
+  );
+}
+
+function LegendRow({ icon, label, tone }: { icon: ReactNode; label: string; tone: string }) {
+  return (
+    <div className={`flex items-center gap-2 text-[12px] ${tone}`}>
+      <span>{icon}</span>
+      <span>{label}</span>
     </div>
   );
 }

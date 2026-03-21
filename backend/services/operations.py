@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from datetime import date
 from typing import Any
 
 from sqlalchemy import func
@@ -9,6 +10,7 @@ import backend.scheduler as scheduler_module
 from backend.core.database import get_session_local
 from backend.models.account import Account
 from backend.models.audit_event import AuditEvent
+from backend.models.daily_task_run import DailyTaskRun
 from backend.models.sign_task import SignTask
 from backend.services.audit import get_audit_service
 
@@ -57,6 +59,36 @@ class OperationsService:
                 .limit(1)
                 .scalar()
             )
+
+            today = date.today()
+            daily_run_rows = (
+                db.query(DailyTaskRun)
+                .filter(DailyTaskRun.run_date == today)
+                .order_by(DailyTaskRun.planned_run_at.desc(), DailyTaskRun.id.desc())
+                .all()
+            )
+            daily_run_counter = Counter(str(row.status or "pending") for row in daily_run_rows)
+            latest_planned_at = daily_run_rows[0].planned_run_at if daily_run_rows else None
+            latest_finished_times = [row.last_finished_at for row in daily_run_rows if row.last_finished_at is not None]
+            latest_finished_at = max(latest_finished_times) if latest_finished_times else None
+            recent_daily_runs = [
+                {
+                    "id": int(row.id),
+                    "task_name": row.task_name,
+                    "account_name": row.account_name,
+                    "planned_run_at": row.planned_run_at.isoformat() + "Z",
+                    "status": row.status,
+                    "attempt_count": int(row.attempt_count or 0),
+                    "max_attempts": int(row.max_attempts or 0),
+                    "next_retry_at": row.next_retry_at.isoformat() + "Z" if row.next_retry_at else None,
+                    "deadline_at": row.deadline_at.isoformat() + "Z" if row.deadline_at else None,
+                    "last_started_at": row.last_started_at.isoformat() + "Z" if row.last_started_at else None,
+                    "last_finished_at": row.last_finished_at.isoformat() + "Z" if row.last_finished_at else None,
+                    "last_error_code": row.last_error_code,
+                    "last_error_message": row.last_error_message,
+                }
+                for row in daily_run_rows[:10]
+            ]
         finally:
             db.close()
 
@@ -99,6 +131,20 @@ class OperationsService:
                 "last_run_success": int(last_run_counter.get("success", 0)),
                 "last_run_failed": int(last_run_counter.get("failed", 0)),
                 "never_run": int(never_run),
+            },
+            "daily_runs": {
+                "run_date": today.isoformat(),
+                "total": len(daily_run_rows),
+                "pending": int(daily_run_counter.get("pending", 0)),
+                "running": int(daily_run_counter.get("running", 0)),
+                "retry_wait": int(daily_run_counter.get("retry_wait", 0)),
+                "success": int(daily_run_counter.get("success", 0)),
+                "failed": int(daily_run_counter.get("failed", 0)),
+                "blocked": int(daily_run_counter.get("blocked", 0)),
+                "expired": int(daily_run_counter.get("expired", 0)),
+                "latest_planned_at": latest_planned_at.isoformat() + "Z" if latest_planned_at else None,
+                "latest_finished_at": latest_finished_at.isoformat() + "Z" if latest_finished_at else None,
+                "recent_runs": recent_daily_runs,
             },
             "recent_audit": recent_audit["items"],
             "latest_audit_at": latest_audit_at.isoformat() + "Z"

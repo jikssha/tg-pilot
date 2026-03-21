@@ -31,11 +31,44 @@ class AuditEventListResponse(BaseModel):
     offset: int
 
 
+class DailyRunItemOut(BaseModel):
+    id: int
+    task_name: str
+    account_name: str
+    planned_run_at: str
+    status: str
+    attempt_count: int
+    max_attempts: int
+    next_retry_at: str | None = None
+    deadline_at: str | None = None
+    last_started_at: str | None = None
+    last_finished_at: str | None = None
+    last_error_code: str | None = None
+    last_error_message: str | None = None
+
+
+class DailyRunsSummaryResponse(BaseModel):
+    run_date: str
+    total: int
+    pending: int
+    running: int
+    retry_wait: int
+    success: int
+    failed: int
+    blocked: int
+    expired: int
+    latest_planned_at: str | None = None
+    latest_finished_at: str | None = None
+    recent_runs: list[DailyRunItemOut]
+
+
 class OperationsOverviewResponse(BaseModel):
+
     readiness: dict[str, Any]
     scheduler: dict[str, Any]
     accounts: dict[str, Any]
     sign_tasks: dict[str, Any]
+    daily_runs: DailyRunsSummaryResponse
     recent_audit: list[AuditEventOut]
     latest_audit_at: str | None = None
 

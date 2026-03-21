@@ -561,6 +561,34 @@ export interface AuditEventListResponse {
 }
 
 export interface OperationsOverview {
+  daily_runs: {
+    run_date: string;
+    total: number;
+    pending: number;
+    running: number;
+    retry_wait: number;
+    success: number;
+    failed: number;
+    blocked: number;
+    expired: number;
+    latest_planned_at?: string | null;
+    latest_finished_at?: string | null;
+    recent_runs: Array<{
+      id: number;
+      task_name: string;
+      account_name: string;
+      planned_run_at: string;
+      status: string;
+      attempt_count: number;
+      max_attempts: number;
+      next_retry_at?: string | null;
+      deadline_at?: string | null;
+      last_started_at?: string | null;
+      last_finished_at?: string | null;
+      last_error_code?: string | null;
+      last_error_message?: string | null;
+    }>;
+  };
   readiness: {
     ready: boolean;
     checks: Record<string, boolean>;
