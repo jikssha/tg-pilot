@@ -234,6 +234,48 @@ def test_run_migrations_is_idempotent_after_daily_run_revisions_exist(isolated_e
     assert {"daily_task_runs", "sign_tasks", "audit_events"}.issubset(tables)
 
 
+def test_run_migrations_reconciles_when_schema_is_ahead_of_stored_revision(isolated_env):
+    from backend.core.config import get_settings
+    from backend.core.migrations import run_migrations
+
+    settings = get_settings()
+    db_path = settings.resolve_db_path()
+
+    run_migrations()
+
+    connection = sqlite3.connect(db_path)
+    try:
+        connection.execute("DELETE FROM alembic_version")
+        connection.execute(
+            "INSERT INTO alembic_version (version_num) VALUES (?)",
+            ("202603190003",),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    run_migrations()
+
+    connection = sqlite3.connect(db_path)
+    try:
+        revision = connection.execute(
+            "SELECT version_num FROM alembic_version"
+        ).fetchall()
+        daily_run_columns = {
+            row[1]
+            for row in connection.execute(
+                "PRAGMA table_info('daily_task_runs')"
+            ).fetchall()
+        }
+    finally:
+        connection.close()
+
+    assert revision == [("202603210002",)]
+    assert {"max_attempts", "next_retry_at", "deadline_at"}.issubset(
+        daily_run_columns
+    )
+
+
 def test_startup_legacy_bootstrap_reconciles_accounts_and_sign_tasks(isolated_env):
     from backend.contracts import SignTaskDefinition
     from backend.core.database import get_session_local

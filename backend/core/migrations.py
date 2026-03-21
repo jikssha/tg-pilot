@@ -16,10 +16,18 @@ logger = logging.getLogger("backend.migrations")
 BASELINE_REVISION: Final[str] = "202603190001"
 PHASE2_REVISION: Final[str] = "202603190002"
 PHASE3_REVISION: Final[str] = "202603190003"
+DAILY_RUNS_REVISION: Final[str] = "202603210001"
+DAILY_RUNS_RETRY_REVISION: Final[str] = "202603210002"
 
 _BASELINE_TABLES: Final[set[str]] = {"accounts", "users", "tasks", "task_logs"}
 _PHASE2_TABLES: Final[set[str]] = {"audit_events", "login_session_states"}
 _PHASE3_TABLES: Final[set[str]] = {"sign_tasks"}
+_DAILY_RUN_TABLES: Final[set[str]] = {"daily_task_runs"}
+_DAILY_RUN_RETRY_COLUMNS: Final[set[str]] = {
+    "max_attempts",
+    "next_retry_at",
+    "deadline_at",
+}
 
 
 def _repo_root() -> Path:
@@ -39,6 +47,8 @@ def _load_known_revisions(config: Config) -> set[str]:
         BASELINE_REVISION,
         PHASE2_REVISION,
         PHASE3_REVISION,
+        DAILY_RUNS_REVISION,
+        DAILY_RUNS_RETRY_REVISION,
     }
     try:
         script = ScriptDirectory.from_config(config)
@@ -50,6 +60,27 @@ def _load_known_revisions(config: Config) -> set[str]:
     except Exception as exc:
         logger.warning("Failed to load alembic revisions dynamically: %s", exc)
     return revisions
+
+
+def _load_revision_order(config: Config) -> dict[str, int]:
+    order = {
+        BASELINE_REVISION: 0,
+        PHASE2_REVISION: 1,
+        PHASE3_REVISION: 2,
+        DAILY_RUNS_REVISION: 3,
+        DAILY_RUNS_RETRY_REVISION: 4,
+    }
+    try:
+        script = ScriptDirectory.from_config(config)
+        revisions = [
+            revision.revision
+            for revision in reversed(list(script.walk_revisions()))
+            if getattr(revision, "revision", None)
+        ]
+        order = {revision: index for index, revision in enumerate(revisions)}
+    except Exception as exc:
+        logger.warning("Failed to build alembic revision order dynamically: %s", exc)
+    return order
 
 
 def _load_table_names(connection: sqlite3.Connection) -> set[str]:
@@ -79,6 +110,25 @@ def _load_alembic_versions(connection: sqlite3.Connection) -> list[str]:
     return versions
 
 
+def _infer_schema_revision(connection: sqlite3.Connection, table_names: set[str]) -> str | None:
+    if "daily_task_runs" in table_names:
+        daily_run_columns = _load_column_names(connection, "daily_task_runs")
+        if _DAILY_RUN_RETRY_COLUMNS.issubset(daily_run_columns):
+            return DAILY_RUNS_RETRY_REVISION
+        return DAILY_RUNS_REVISION
+
+    if "sign_tasks" in table_names:
+        return PHASE3_REVISION
+
+    if _PHASE2_TABLES.issubset(table_names):
+        return PHASE2_REVISION
+
+    if _BASELINE_TABLES.issubset(table_names):
+        return BASELINE_REVISION
+
+    return None
+
+
 def _detect_legacy_revision(db_path: Path, known_revisions: set[str]) -> str | None:
     if not db_path.exists():
         return None
@@ -97,7 +147,8 @@ def _detect_legacy_revision(db_path: Path, known_revisions: set[str]) -> str | N
                 versions,
             )
 
-        if "sign_tasks" in table_names:
+        inferred_revision = _infer_schema_revision(connection, table_names)
+        if inferred_revision == PHASE3_REVISION:
             account_columns = (
                 _load_column_names(connection, "accounts")
                 if "accounts" in table_names
@@ -118,16 +169,13 @@ def _detect_legacy_revision(db_path: Path, known_revisions: set[str]) -> str | N
                     PHASE3_REVISION,
                     sorted(missing_account_columns),
                 )
-            return PHASE3_REVISION
-
-        if _PHASE2_TABLES.issubset(table_names):
-            return PHASE2_REVISION
-
-        if _BASELINE_TABLES.issubset(table_names):
-            return BASELINE_REVISION
+        if inferred_revision is not None:
+            return inferred_revision
 
         legacy_tables = sorted(
-            table_names.intersection(_BASELINE_TABLES | _PHASE2_TABLES | _PHASE3_TABLES)
+            table_names.intersection(
+                _BASELINE_TABLES | _PHASE2_TABLES | _PHASE3_TABLES | _DAILY_RUN_TABLES
+            )
         )
         if legacy_tables:
             logger.warning(
@@ -138,15 +186,65 @@ def _detect_legacy_revision(db_path: Path, known_revisions: set[str]) -> str | N
         return None
 
 
+def _resolve_schema_ahead_revision(
+    db_path: Path,
+    known_revisions: set[str],
+    revision_order: dict[str, int],
+) -> str | None:
+    if not db_path.exists():
+        return None
+
+    with sqlite3.connect(db_path) as connection:
+        table_names = _load_table_names(connection)
+        if "alembic_version" not in table_names:
+            return None
+
+        versions = _load_alembic_versions(connection)
+        valid_versions = [version for version in versions if version in known_revisions]
+        if not valid_versions:
+            return None
+
+        current_revision = max(
+            valid_versions,
+            key=lambda revision: revision_order.get(revision, -1),
+        )
+        inferred_revision = _infer_schema_revision(connection, table_names)
+        if inferred_revision is None:
+            return None
+
+        if revision_order.get(inferred_revision, -1) > revision_order.get(
+            current_revision, -1
+        ):
+            logger.warning(
+                "Detected schema ahead of alembic_version in %s; stored=%s inferred=%s. "
+                "Stamping forward before upgrade.",
+                db_path,
+                current_revision,
+                inferred_revision,
+            )
+            return inferred_revision
+
+    return None
+
+
 def _bootstrap_legacy_alembic_state(config: Config) -> str | None:
     settings = get_settings()
     db_path = settings.resolve_db_path()
-    revision = _detect_legacy_revision(db_path, _load_known_revisions(config))
+    known_revisions = _load_known_revisions(config)
+    revision_order = _load_revision_order(config)
+
+    revision = _resolve_schema_ahead_revision(
+        db_path,
+        known_revisions,
+        revision_order,
+    )
+    if revision is None:
+        revision = _detect_legacy_revision(db_path, known_revisions)
     if revision is None:
         return None
 
     logger.info(
-        "Detected pre-Alembic legacy database at %s; stamping revision %s before upgrade",
+        "Detected SQLite database at %s requiring alembic stamp reconciliation to revision %s before upgrade",
         db_path,
         revision,
     )
