@@ -19,7 +19,6 @@ The mainline product will stay lightweight by default:
 - No Redis, message queue, or microservice split in the default path
 - `frontend + backend` is the only product entrypoint
 - `tg_signer` remains the execution engine and CLI compatibility layer
-- `tg_signer/webui` is legacy and frozen for feature work
 
 ## Consequences
 

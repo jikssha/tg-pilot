@@ -140,7 +140,6 @@ Current product-line boundaries:
 
 - **Product entrypoint**: `frontend + backend`
 - **Execution engine and CLI compatibility layer**: `tg_signer`
-- **Legacy entrypoint**: `tg_signer/webui`, kept for compatibility only and no longer expanded
 
 See the supporting docs for details:
 

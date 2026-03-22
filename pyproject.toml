@@ -50,9 +50,6 @@ dev = [
 speedup = [
     "tgcrypto"
 ]
-gui = [
-    "nicegui"
-]
 
 [project.urls]
 Homepage = "https://github.com/jikssha/tg-pilot"

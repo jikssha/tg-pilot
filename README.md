@@ -132,7 +132,6 @@ docker compose up -d
 
 - **产品入口**：`frontend + backend`
 - **执行内核与 CLI 兼容层**：`tg_signer`
-- **Legacy 入口**：`tg_signer/webui` 仅保留兼容，不再继续扩展
 
 更多约束与阶段门禁请参阅：
 
