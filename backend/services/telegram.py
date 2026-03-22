@@ -101,7 +101,6 @@ class TelegramService:
                     profile = self.session_store.get_account_profile(account_name)
                     self.account_store.sync_from_session(
                         account_name,
-                        legacy_profile=profile,
                         session_file=material["session_file"],
                         session_backend=material["session_backend"],
                     )
@@ -125,7 +124,6 @@ class TelegramService:
                     profile = self.session_store.get_account_profile(account_name)
                     self.account_store.sync_from_session(
                         account_name,
-                        legacy_profile=profile,
                         session_file=session_file,
                         session_backend="file",
                     )

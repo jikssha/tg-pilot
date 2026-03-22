@@ -78,15 +78,8 @@ class FileRunHistoryStore:
         self, task_name: str, account_name: str = ""
     ) -> list[dict[str, object]]:
         history_file = self._history_file_path(task_name, account_name)
-        legacy_file = self.run_history_dir / f"{self._safe_history_key(task_name)}.json"
-
         if not history_file.exists():
-            if account_name and legacy_file.exists():
-                history_file = legacy_file
-            elif not account_name and legacy_file.exists():
-                history_file = legacy_file
-            else:
-                return []
+            return []
 
         try:
             with open(history_file, "r", encoding="utf-8") as handle:
@@ -177,65 +170,6 @@ class FileRunHistoryStore:
                 try:
                     history_file.unlink()
                     removed_files += 1
-                except Exception:
-                    pass
-                continue
-
-            legacy_file = self.run_history_dir / f"{self._safe_history_key(task_name)}.json"
-            if not legacy_file.exists():
-                continue
-
-            try:
-                with open(legacy_file, "r", encoding="utf-8") as handle:
-                    data = json.load(handle)
-                if isinstance(data, dict):
-                    data_list = [data]
-                elif isinstance(data, list):
-                    data_list = data
-                else:
-                    data_list = []
-            except Exception:
-                continue
-
-            if not data_list:
-                try:
-                    legacy_file.unlink()
-                    removed_files += 1
-                except Exception:
-                    pass
-                continue
-
-            has_account_field = any(
-                isinstance(item, dict) and "account_name" in item for item in data_list
-            )
-            if not has_account_field:
-                removed_entries += len(data_list)
-                try:
-                    legacy_file.unlink()
-                    removed_files += 1
-                except Exception:
-                    pass
-                continue
-
-            kept: list[dict[str, object]] = []
-            for item in data_list:
-                if not isinstance(item, dict):
-                    continue
-                if item.get("account_name") == account_name:
-                    removed_entries += 1
-                else:
-                    kept.append(item)
-
-            if not kept:
-                try:
-                    legacy_file.unlink()
-                    removed_files += 1
-                except Exception:
-                    pass
-            else:
-                try:
-                    with open(legacy_file, "w", encoding="utf-8") as handle:
-                        json.dump(kept, handle, ensure_ascii=False, indent=2)
                 except Exception:
                     pass
 

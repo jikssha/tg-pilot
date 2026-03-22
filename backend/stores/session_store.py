@@ -6,28 +6,22 @@ from typing import Any
 from backend.utils.tg_session import (
     delete_account_session_string,
     delete_session_string_file,
-    get_account_profile,
-    get_account_proxy,
     get_account_session_string,
     get_session_mode,
-    list_account_names,
     load_session_string_file,
     save_session_string_file,
-    set_account_profile,
     set_account_session_string,
 )
 
 
 class FileSessionStore:
     def list_account_names(self) -> list[str]:
-        legacy_names = set(list_account_names())
         try:
             from backend.stores.accounts import get_account_store
 
-            legacy_names.update(get_account_store().list_account_names())
+            return get_account_store().list_account_names()
         except Exception:
-            pass
-        return sorted(legacy_names)
+            return []
 
     def list_session_files(self, session_dir: Path) -> list[Path]:
         pattern = "*.session_string" if get_session_mode() == "string" else "*.session"
@@ -37,19 +31,16 @@ class FileSessionStore:
         try:
             from backend.stores.accounts import get_account_store
 
-            profile = get_account_store().get_profile(account_name)
+            return get_account_store().get_profile(account_name)
         except Exception:
-            profile = {}
-
-        legacy_profile = get_account_profile(account_name)
-        merged = dict(legacy_profile)
-        for key, value in profile.items():
-            if value not in (None, ""):
-                merged[key] = value
-        return merged
+            return {}
 
     def get_account_proxy(self, account_name: str) -> str | None:
-        return get_account_proxy(account_name)
+        profile = self.get_account_profile(account_name)
+        proxy = profile.get("proxy")
+        if isinstance(proxy, str) and proxy.strip():
+            return proxy.strip()
+        return None
 
     def get_session_string(self, session_dir: Path, account_name: str) -> str | None:
         return get_account_session_string(account_name) or load_session_string_file(
@@ -83,7 +74,6 @@ class FileSessionStore:
         remark: str | None = None,
         proxy: str | None = None,
     ) -> None:
-        set_account_profile(account_name, remark=remark, proxy=proxy)
         try:
             from backend.stores.accounts import get_account_store
 

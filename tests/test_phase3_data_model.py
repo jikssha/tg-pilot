@@ -12,7 +12,6 @@ def test_account_store_and_session_store_share_db_backed_profile(isolated_env, d
 
     account_store.ensure_account(
         "alpha",
-        legacy_profile={"remark": "legacy remark", "proxy": "socks5://127.0.0.1:1080"},
         session_backend="string",
         session_ref="alpha.session_string",
     )

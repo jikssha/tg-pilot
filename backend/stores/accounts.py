@@ -73,7 +73,6 @@ class AccountStore:
         self,
         account_name: str,
         *,
-        legacy_profile: dict[str, Any] | None = None,
         session_backend: str | None = None,
         session_ref: str | None = None,
     ) -> dict[str, Any]:
@@ -88,19 +87,12 @@ class AccountStore:
                     account_name=account_name,
                     api_id=api_id,
                     api_hash=api_hash,
-                    remark=(legacy_profile or {}).get("remark"),
-                    proxy=(legacy_profile or {}).get("proxy"),
                     session_backend=session_backend,
                     session_ref=session_ref,
                     status="idle",
                 )
                 db.add(account)
             else:
-                if legacy_profile:
-                    if not account.remark and legacy_profile.get("remark"):
-                        account.remark = legacy_profile.get("remark")
-                    if not account.proxy and legacy_profile.get("proxy"):
-                        account.proxy = legacy_profile.get("proxy")
                 if session_backend:
                     account.session_backend = session_backend
                 if session_ref:
@@ -172,14 +164,12 @@ class AccountStore:
         self,
         account_name: str,
         *,
-        legacy_profile: dict[str, Any] | None = None,
         session_file: Path | None = None,
         session_backend: str | None = None,
     ) -> dict[str, Any]:
         session_ref = session_file.name if session_file is not None else None
         return self.ensure_account(
             account_name,
-            legacy_profile=legacy_profile,
             session_backend=session_backend,
             session_ref=session_ref,
         )
