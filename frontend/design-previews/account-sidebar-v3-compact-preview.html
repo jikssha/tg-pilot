@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TG-Pilot Sidebar V3 Compact Preview</title>
+  <style>
+    :root {
+      --bg-body: #090909;
+      --bg-sidebar: #080808;
+      --bg-panel: #0f0f10;
+      --surface: rgba(255, 255, 255, 0.03);
+      --surface-strong: rgba(255, 255, 255, 0.05);
+      --surface-active: rgba(255, 255, 255, 0.075);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-soft: rgba(255, 255, 255, 0.05);
+      --text-main: #ededed;
+      --text-sub: #8d9199;
+      --text-soft: rgba(237, 237, 237, 0.38);
+      --accent: #8a3ffc;
+      --accent-soft: rgba(138, 63, 252, 0.12);
+      --success: #34d399;
+      --warning: #fbbf24;
+      --error: #fb923c;
+      --danger: #fb7185;
+      --selection: #22d3ee;
+      --shadow-soft: 0 14px 34px rgba(0, 0, 0, 0.24);
+      --radius-xl: 22px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+      --transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(138, 63, 252, 0.1), transparent 26%),
+        radial-gradient(circle at bottom left, rgba(34, 211, 238, 0.05), transparent 22%),
+        linear-gradient(180deg, #0b0b0b 0%, #080808 100%);
+      color: var(--text-main);
+      overflow: hidden;
+    }
+
+    .preview-shell {
+      display: grid;
+      grid-template-columns: 312px minmax(0, 1fr);
+      height: 100vh;
+    }
+
+    .sidebar {
+      background: linear-gradient(180deg, rgba(8, 8, 8, 0.98), rgba(8, 8, 8, 0.95));
+      border-right: 1px solid var(--border-soft);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.02);
+    }
+
+    .sidebar-header {
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      background: #f3f3f3;
+      color: #0b0b0b;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      font-weight: 900;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+      flex: 0 0 auto;
+    }
+
+    .brand-meta {
+      min-width: 0;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .version-pill {
+      height: 18px;
+      padding: 0 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Fira Code", monospace;
+      font-size: 9px;
+      color: rgba(237, 237, 237, 0.48);
+    }
+
+    .brand-sub {
+      margin-top: 5px;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(141, 145, 153, 0.58);
+      white-space: nowrap;
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-sub);
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      flex: 0 0 auto;
+    }
+
+    .mode-tabs {
+      margin-top: 14px;
+      padding: 4px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.03);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .mode-tab {
+      height: 34px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--text-sub);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    .mode-tab.active {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .sidebar-tools {
+      padding: 14px 16px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .tools-copy {
+      min-width: 0;
+    }
+
+    .tools-title {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(141, 145, 153, 0.72);
+    }
+
+    .tools-meta {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mini-badge {
+      height: 22px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(237, 237, 237, 0.68);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .mini-badge.selection {
+      border-color: rgba(34, 211, 238, 0.22);
+      background: rgba(34, 211, 238, 0.09);
+      color: #8ff4ff;
+    }
+
+    .sidebar-list {
+      flex: 1;
+      overflow: auto;
+      padding: 8px 12px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .account-row {
+      position: relative;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 60px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.022);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      transition:
+        transform var(--transition),
+        border-color var(--transition),
+        background var(--transition),
+        box-shadow var(--transition);
+      cursor: pointer;
+    }
+
+    .account-row:hover {
+      background: rgba(255, 255, 255, 0.042);
+      border-color: rgba(255, 255, 255, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .account-row.active {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.04));
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.075),
+        var(--shadow-soft);
+    }
+
+    .account-row.selected {
+      background: linear-gradient(180deg, rgba(34, 211, 238, 0.085), rgba(255, 255, 255, 0.035));
+      border-color: rgba(34, 211, 238, 0.2);
+    }
+
+    .select-box {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.02);
+      color: transparent;
+      font-size: 11px;
+      flex: 0 0 auto;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    body.multi-mode .select-box {
+      display: inline-flex;
+    }
+
+    body.multi-mode .select-box.checked {
+      border-color: rgba(34, 211, 238, 0.4);
+      background: rgba(34, 211, 238, 0.9);
+      color: #061014;
+    }
+
+    .account-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .lamp {
+      position: relative;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      flex: 0 0 auto;
+    }
+
+    .lamp::after {
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.45);
+    }
+
+    .lamp.online {
+      background: rgba(52, 211, 153, 0.2);
+      border-color: rgba(52, 211, 153, 0.42);
+      box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.12), 0 0 12px rgba(52, 211, 153, 0.18);
+    }
+
+    .lamp.online::after {
+      background: #34d399;
+      box-shadow: 0 0 8px rgba(52, 211, 153, 0.45);
+    }
+
+    .lamp.checking {
+      background: rgba(251, 191, 36, 0.16);
+      border-color: rgba(251, 191, 36, 0.34);
+      animation: pulse 1.8s infinite ease-in-out;
+    }
+
+    .lamp.checking::after {
+      background: #fbbf24;
+    }
+
+    .lamp.error {
+      background: rgba(251, 146, 60, 0.14);
+      border-color: rgba(251, 146, 60, 0.28);
+    }
+
+    .lamp.error::after {
+      background: #fb923c;
+    }
+
+    .lamp.invalid {
+      background: rgba(251, 113, 133, 0.16);
+      border-color: rgba(251, 113, 133, 0.3);
+    }
+
+    .lamp.invalid::after {
+      background: #fb7185;
+    }
+
+    .account-copy {
+      min-width: 0;
+    }
+
+    .account-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .account-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 0.01em;
+    }
+
+    .state-chip {
+      flex: 0 0 auto;
+      height: 18px;
+      padding: 0 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(237, 237, 237, 0.58);
+      white-space: nowrap;
+    }
+
+    .state-chip.online {
+      color: #a7f3d0;
+      border-color: rgba(52, 211, 153, 0.18);
+      background: rgba(52, 211, 153, 0.08);
+    }
+
+    .state-chip.checking {
+      color: #fde68a;
+      border-color: rgba(251, 191, 36, 0.16);
+      background: rgba(251, 191, 36, 0.08);
+    }
+
+    .state-chip.error {
+      color: #fdba74;
+      border-color: rgba(251, 146, 60, 0.16);
+      background: rgba(251, 146, 60, 0.08);
+    }
+
+    .state-chip.invalid {
+      color: #fda4af;
+      border-color: rgba(251, 113, 133, 0.16);
+      background: rgba(251, 113, 133, 0.08);
+    }
+
+    .account-meta {
+      margin-top: 7px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+      min-width: 0;
+      color: var(--text-sub);
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .account-meta span {
+      white-space: nowrap;
+    }
+
+    .current-chip {
+      height: 18px;
+      padding: 0 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.035);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(237, 237, 237, 0.46);
+    }
+
+    .count-pill {
+      min-width: 36px;
+      height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Fira Code", monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(237, 237, 237, 0.8);
+      flex: 0 0 auto;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .count-pill.zero {
+      color: rgba(237, 237, 237, 0.34);
+      background: rgba(255, 255, 255, 0.022);
+    }
+
+    .workspace {
+      background: linear-gradient(180deg, rgba(15, 15, 16, 0.94), rgba(11, 11, 12, 0.98));
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .workspace-header {
+      min-height: 80px;
+      padding: 20px 26px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(237, 237, 237, 0.72);
+      font-size: 14px;
+      letter-spacing: 0.02em;
+    }
+
+    .workspace-body {
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .workspace-card {
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.018));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      padding: 22px 24px;
+    }
+
+    .workspace-eyebrow {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(141, 145, 153, 0.66);
+    }
+
+    .workspace-title {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .workspace-pills {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .workspace-pill {
+      height: 42px;
+      padding: 0 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(237, 237, 237, 0.74);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .workspace-pill.online {
+      background: rgba(52, 211, 153, 0.08);
+      border-color: rgba(52, 211, 153, 0.2);
+      color: #a7f3d0;
+    }
+
+    .task-card {
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.016));
+      overflow: hidden;
+    }
+
+    .task-header {
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .task-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+      border: 1px solid rgba(138, 63, 252, 0.22);
+      background: rgba(138, 63, 252, 0.12);
+      display: grid;
+      place-items: center;
+      color: #cfb7ff;
+      font-size: 18px;
+    }
+
+    .task-copy {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .task-name {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .task-chip {
+      height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(237, 237, 237, 0.68);
+      background: rgba(255, 255, 255, 0.03);
+      white-space: nowrap;
+    }
+
+    .task-meta {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .task-footer {
+      padding: 14px 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.015);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .task-status {
+      height: 32px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(251, 113, 133, 0.18);
+      background: rgba(251, 113, 133, 0.08);
+      color: #fecdd3;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .task-side {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 32px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(237, 237, 237, 0.72);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.08); opacity: 0.78; }
+    }
+
+    @media (max-width: 980px) {
+      body {
+        overflow: auto;
+      }
+
+      .preview-shell {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+
+      .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--border-soft);
+      }
+
+      .workspace-header,
+      .workspace-body {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-row">
+          <div class="brand">
+            <div class="brand-mark">✓</div>
+            <div class="brand-meta">
+              <div class="brand-title">
+                <span>TG-Pilot</span>
+                <span class="version-pill">v3.8.2</span>
+              </div>
+              <div class="brand-sub">账号工作区</div>
+            </div>
+          </div>
+          <button class="icon-btn" aria-label="设置">⚙</button>
+        </div>
+
+        <div class="mode-tabs">
+          <button class="mode-tab active" data-mode="normal">普通模式</button>
+          <button class="mode-tab" data-mode="multi">多选模式</button>
+        </div>
+      </div>
+
+      <div class="sidebar-tools">
+        <div class="tools-copy">
+          <div class="tools-title">账号列表</div>
+          <div class="tools-meta">
+            <span class="mini-badge">11 个账号</span>
+            <span class="mini-badge selection" id="selectionMeta" style="display:none;">已选 3 个</span>
+          </div>
+        </div>
+        <button class="icon-btn" aria-label="新增账号">＋</button>
+      </div>
+
+      <div class="sidebar-list" id="accountList"></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="workspace-header">账号管理 / V1</header>
+      <div class="workspace-body">
+        <section class="workspace-card">
+          <div class="workspace-eyebrow">当前账号工作区</div>
+          <div class="workspace-title">V1</div>
+          <div class="workspace-pills">
+            <div class="workspace-pill online">· 已连接</div>
+            <div class="workspace-pill">◔ 18:48:32</div>
+            <div class="workspace-pill">◌ 安全监控中</div>
+          </div>
+        </section>
+
+        <section class="task-card">
+          <div class="task-header">
+            <div class="task-icon">◔</div>
+            <div class="task-copy">
+              <div class="task-name">
+                <span>_GGS</span>
+                <span class="task-chip">8398122013</span>
+                <span class="task-chip">contains_actions</span>
+              </div>
+              <div class="task-meta">
+                <span class="task-chip">07:00 → 21:00</span>
+                <span class="task-chip"># _GGS</span>
+              </div>
+            </div>
+          </div>
+          <div class="task-footer">
+            <div class="task-status">最近失败 · 03/22 18:34</div>
+            <div class="task-side">2 个动作</div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const accounts = [
+      { name: "V1", status: "online", taskCount: 1, tasksLabel: "任务 1", active: true, current: true, selected: true },
+      { name: "V3", status: "online", taskCount: 2, tasksLabel: "任务 2", selected: true },
+      { name: "V4", status: "online", taskCount: 1, tasksLabel: "任务 1", selected: true },
+      { name: "V5", status: "online", taskCount: 1, tasksLabel: "任务 1" },
+      { name: "V6", status: "checking", taskCount: 1, tasksLabel: "任务 1" },
+      { name: "V7", status: "online", taskCount: 1, tasksLabel: "任务 1" },
+      { name: "V8", status: "error", taskCount: 1, tasksLabel: "任务 1" },
+      { name: "V9", status: "invalid", taskCount: 1, tasksLabel: "任务 1" },
+      { name: "V10", status: "online", taskCount: 0, tasksLabel: "任务 0" },
+      { name: "V11", status: "online", taskCount: 2, tasksLabel: "任务 2" },
+      { name: "V12", status: "online", taskCount: 1, tasksLabel: "任务 1" }
+    ];
+
+    const statusMap = {
+      online: "已连接",
+      checking: "检测中",
+      error: "异常",
+      invalid: "失效"
+    };
+
+    const listEl = document.getElementById("accountList");
+    const selectionMeta = document.getElementById("selectionMeta");
+    const tabs = [...document.querySelectorAll(".mode-tab")];
+
+    function render(mode = "normal") {
+      document.body.classList.toggle("multi-mode", mode === "multi");
+      selectionMeta.style.display = mode === "multi" ? "inline-flex" : "none";
+
+      listEl.innerHTML = accounts
+        .map((account) => {
+          const classes = ["account-row"];
+          if (account.active && mode === "normal") classes.push("active");
+          if (account.selected && mode === "multi") classes.push("selected");
+
+          return `
+            <div class="${classes.join(" ")}">
+              <span class="select-box ${account.selected ? "checked" : ""}">${account.selected ? "✓" : ""}</span>
+              <div class="account-main">
+                <span class="lamp ${account.status}"></span>
+                <div class="account-copy">
+                  <div class="account-top">
+                    <span class="account-name">${account.name}</span>
+                    <span class="state-chip ${account.status}">${statusMap[account.status]}</span>
+                  </div>
+                  <div class="account-meta">
+                    <span>${account.tasksLabel}</span>
+                    ${account.current && mode === "normal" ? '<span class="current-chip">当前工作区</span>' : ""}
+                  </div>
+                </div>
+              </div>
+              <div class="count-pill ${account.taskCount === 0 ? "zero" : ""}">${account.taskCount}</div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        tabs.forEach((item) => item.classList.remove("active"));
+        tab.classList.add("active");
+        render(tab.dataset.mode || "normal");
+      });
+    });
+
+    const initialMode = new URLSearchParams(window.location.search).get("mode") === "multi"
+      ? "multi"
+      : "normal";
+    tabs.forEach((tab) => {
+      tab.classList.toggle("active", (tab.dataset.mode || "normal") === initialMode);
+    });
+    render(initialMode);
+  </script>
+</body>
+</html>

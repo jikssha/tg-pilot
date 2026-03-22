@@ -44,7 +44,7 @@ export function AccountSidebar({
   const selectedAccountsLabel = isZh ? `已选 ${selectedAccounts.size} 个` : `${selectedAccounts.size} selected`;
 
   return (
-    <aside className="w-[320px] bg-[#080808] border-r border-[var(--border-color)] flex flex-col shrink-0 flex-shrink-0 shadow-[inset_-1px_0_0_rgba(255,255,255,0.02)]">
+    <aside className="w-[312px] bg-[#080808] border-r border-[var(--border-color)] flex flex-col shrink-0 flex-shrink-0 shadow-[inset_-1px_0_0_rgba(255,255,255,0.02)]">
       <div className="px-4 pt-4 pb-3 border-b border-white/[0.04]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex items-center gap-3">
@@ -75,12 +75,12 @@ export function AccountSidebar({
           </Link>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2 p-1 rounded-2xl border border-white/[0.05] bg-white/[0.03]">
+        <div className="mt-3.5 grid grid-cols-2 gap-1.5 p-1 rounded-2xl border border-white/[0.05] bg-white/[0.03]">
           <button
             onClick={() => {
               if (isSelectionMode) onToggleSelectionMode();
             }}
-            className={`h-10 rounded-xl text-[12px] font-bold tracking-[0.08em] uppercase transition-all ${
+            className={`h-9 rounded-xl text-[11px] font-bold tracking-[0.08em] uppercase transition-all ${
               !isSelectionMode
                 ? "bg-white/[0.08] text-[var(--text-main)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
                 : "text-[var(--text-sub)] hover:text-[var(--text-main)]"
@@ -92,7 +92,7 @@ export function AccountSidebar({
             onClick={() => {
               if (!isSelectionMode) onToggleSelectionMode();
             }}
-            className={`h-10 rounded-xl text-[12px] font-bold tracking-[0.08em] uppercase transition-all ${
+            className={`h-9 rounded-xl text-[11px] font-bold tracking-[0.08em] uppercase transition-all ${
               isSelectionMode
                 ? "bg-white/[0.08] text-[var(--text-main)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
                 : "text-[var(--text-sub)] hover:text-[var(--text-main)]"
@@ -103,9 +103,9 @@ export function AccountSidebar({
         </div>
       </div>
 
-      <div className="px-4 pt-4 pb-3 flex items-center justify-between gap-3">
+      <div className="px-4 pt-3.5 pb-2.5 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[11px] font-extrabold tracking-[0.18em] uppercase text-white/45">
+          <div className="text-[10px] font-extrabold tracking-[0.18em] uppercase text-white/45">
             {isSelectionMode ? (isZh ? "多选模式" : "Selection") : (isZh ? "账号列表" : "Accounts")}
           </div>
           <div className="mt-2 flex items-center gap-2 min-w-0 flex-wrap">
@@ -151,9 +151,9 @@ export function AccountSidebar({
             const statusLabel = t(presentation.labelKey);
 
             const rowClass = isSelected && isSelectionMode
-              ? "bg-[linear-gradient(180deg,rgba(34,211,238,0.08),rgba(255,255,255,0.04))] border-cyan-400/20"
+              ? "bg-[linear-gradient(180deg,rgba(34,211,238,0.085),rgba(255,255,255,0.035))] border-cyan-400/20"
               : isActive && !isSelectionMode
-                ? "bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.045))] border-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_24px_rgba(0,0,0,0.16)]"
+                ? "bg-[linear-gradient(180deg,rgba(255,255,255,0.075),rgba(255,255,255,0.04))] border-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.075),0_14px_28px_rgba(0,0,0,0.18)]"
                 : "bg-white/[0.025] border-transparent hover:bg-white/[0.045] hover:border-white/[0.08] hover:-translate-y-px";
 
             const statusChipClass =
@@ -171,12 +171,12 @@ export function AccountSidebar({
               <div
                 key={account.name}
                 onClick={() => (isSelectionMode ? onToggleAccountSelection(account.name) : onSelectAccount(account))}
-                className={`group/item relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 min-h-[78px] px-4 py-3.5 mb-2 rounded-[18px] border cursor-pointer transition-all duration-200 ${rowClass}`}
+                className={`group/item relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 min-h-[60px] px-3 py-2.5 mb-2 rounded-[16px] border cursor-pointer transition-all duration-200 ${rowClass}`}
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0">
                   {isSelectionMode ? (
                     <span
-                      className={`w-[18px] h-[18px] rounded-[6px] border flex items-center justify-center text-[12px] transition-colors ${
+                      className={`w-[18px] h-[18px] rounded-[6px] border flex items-center justify-center text-[11px] transition-colors shrink-0 ${
                         isSelected
                           ? "border-cyan-400/40 bg-cyan-400 text-[#0a0a0a]"
                           : "border-white/25 bg-white/[0.02] text-transparent"
@@ -186,7 +186,7 @@ export function AccountSidebar({
                     </span>
                   ) : null}
 
-                  <div className="min-w-0 flex items-center gap-3">
+                  <div className="min-w-0 flex items-center gap-2.5">
                     <AccountStatusLamp
                       status={statusInfo}
                       t={t}
@@ -195,19 +195,19 @@ export function AccountSidebar({
                     />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="truncate text-[14px] font-bold text-[var(--text-main)]">
+                        <div className="truncate text-[13px] font-extrabold text-[var(--text-main)] leading-none">
                           {account.name}
                         </div>
-                        <span className={`h-[22px] px-2 rounded-full border text-[10px] font-extrabold tracking-[0.1em] uppercase inline-flex items-center justify-center whitespace-nowrap ${statusChipClass}`}>
+                        <span className={`h-[18px] px-1.5 rounded-full border text-[9px] font-extrabold tracking-[0.08em] uppercase inline-flex items-center justify-center whitespace-nowrap ${statusChipClass}`}>
                           {statusLabel}
                         </span>
                       </div>
-                      <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--text-sub)] min-w-0">
-                        <span className="truncate">
+                      <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[var(--text-sub)] min-w-0 flex-wrap leading-none">
+                        <span className="truncate text-white/65">
                           {isZh ? `任务 ${taskCount}` : `${taskCount} task${taskCount === 1 ? "" : "s"}`}
                         </span>
                         {isActive && !isSelectionMode ? (
-                          <span className="h-5 px-2 rounded-full border border-white/10 bg-white/[0.03] text-[10px] font-semibold text-white/55 inline-flex items-center justify-center whitespace-nowrap">
+                          <span className="h-[18px] px-1.5 rounded-full border border-white/10 bg-white/[0.035] text-[9px] font-bold tracking-[0.08em] uppercase text-white/50 inline-flex items-center justify-center whitespace-nowrap">
                             {isZh ? "当前工作区" : "Current"}
                           </span>
                         ) : null}
@@ -216,7 +216,7 @@ export function AccountSidebar({
                   </div>
                 </div>
 
-                <div className={`min-w-[42px] h-8 px-3 rounded-full border shrink-0 flex items-center justify-center font-mono text-[12px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ${
+                <div className={`min-w-[36px] h-7 px-2.5 rounded-full border shrink-0 flex items-center justify-center font-mono text-[12px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ${
                   taskCount > 0
                     ? "bg-white/[0.04] border-white/10 text-white/80"
                     : "bg-white/[0.025] border-white/[0.08] text-white/35"
