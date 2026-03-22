@@ -41,7 +41,6 @@ from backend.scheduler import (  # noqa: E402
     sync_jobs,
 )
 from backend.services.daily_dispatcher import get_daily_dispatcher_service  # noqa: E402
-from backend.services.legacy_migration import get_legacy_migration_service  # noqa: E402
 from backend.services.users import ensure_admin  # noqa: E402
 from backend.utils.paths import ensure_data_dirs  # noqa: E402
 from backend.utils.storage import is_writable_dir  # noqa: E402
@@ -111,38 +110,6 @@ def ready_check(response: Response) -> dict[str, str]:
         return payload
     response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return payload
-
-
-def _bootstrap_legacy_metadata(startup_logger: logging.Logger) -> None:
-    try:
-        result = get_legacy_migration_service().migrate_all(
-            dry_run=False,
-            overwrite=False,
-        )
-    except Exception as exc:
-        startup_logger.exception(
-            "Legacy metadata bootstrap failed, continuing startup with existing data: %s",
-            exc,
-        )
-        return
-
-    account_result = result.get("accounts", {})
-    sign_task_result = result.get("sign_tasks", {})
-    sign_task_errors = sign_task_result.get("errors", [])
-
-    startup_logger.info(
-        "Legacy metadata bootstrap finished: accounts=%s sign_tasks_imported=%s sign_tasks_skipped=%s",
-        account_result.get("migrated_count", 0),
-        sign_task_result.get("imported", 0),
-        sign_task_result.get("skipped", 0),
-    )
-    if sign_task_errors:
-        startup_logger.warning(
-            "Legacy sign task bootstrap reported %s errors: %s",
-            len(sign_task_errors),
-            sign_task_errors[:3],
-        )
-
 
 # 静态前端托管逻辑优化
 web_dir = Path("/web")
@@ -230,7 +197,6 @@ async def on_startup() -> None:
 
     with get_session_local()() as db:
         ensure_admin(db)
-    _bootstrap_legacy_metadata(startup_logger)
     await init_scheduler(sync_on_startup=False)
     set_readiness("scheduler", True)
 

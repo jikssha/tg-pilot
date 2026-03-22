@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import sqlite3
 from pathlib import Path
 
@@ -274,52 +273,3 @@ def test_run_migrations_reconciles_when_schema_is_ahead_of_stored_revision(isola
     assert {"max_attempts", "next_retry_at", "deadline_at"}.issubset(
         daily_run_columns
     )
-
-
-def test_startup_legacy_bootstrap_reconciles_accounts_and_sign_tasks(isolated_env):
-    from backend.contracts import SignTaskDefinition
-    from backend.core.database import get_session_local
-    from backend.core.migrations import run_migrations
-    from backend.main import _bootstrap_legacy_metadata
-    from backend.models.account import Account
-    from backend.models.sign_task import SignTask
-    from backend.stores.legacy_sign_tasks import LegacySignTaskFileStore
-    from backend.utils.tg_session import save_session_string_file, set_account_profile
-
-    run_migrations()
-
-    session_dir = isolated_env / "sessions"
-    session_dir.mkdir(parents=True, exist_ok=True)
-    set_account_profile("legacy", remark="old remark", proxy="socks5://1.2.3.4:1080")
-    save_session_string_file(session_dir, "legacy", "legacy-session")
-
-    LegacySignTaskFileStore().save_task(
-        SignTaskDefinition(
-            name="legacy-task",
-            account_name="legacy",
-            sign_at="0 8 * * *",
-            chats=[{"chat_id": 1, "actions": [{"action": 1, "text": "legacy"}]}],
-        )
-    )
-
-    _bootstrap_legacy_metadata(logging.getLogger("tests.migration"))
-
-    session = get_session_local()()
-    try:
-        account = (
-            session.query(Account)
-            .filter(Account.account_name == "legacy")
-            .first()
-        )
-        sign_task = (
-            session.query(SignTask)
-            .filter(SignTask.account_name == "legacy", SignTask.name == "legacy-task")
-            .first()
-        )
-    finally:
-        session.close()
-
-    assert account is not None
-    assert account.remark == "old remark"
-    assert account.session_ref == "legacy.session_string"
-    assert sign_task is not None

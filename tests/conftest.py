@@ -29,7 +29,6 @@ MODULES_TO_RELOAD = [
     "backend.services.daily_dispatcher",
     "backend.services.daily_planner",
     "backend.services.login_sessions",
-    "backend.services.legacy_migration",
     "backend.services.operations",
     "backend.services.sign_tasks",
     "backend.services.telegram",
