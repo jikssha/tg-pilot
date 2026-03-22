@@ -33,6 +33,7 @@ MODULES_TO_RELOAD = [
     "backend.services.operations",
     "backend.services.sign_tasks",
     "backend.services.telegram",
+    "backend.services.update_check",
     "backend.scheduler",
     "backend.stores.accounts",
     "backend.stores.daily_task_runs",

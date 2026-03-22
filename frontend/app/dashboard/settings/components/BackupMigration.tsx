@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowUDownLeft,
   CloudArrowUp,
@@ -8,6 +8,7 @@ import {
   FileArchive,
   FileCode,
   FloppyDisk,
+  GithubLogo,
   Info,
   Spinner,
 } from "@phosphor-icons/react";
@@ -64,6 +65,10 @@ export default function BackupMigration({
   const [feedback, setFeedback] = useState<FeedbackState>(null);
 
   const [settings, setSettings] = useState<GlobalSettings>(globalSettings);
+
+  useEffect(() => {
+    setSettings(globalSettings);
+  }, [globalSettings]);
 
   const sessionPreviewSummary = useMemo(() => {
     if (!sessionPreview) return "";
@@ -498,6 +503,87 @@ export default function BackupMigration({
                 {isZh
                   ? "这一组参数会立即影响日志清理与默认签到节奏，但不会改变已单独设置的任务时间窗口。"
                   : "These parameters affect log cleanup and default cadence immediately, without overwriting task-specific time windows."}
+              </div>
+
+              <div className="h-px bg-white/5" />
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-white/40 shadow-inner">
+                    <GithubLogo size={18} weight="bold" />
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-bold tracking-tight">
+                      {isZh ? "版本更新提醒" : "Version Update Prompt"}
+                    </div>
+                    <p className="text-[10px] text-white/25 uppercase tracking-[0.18em] font-bold mt-0.5">
+                      {isZh ? "默认跟踪上游 release" : "Track upstream releases by default"}
+                    </p>
+                  </div>
+                </div>
+
+                <label className="flex items-center justify-between rounded-2xl bg-black/20 border border-white/5 px-4 py-3 cursor-pointer">
+                  <span className="text-[11px] text-white/60">
+                    {isZh ? "在主界面显示新版本更新提示" : "Show update banner on dashboard"}
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="!w-5 !h-5 accent-emerald-500"
+                    checked={Boolean(settings.update_check_enabled ?? true)}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        update_check_enabled: event.target.checked,
+                      }))
+                    }
+                  />
+                </label>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">
+                      {isZh ? "上游仓库 Owner" : "Upstream Owner"}
+                    </label>
+                    <input
+                      type="text"
+                      className="!h-12 bg-black/40 border-white/5 focus:border-emerald-500/30 transition-all rounded-xl px-5 font-mono disabled:opacity-50"
+                      placeholder="jikssha"
+                      disabled={!Boolean(settings.update_check_enabled ?? true)}
+                      value={settings.update_repo_owner || ""}
+                      onChange={(event) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          update_repo_owner: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">
+                      {isZh ? "上游仓库 Repo" : "Upstream Repo"}
+                    </label>
+                    <input
+                      type="text"
+                      className="!h-12 bg-black/40 border-white/5 focus:border-emerald-500/30 transition-all rounded-xl px-5 font-mono disabled:opacity-50"
+                      placeholder="tg-pilot"
+                      disabled={!Boolean(settings.update_check_enabled ?? true)}
+                      value={settings.update_repo_name || ""}
+                      onChange={(event) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          update_repo_name: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/10 px-4 py-4 text-[11px] text-emerald-100/70 leading-relaxed">
+                  {isZh
+                    ? "默认上游为 jikssha/tg-pilot。fork 用户如果不改这里，就会在主界面继续看到你的上游新版本提示。"
+                    : "The default upstream is jikssha/tg-pilot. Fork deployments will keep following your upstream releases unless they change it here."}
+                </div>
               </div>
             </div>
 

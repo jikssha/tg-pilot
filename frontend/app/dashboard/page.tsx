@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getToken } from "../../lib/auth";
 import {
   checkAccountsStatus,
@@ -22,6 +22,7 @@ import {
   AccountInfo,
   AccountStatusItem,
   AccountLog,
+  getUpdateCheck,
 } from "../../lib/api";
 import {
   Plus,
@@ -37,7 +38,9 @@ import {
   GithubLogo,
   Checks,
   ClipboardText,
-  Info
+  Info,
+  ArrowSquareOut,
+  RocketLaunch,
 } from "@phosphor-icons/react";
 import { ToastContainer, useToast } from "../../components/ui/toast";
 import { ThemeLanguageToggle } from "../../components/ThemeLanguageToggle";
@@ -66,7 +69,10 @@ const DASHBOARD_STATUS_CHECKED_KEY = "tg-pilot:dashboard-status-checked";
 const DASHBOARD_STATUS_CACHE_KEY = "tg-pilot:dashboard-status-cache";
 const DASHBOARD_STATUS_CACHE_TS_KEY = "tg-pilot:dashboard-status-cache-ts";
 const DASHBOARD_SELECTED_ACCOUNT_KEY = "tg-pilot:dashboard-selected-account";
+const DASHBOARD_UPDATE_DISMISSED_KEY = "tg-pilot:update-banner-dismissed";
+const DASHBOARD_UPDATE_REMIND_KEY = "tg-pilot:update-banner-remind";
 const STATUS_CACHE_MAX_AGE_MS = 60_000;
+const UPDATE_REMIND_DELAY_MS = 4 * 60 * 60 * 1000;
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
@@ -88,6 +94,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [selectedAccountName, setSelectedAccountName] = useState<string | null>(null);
   const [taskCreateRequestKey, setTaskCreateRequestKey] = useState<string | null>(null);
+  const [hideUpdateBanner, setHideUpdateBanner] = useState(false);
 
   // 日志原生显示 (替代弹窗)
   const [accountLogs, setAccountLogs] = useState<AccountLog[]>([]);
@@ -189,6 +196,14 @@ export default function Dashboard() {
   const statusCheckRequestIdRef = useRef(0);
   const accountStatusMapRef = useRef<Record<string, AccountStatusItem>>({});
   const dashboardOverview = useDashboardOverview(token);
+  const updateCheckQuery = useQuery({
+    queryKey: token ? queryKeys.updateCheck(token) : ["update-check", "anonymous"],
+    queryFn: () => getUpdateCheck(token!),
+    enabled: Boolean(token),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
   const accounts = dashboardOverview.accounts;
   const taskCountMap = dashboardOverview.taskCountMap;
   const appVersion = dashboardOverview.appVersion;
@@ -1232,6 +1247,78 @@ export default function Dashboard() {
     }
   };
 
+  const selectedAccount = accounts.find((a) => a.name === selectedAccountName);
+  const selectedStatus = selectedAccountName ? accountStatusMap[selectedAccountName] : null;
+  const updateInfo = updateCheckQuery.data;
+  const updateBannerKey =
+    updateInfo?.source_repo && updateInfo?.latest_version
+      ? `${updateInfo.source_repo}:${updateInfo.latest_version}`
+      : null;
+  const showUpdateBanner =
+    Boolean(updateInfo?.enabled) &&
+    updateInfo?.status === "ok" &&
+    Boolean(updateInfo?.has_update) &&
+    Boolean(updateInfo?.latest_version) &&
+    !hideUpdateBanner;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !updateBannerKey) {
+      setHideUpdateBanner(false);
+      return;
+    }
+
+    try {
+      const dismissedKey = sessionStorage.getItem(DASHBOARD_UPDATE_DISMISSED_KEY);
+      const remindRaw = sessionStorage.getItem(DASHBOARD_UPDATE_REMIND_KEY);
+      let hidden = dismissedKey === updateBannerKey;
+
+      if (remindRaw) {
+        const remind = JSON.parse(remindRaw) as { key?: string; remindAt?: number };
+        if (
+          remind?.key === updateBannerKey &&
+          typeof remind.remindAt === "number" &&
+          remind.remindAt > Date.now()
+        ) {
+          hidden = true;
+        } else if (remind?.key === updateBannerKey) {
+          sessionStorage.removeItem(DASHBOARD_UPDATE_REMIND_KEY);
+        }
+      }
+
+      setHideUpdateBanner(hidden);
+    } catch {
+      setHideUpdateBanner(false);
+    }
+  }, [updateBannerKey]);
+
+  const dismissUpdateBannerForSession = useCallback(() => {
+    if (!updateBannerKey || typeof window === "undefined") return;
+    try {
+      sessionStorage.setItem(DASHBOARD_UPDATE_DISMISSED_KEY, updateBannerKey);
+      sessionStorage.removeItem(DASHBOARD_UPDATE_REMIND_KEY);
+    } catch {
+      // ignore storage errors
+    }
+    setHideUpdateBanner(true);
+  }, [updateBannerKey]);
+
+  const remindUpdateBannerLater = useCallback(() => {
+    if (!updateBannerKey || typeof window === "undefined") return;
+    try {
+      sessionStorage.setItem(
+        DASHBOARD_UPDATE_REMIND_KEY,
+        JSON.stringify({
+          key: updateBannerKey,
+          remindAt: Date.now() + UPDATE_REMIND_DELAY_MS,
+        })
+      );
+      sessionStorage.removeItem(DASHBOARD_UPDATE_DISMISSED_KEY);
+    } catch {
+      // ignore storage errors
+    }
+    setHideUpdateBanner(true);
+  }, [updateBannerKey]);
+
   if (!mounted || checking || (token && dashboardLoading && !dataLoaded)) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
@@ -1244,9 +1331,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  const selectedAccount = accounts.find((a) => a.name === selectedAccountName);
-  const selectedStatus = selectedAccountName ? accountStatusMap[selectedAccountName] : null;
 
   return (
     <div id="dashboard-view" className="w-full h-full flex overflow-hidden bg-[var(--bg-body)]">
@@ -1296,6 +1380,66 @@ export default function Dashboard() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-8 lg:p-12 w-full max-w-5xl mx-auto custom-scrollbar">
+          {showUpdateBanner ? (
+            <div className="mb-8 rounded-[28px] border border-emerald-500/15 bg-[linear-gradient(135deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03),rgba(14,14,14,0.94))] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="mt-0.5 flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-500/10 text-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+                    <RocketLaunch weight="bold" size={22} />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-black uppercase tracking-[0.28em] text-emerald-300/70">
+                      {isZh ? "版本更新提醒" : "Update Available"}
+                    </div>
+                    <div className="text-lg font-semibold text-white">
+                      {isZh
+                        ? `发现新版本 ${updateInfo?.latest_version}，当前部署为 v${appVersion}`
+                        : `New version ${updateInfo?.latest_version} is available. Current deployment: v${appVersion}`}
+                    </div>
+                    <p className="max-w-2xl text-sm leading-relaxed text-white/55">
+                      {isZh
+                        ? `当前默认跟踪上游 ${updateInfo?.source_repo} 的正式发布版本。fork 后部署的实例也能在这里看到你的上游更新。`
+                        : `This instance is tracking stable releases from ${updateInfo?.source_repo}. Fork deployments can keep following your upstream updates here.`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                  <div className="rounded-full border border-white/10 bg-black/20 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-white/50">
+                    {isZh ? "当前版本" : "Current"}: v{appVersion}
+                  </div>
+                  <div className="rounded-full border border-emerald-400/15 bg-emerald-500/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-200">
+                    {isZh ? "最新版本" : "Latest"}: {updateInfo?.latest_version}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={remindUpdateBannerLater}
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-white/10 bg-black/20 px-5 text-[11px] font-black uppercase tracking-[0.18em] text-white/55 transition-all hover:border-white/15 hover:bg-white/[0.05] hover:text-white"
+                  >
+                    {isZh ? "稍后提醒" : "Remind Later"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={dismissUpdateBannerForSession}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-black/20 px-5 text-[11px] font-black uppercase tracking-[0.18em] text-white/55 transition-all hover:border-white/15 hover:bg-white/[0.05] hover:text-white"
+                  >
+                    <X weight="bold" size={14} />
+                    {isZh ? "本次会话关闭" : "Dismiss This Session"}
+                  </button>
+                  <a
+                    href={updateInfo?.release_url || `https://github.com/${updateInfo?.source_repo}/releases`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-5 text-[11px] font-black uppercase tracking-[0.22em] text-white/80 transition-all hover:border-emerald-400/20 hover:bg-white/[0.08] hover:text-white"
+                  >
+                    <ArrowSquareOut weight="bold" size={16} />
+                    {isZh ? "查看发布说明" : "View Release"}
+                  </a>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {!selectedAccount ? (
             <DashboardEmptyState t={t} onAddAccount={openAddDialog} />
           ) : (

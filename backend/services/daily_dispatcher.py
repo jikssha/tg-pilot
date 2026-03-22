@@ -191,10 +191,6 @@ class DailyDispatcherService:
         if attempts >= max_attempts:
             return False
 
-        deadline_at = self._parse_datetime(snapshot.get("deadline_at"))
-        if deadline_at and datetime.now() >= deadline_at:
-            return False
-
         upper = message.upper()
         return any(marker in upper for marker in RETRYABLE_ERROR_MARKERS)
 

@@ -21,6 +21,7 @@ from backend.core.auth import get_current_user
 from backend.models.user import User
 from backend.services.audit import get_audit_service
 from backend.services.config import get_config_service
+from backend.services.update_check import get_update_check_service
 
 router = APIRouter()
 
@@ -521,13 +522,31 @@ class GlobalSettingsRequest(BaseModel):
     sign_interval: Optional[int] = None
     log_retention_days: int = 7
     data_dir: Optional[str] = None
+    update_check_enabled: bool = True
+    update_repo_owner: Optional[str] = None
+    update_repo_name: Optional[str] = None
 
 
 class GlobalSettingsResponse(BaseModel):
     sign_interval: Optional[int] = None
     log_retention_days: int = 7
     data_dir: Optional[str] = None
+    update_check_enabled: bool = True
+    update_repo_owner: str = "jikssha"
+    update_repo_name: str = "tg-pilot"
     server_time: Optional[str] = None
+
+
+class UpdateCheckResponse(BaseModel):
+    enabled: bool
+    status: str
+    source_repo: str
+    current_version: str
+    latest_version: Optional[str] = None
+    has_update: bool = False
+    release_url: Optional[str] = None
+    checked_at: Optional[str] = None
+    error: Optional[str] = None
 
 
 @router.get("/settings", response_model=GlobalSettingsResponse)
@@ -554,6 +573,9 @@ def save_global_settings(
         settings = {
             "sign_interval": request.sign_interval,
             "log_retention_days": request.log_retention_days,
+            "update_check_enabled": request.update_check_enabled,
+            "update_repo_owner": request.update_repo_owner,
+            "update_repo_name": request.update_repo_name,
         }
         fields_set = getattr(request, "model_fields_set", getattr(request, "__fields_set__", set()))
         if "data_dir" in fields_set:
@@ -567,6 +589,21 @@ def save_global_settings(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to save global settings: {str(e)}",
+        )
+
+
+@router.get("/update-check", response_model=UpdateCheckResponse)
+def get_update_check(
+    force_refresh: bool = False,
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        payload = get_update_check_service().check(force_refresh=force_refresh)
+        return UpdateCheckResponse(**payload)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to check updates: {str(e)}",
         )
 
 

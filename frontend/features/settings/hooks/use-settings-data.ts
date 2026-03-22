@@ -10,7 +10,14 @@ import {
 } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 
-const DEFAULT_GLOBAL_SETTINGS = { sign_interval: null, log_retention_days: 7, data_dir: null };
+const DEFAULT_GLOBAL_SETTINGS = {
+  sign_interval: null,
+  log_retention_days: 7,
+  data_dir: null,
+  update_check_enabled: true,
+  update_repo_owner: "jikssha",
+  update_repo_name: "tg-pilot",
+};
 
 export function useSettingsData(token: string | null) {
   const settingsQuery = useQuery({

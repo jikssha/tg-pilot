@@ -4,6 +4,7 @@ export const queryKeys = {
   accountTasks: (token: string, accountName: string) => ["account-tasks", token, accountName] as const,
   accountChats: (token: string, accountName: string) => ["account-chats", token, accountName] as const,
   settingsData: (token: string) => ["settings-data", token] as const,
+  updateCheck: (token: string) => ["update-check", token] as const,
   operationsOverview: (token: string) => ["operations-overview", token] as const,
   auditEvents: (
     token: string,

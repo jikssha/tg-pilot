@@ -630,6 +630,9 @@ class ConfigService:
             "sign_interval": None,  # None 表示使用随机 1-120 秒
             "log_retention_days": 7,
             "data_dir": str(override_data_dir) if override_data_dir else None,
+            "update_check_enabled": True,
+            "update_repo_owner": "jikssha",
+            "update_repo_name": "tg-pilot",
         }
 
         if not config_file.exists():
@@ -675,6 +678,15 @@ class ConfigService:
         elif data_dir_value is None or data_dir_value == "":
             clear_data_dir_override()
             merged["data_dir"] = None
+
+        merged["update_check_enabled"] = bool(
+            merged.get("update_check_enabled", True)
+        )
+
+        repo_owner = str(merged.get("update_repo_owner") or "jikssha").strip()
+        repo_name = str(merged.get("update_repo_name") or "tg-pilot").strip()
+        merged["update_repo_owner"] = repo_owner or "jikssha"
+        merged["update_repo_name"] = repo_name or "tg-pilot"
 
         try:
             with open(config_file, "w", encoding="utf-8") as f:

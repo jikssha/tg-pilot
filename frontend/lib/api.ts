@@ -498,7 +498,22 @@ export interface GlobalSettings {
   sign_interval?: number | null;  // null 表示随机 1-120 秒
   log_retention_days?: number;    // 日志保留天数，默认 7
   data_dir?: string | null;
+  update_check_enabled?: boolean;
+  update_repo_owner?: string | null;
+  update_repo_name?: string | null;
   server_time?: string;
+}
+
+export interface UpdateCheckInfo {
+  enabled: boolean;
+  status: "ok" | "disabled" | "error" | string;
+  source_repo: string;
+  current_version: string;
+  latest_version?: string | null;
+  has_update: boolean;
+  release_url?: string | null;
+  checked_at?: string | null;
+  error?: string | null;
 }
 
 export interface BundleMetadata {
@@ -623,6 +638,9 @@ export const saveGlobalSettings = (token: string, settings: GlobalSettings) =>
     method: "POST",
     body: JSON.stringify(settings),
   }, token);
+
+export const getUpdateCheck = (token: string, forceRefresh = false) =>
+  request<UpdateCheckInfo>(`/config/update-check${forceRefresh ? "?force_refresh=true" : ""}`, {}, token);
 
 export const previewSessionsZip = async (token: string, file: File) => {
   const formData = new FormData();
