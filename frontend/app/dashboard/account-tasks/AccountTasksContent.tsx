@@ -385,6 +385,7 @@ export default function AccountTasksContent({
     const chats = accountTaskData.chats;
     const initialLoading = accountTaskData.isLoading;
     const refetchTaskData = accountTaskData.refetchAll;
+    const refetchTasksOnly = accountTaskData.refetchTasks;
     const refreshTaskChats = accountTaskData.refreshChats;
     const taskNamePlaceholder = isZh ? "\u7559\u7A7A\u4F7F\u7528\u9ED8\u8BA4\u540D\u79F0" : "Leave empty to use default name";
     const sendTextLabel = isZh ? "\u53D1\u9001\u6587\u672C\u6D88\u606F" : "Send Text Message";
@@ -447,9 +448,13 @@ export default function AccountTasksContent({
         return [4, 5, 6, 7].includes(actionId);
     }, []);
 
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(async (options?: { includeChats?: boolean }) => {
         try {
-            await refetchTaskData();
+            if (options?.includeChats) {
+                await refetchTaskData();
+            } else {
+                await refetchTasksOnly();
+            }
             if (token) {
                 await Promise.allSettled([
                     queryClient.invalidateQueries({ queryKey: queryKeys.dashboardOverview(token) }),
@@ -463,7 +468,7 @@ export default function AccountTasksContent({
                 toast(formatErrorMessage("load_failed", err), "error");
             }
         }
-    }, [formatErrorMessage, handleAccountSessionInvalid, queryClient, refetchTaskData, token]);
+    }, [formatErrorMessage, handleAccountSessionInvalid, queryClient, refetchTaskData, refetchTasksOnly, token]);
 
     useEffect(() => {
         const tokenStr = getToken();
@@ -477,8 +482,8 @@ export default function AccountTasksContent({
         }
         setLocalToken(tokenStr);
         setChecking(false);
-        void refetchTaskData();
-    }, [accountName, embedded, refetchTaskData]);
+        void loadData({ includeChats: true });
+    }, [accountName, embedded, loadData]);
 
     useEffect(() => {
         if (!token || !accountName) return;

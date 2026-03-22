@@ -29,6 +29,9 @@ export function useAccountTaskData(token: string | null, accountName: string) {
     isLoading: tasksQuery.isLoading,
     isChatsLoading: chatsQuery.isLoading,
     isFetching: tasksQuery.isFetching || chatsQuery.isFetching,
+    async refetchTasks() {
+      await tasksQuery.refetch();
+    },
     async refetchAll() {
       await Promise.allSettled([tasksQuery.refetch(), chatsQuery.refetch()]);
     },

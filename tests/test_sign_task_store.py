@@ -33,3 +33,19 @@ def test_filtered_queries_do_not_poison_global_sign_task_cache(isolated_env):
         ("V1", "task-a"),
         ("V2", "task-b"),
     }
+
+
+def test_chat_cache_roundtrip_survives_db_only_store(isolated_env):
+    from backend.stores.sign_tasks import get_sign_task_store
+
+    store = get_sign_task_store()
+    chats = [
+        {"id": -100123, "title": "GHS CHAT", "username": "ghs_chat"},
+        {"id": -100456, "title": "OPS", "username": ""},
+    ]
+
+    assert store.load_chat_cache("V1") is None
+
+    store.save_chat_cache("V1", chats)
+
+    assert store.load_chat_cache("V1") == chats

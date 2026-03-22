@@ -1,18 +1,24 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
 from backend.contracts.dtos import SignTaskDefinition
+from backend.core.config import get_settings
 from backend.core.database import get_session_local
 from backend.models.sign_task import SignTask
+
+logger = logging.getLogger("backend.sign_tasks.store")
 
 
 class DbBackedSignTaskStore:
     def __init__(self):
         self._tasks_cache: list[SignTaskDefinition] | None = None
+        self._chat_cache_root = get_settings().resolve_workdir() / "signs"
 
     def _session(self) -> Session:
         return get_session_local()()
@@ -182,11 +188,44 @@ class DbBackedSignTaskStore:
         self.invalidate_cache()
         return deleted
 
+    def _chat_cache_file(self, account_name: str) -> Path:
+        return self._chat_cache_root / account_name / "chats_cache.json"
+
     def load_chat_cache(self, account_name: str) -> list[dict] | None:
-        return None
+        if not account_name:
+            return None
+        cache_file = self._chat_cache_file(account_name)
+        if not cache_file.exists():
+            return None
+        try:
+            data = json.loads(cache_file.read_text(encoding="utf-8"))
+        except Exception as exc:
+            logger.warning(
+                "Failed to load chat cache account=%s path=%s error=%s",
+                account_name,
+                cache_file,
+                exc,
+            )
+            return None
+        return data if isinstance(data, list) else None
 
     def save_chat_cache(self, account_name: str, chats: list[dict]) -> None:
-        return None
+        if not account_name:
+            return
+        cache_file = self._chat_cache_file(account_name)
+        try:
+            cache_file.parent.mkdir(parents=True, exist_ok=True)
+            cache_file.write_text(
+                json.dumps(chats, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except Exception as exc:
+            logger.warning(
+                "Failed to persist chat cache account=%s path=%s error=%s",
+                account_name,
+                cache_file,
+                exc,
+            )
 
     def update_last_run(
         self, task_name: str, account_name: str, last_run: dict[str, object]
