@@ -28,7 +28,9 @@ def test_account_store_and_session_store_share_db_backed_profile(isolated_env, d
     assert profile["proxy"] == "socks5://10.0.0.1:1080"
 
 
-def test_db_sign_task_store_writes_through_legacy_file(isolated_env, db_session):
+def test_db_sign_task_store_persists_task_without_legacy_file_write(
+    isolated_env, db_session
+):
     from backend.contracts import SignTaskDefinition
     from backend.models.sign_task import SignTask
     from backend.stores import get_sign_task_store
@@ -51,11 +53,8 @@ def test_db_sign_task_store_writes_through_legacy_file(isolated_env, db_session)
         .filter(SignTask.account_name == "alpha", SignTask.name == "daily")
         .first()
     )
-    legacy_config = isolated_env / ".signer" / "signs" / "alpha" / "daily" / "config.json"
-
     assert row is not None
     assert row.sign_at == "0 7 * * *"
-    assert legacy_config.exists()
     assert store.get_task("daily", "alpha") is not None
 
 
@@ -93,6 +92,3 @@ def test_config_service_exports_versioned_sign_payload_and_imports_it(isolated_e
     copied = store.get_task("copied", "beta")
     assert copied is not None
     assert copied.account_name == "beta"
-    assert (
-        isolated_env / ".signer" / "signs" / "beta" / "copied" / "config.json"
-    ).exists()

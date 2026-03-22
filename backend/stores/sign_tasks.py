@@ -8,13 +8,10 @@ from sqlalchemy.orm import Session
 from backend.contracts.dtos import SignTaskDefinition
 from backend.core.database import get_session_local
 from backend.models.sign_task import SignTask
-from backend.stores.legacy_sign_tasks import LegacySignTaskFileStore
 
 
 class DbBackedSignTaskStore:
     def __init__(self):
-        self.legacy_store = LegacySignTaskFileStore()
-        self.signs_dir = self.legacy_store.signs_dir
         self._tasks_cache: list[SignTaskDefinition] | None = None
 
     def _session(self) -> Session:
@@ -79,71 +76,13 @@ class DbBackedSignTaskStore:
             else None,
             "last_run_message": str(last_run.get("message") or ""),
             "source_version": 3,
-            "legacy_path": f"signs/{task.account_name}/{task.name}/config.json",
+            # Keep the column in the schema for now, but stop using the removed
+            # file-based store as the source of truth for task definitions.
+            "legacy_path": None,
         }
 
     def invalidate_cache(self) -> None:
         self._tasks_cache = None
-        self.legacy_store.invalidate_cache()
-
-    def _sync_legacy_tasks_to_db(
-        self, *, dry_run: bool = False, overwrite: bool = False
-    ) -> dict[str, object]:
-        imported = 0
-        skipped = 0
-        errors: list[str] = []
-
-        legacy_tasks = self.legacy_store.list_tasks(force_refresh=True)
-        if dry_run:
-            return {
-                "imported": len(legacy_tasks),
-                "skipped": 0,
-                "errors": [],
-                "tasks": [task.to_dict() for task in legacy_tasks],
-            }
-
-        db = self._session()
-        try:
-            for task in legacy_tasks:
-                existing = (
-                    db.query(SignTask)
-                    .filter(
-                        SignTask.account_name == task.account_name,
-                        SignTask.name == task.name,
-                    )
-                    .first()
-                )
-                if existing is not None and not overwrite:
-                    skipped += 1
-                    continue
-
-                payload = self._definition_payload(task)
-                if existing is None:
-                    db.add(
-                        SignTask(
-                            name=task.name,
-                            account_name=task.account_name,
-                            **payload,
-                        )
-                    )
-                else:
-                    for key, value in payload.items():
-                        setattr(existing, key, value)
-                imported += 1
-            db.commit()
-        except Exception as exc:
-            db.rollback()
-            errors.append(str(exc))
-        finally:
-            db.close()
-
-        self.invalidate_cache()
-        return {"imported": imported, "skipped": skipped, "errors": errors}
-
-    def sync_legacy_to_db(
-        self, *, dry_run: bool = False, overwrite: bool = False
-    ) -> dict[str, object]:
-        return self._sync_legacy_tasks_to_db(dry_run=dry_run, overwrite=overwrite)
 
     def list_tasks(
         self, account_name: str | None = None, force_refresh: bool = False
@@ -163,17 +102,6 @@ class DbBackedSignTaskStore:
             rows = query.order_by(SignTask.account_name, SignTask.name).all()
         finally:
             db.close()
-
-        if not rows:
-            self._sync_legacy_tasks_to_db()
-            db = self._session()
-            try:
-                query = db.query(SignTask)
-                if account_name:
-                    query = query.filter(SignTask.account_name == account_name)
-                rows = query.order_by(SignTask.account_name, SignTask.name).all()
-            finally:
-                db.close()
 
         tasks = [self._row_to_definition(row) for row in rows]
         # Only hydrate the shared cache from full-list queries.
@@ -195,14 +123,7 @@ class DbBackedSignTaskStore:
         finally:
             db.close()
 
-        if row is None:
-            legacy_task = self.legacy_store.get_task(task_name, account_name)
-            if legacy_task is not None:
-                self.save_task(legacy_task)
-                return legacy_task
-            return None
-
-        return self._row_to_definition(row)
+        return self._row_to_definition(row) if row is not None else None
 
     def save_task(self, task: SignTaskDefinition) -> SignTaskDefinition:
         if not task.account_name:
@@ -236,7 +157,6 @@ class DbBackedSignTaskStore:
         finally:
             db.close()
 
-        self.legacy_store.save_task(task)
         self.invalidate_cache()
         return task
 
@@ -259,15 +179,14 @@ class DbBackedSignTaskStore:
         finally:
             db.close()
 
-        legacy_deleted = self.legacy_store.delete_task(task_name, account_name)
         self.invalidate_cache()
-        return deleted or legacy_deleted
+        return deleted
 
     def load_chat_cache(self, account_name: str) -> list[dict] | None:
-        return self.legacy_store.load_chat_cache(account_name)
+        return None
 
     def save_chat_cache(self, account_name: str, chats: list[dict]) -> None:
-        self.legacy_store.save_chat_cache(account_name, chats)
+        return None
 
     def update_last_run(
         self, task_name: str, account_name: str, last_run: dict[str, object]

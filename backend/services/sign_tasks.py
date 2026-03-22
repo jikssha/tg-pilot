@@ -68,7 +68,7 @@ class SignTaskService:
         self.history_store = get_run_history_store()
         self.session_store = get_session_store()
         self.telegram_engine = get_tg_signer_adapter()
-        self.signs_dir = self.task_store.signs_dir
+        self.signs_dir = self.workdir / "signs"
         self.run_history_dir = self.history_store.run_history_dir
         logger.debug(
             "Initialized SignTaskService signs_dir=%s exists=%s",

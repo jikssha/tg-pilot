@@ -36,7 +36,6 @@ MODULES_TO_RELOAD = [
     "backend.scheduler",
     "backend.stores.accounts",
     "backend.stores.daily_task_runs",
-    "backend.stores.legacy_sign_tasks",
     "backend.stores.run_history",
     "backend.stores.session_store",
     "backend.stores.sign_tasks",
