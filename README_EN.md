@@ -3,7 +3,7 @@
 
 **The Next-Generation Telegram Automation & Account Manager**
 
-[![Version](https://img.shields.io/badge/version-v3.8.1-purple.svg)](https://github.com/jikssha/tg-pilot)
+[![Version](https://img.shields.io/badge/version-v3.8.2-purple.svg)](https://github.com/jikssha/tg-pilot)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 [![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
@@ -14,14 +14,14 @@
 
 ---
 
-**TG-Pilot** is a robust and beautifully designed automation control panel for Telegram. It allows you to manage multiple Telegram accounts, effortlessly schedule automated daily tasks, and monitor active workflows through a newly refactored, Linear-style pure dark mode web interface. In `v3.8.1`, the panel builds on the `v3.7.5` daily-run foundation with migration hotfixes, more stable account probing, better task feedback, fresher operations counters, and a more unified account workspace from the sidebar to the detail panel and task cards.
+**TG-Pilot** is a robust and beautifully designed automation control panel for Telegram. It allows you to manage multiple Telegram accounts, effortlessly schedule automated daily tasks, and monitor active workflows through a newly refactored, Linear-style pure dark mode web interface. In `v3.8.2`, the panel adds upstream release update prompts, continues polishing the account workspace, and finishes removing the old migration, file-store, and schema fallback layers so the runtime now targets the current product line only.
 
 Built with **native AI integration (Vision & Computation)**, TG-Pilot handles complex interactions like captcha-solving and dynamic calculation challenges with ease, making it the perfect engine for your 24/7 VPS deployments.
 
 ## ✨ Key Features
 
 - **🎮 Multi-Account Fleet Management**: Consolidate and monitor unlimited Telegram sessions through a single dashboard.
-- **💎 Minimalist Linear Aesthetic (v3.5-v3.8.1)**: Completely refactored Pure Dark console. v3.6 refines the **Settings UI**, v3.6.1 hardens the engineering baseline for long-term maintenance, v3.7 folds operations and audit workflows into the same unified control center, v3.7.5 lands the daily-run MVP, and v3.8.1 continues unifying the account workspace so the sidebar, detail header, task cards, and dialogs feel like one system.
+- **💎 Minimalist Linear Aesthetic (v3.5-v3.8.2)**: Completely refactored Pure Dark console. v3.6 refines the **Settings UI**, v3.6.1 hardens the engineering baseline for long-term maintenance, v3.7 folds operations and audit workflows into the same unified control center, v3.7.5 lands the daily-run MVP, v3.8.1 unifies the account workspace, and v3.8.2 keeps the experience focused while clearing out old compatibility layers behind the scenes.
 - **⚙️ Versatile Action Sequences**: Natively supports `Text`, `Buttons`, `Dices`, `AI Vision`, and `Math Challenges`.
 - **📱 Hidden Device Fingerprinting**: Auto-spoofs official device fingerprints (MacBook/iPhone) to minimize detection.
 - **📈 Real-time Task Radar**: Integrated task cards with one-click run, history log filtering (failures only), and config cloning.
@@ -29,9 +29,9 @@ Built with **native AI integration (Vision & Computation)**, TG-Pilot handles co
 - **⚡ Session Clone Engine (v3.5)**: High-performance session migration terminal. Export full ZIP credentials and restore fleet presence on new hardware in seconds.
 - **🚀 Bulk Flow Distribution (v3.5)**: Select multiple accounts and push "Task Packages" instantly.
 - **🌏 Deep UI Localization (v3.6)**: Full Chinese localization for all configuration modules (AI, Backup, API, Account) with refined hints.
-- **🛡️ Operations & Audit Hub (v3.7-v3.8.1)**: The settings panel now combines **Operations Overview**, **Audit Trail**, and a **Today Execution Overview** that surfaces readiness checks, scheduler activity, account status distribution, sign task summaries, daily-run execution states, and recent administrative actions in one place, with fresher counts after dashboard mutations.
-- **🧪 Preview-First Restore & Upgrade Safety (v3.7-v3.8.1)**: Session bundles and full configuration bundles show manifests, file snapshots, conflict counts, and importable totals before restore, and the `v3.7.x` upgrade path now includes legacy database bootstrap fixes, revision recognition, and schema reconciliation so existing installations can move forward without rebuilding from scratch.
-- **📅 Daily Execution MVP (v3.7.5-v3.8.1)**: Adds a persisted `daily_task_runs` ledger, distributed range scheduling, a daily dispatcher, retry/deadline compensation, and an operations view for tracking today's runs, then hardens the migration chain and execution visibility in follow-up releases.
+- **🛡️ Operations & Audit Hub (v3.7-v3.8.2)**: The settings panel now combines **Operations Overview**, **Audit Trail**, and a **Today Execution Overview** that surfaces readiness checks, scheduler activity, account status distribution, sign task summaries, daily-run execution states, and recent administrative actions in one place, with fresher counts after dashboard mutations.
+- **🆕 Upstream Update Banner (v3.8.2)**: The dashboard can check your configured upstream repository for newer releases, show a lightweight update banner, and let operators choose “remind me later” or dismiss it for the current session.
+- **🧼 Current-Version Runtime Baseline (v3.8.2)**: Legacy web UI entrypoints, migration bootstrap paths, file-based sign task mirroring, and old schema/session/history fallbacks have been removed so the app now runs on the current product line only.
 - **📦 Modern Containerization**: Deploy effortlessly with a highly customizable, ready-to-run Docker image.
  
 

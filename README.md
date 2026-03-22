@@ -4,7 +4,7 @@
 
 **Telegram 多账号自动化批量签到任务管理面板**
 
-[![Version](https://img.shields.io/badge/version-v3.8.1-purple.svg)](https://github.com/jikssha/tg-pilot)
+[![Version](https://img.shields.io/badge/version-v3.8.2-purple.svg)](https://github.com/jikssha/tg-pilot)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jikssha/tg-pilot)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
 [![Docker Image Size](https://img.shields.io/docker/image-size/jikssha/tg-pilot/latest)](https://github.com/jikssha/tg-pilot/pkgs/container/tg-pilot)
@@ -24,8 +24,9 @@
 - **📱 隐匿设备伪装和代理配置**：自带官方设备指纹伪装（如 MacBook / iPhone），支持为TG账号添加socks5代理，减少账号风控。
 - **📈 矩阵批量化任务**：支持一键分发任务配置，执行、快捷配置复制。支持多账号一键同步拉齐任务序列。
 - **🧠 原生 AI 驱动**：配置你的api 和模型，支持AI 智能识图 ， AI 计算解密。
-- **🛡️ 运维审计中台 (v3.7-v3.8.1)**：设置面板可集中查看调度器任务、账号状态分布、签到运行摘要。
-- **🧪 一键备份同步迁移 (v3.7-v3.8.1)**：支持一键导出账号和任务配置全量 ZIP 凭证。
+- **🛡️ 运维审计中台 (v3.7-v3.8.2)**：设置面板可集中查看调度器任务、账号状态分布、签到运行摘要，并支持更及时的主界面与运维概览同步。
+- **🆕 版本更新提醒 (v3.8.2)**：主界面可检查上游新版本并显示更新提示，默认跟踪 `jikssha/tg-pilot`，支持稍后提醒与本次会话关闭。
+- **🧪 一键备份同步迁移 (v3.7-v3.8.2)**：支持一键导出账号和任务配置全量 ZIP 凭证；当前主线已不再内置旧版本迁移兼容入口，统一面向新版本部署。
 - **📦 TG bot通知功能**：提供每日任务执行汇报--tg通知，可随时查看任务状态。
 
 ---

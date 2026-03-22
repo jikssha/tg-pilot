@@ -1,6 +1,17 @@
 # 📝 更新日志 (Changelog)
 
 
+## [v3.8.2] - 2026-03-22
+
+### 🆕 版本更新提示与体验收口
+- **新增 🔔 上游版本更新提醒**：主界面支持检查上游 GitHub Release，默认跟踪 `jikssha/tg-pilot`，发现新版本时显示轻量更新提示，并支持“稍后提醒 / 本次会话关闭”。
+- **优化 🧩 账号工作区统一性**：继续收口侧边栏、详情区与任务卡片的控制台风格，保持主界面和运维工作流的一致体验。
+
+### 🧹 兼容层清理与运行时收口
+- **移除 🪵 legacy WebUI 入口**：删除 `tg_signer/webui`、`webgui` 命令与 `nicegui` 可选依赖，正式结束旧 Web 兼容入口。
+- **移除 🪵 老迁移入口与旧任务文件兼容**：删除 legacy migration bootstrap / service / CLI，以及 legacy sign task file store，任务系统正式进入 DB-only 主链。
+- **移除 🪵 旧 schema/session/history fallback**：去掉旧版数据库 schema 自修复、旧 profile merge 与旧 run history fallback，当前版本统一只面向新版本主线运行。
+
 ## [v3.8.1] - 2026-03-21
 
 ### 🧩 工作区统一与状态稳定
