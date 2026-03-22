@@ -549,7 +549,7 @@ def _apply_paths(workdir_input, on_refresh: Callable[[], None]) -> None:
 
 def _build_dashboard(container) -> None:
     with container:
-        ui.label("TG Signer Web 控制台").classes(
+        ui.label("TG-Pilot Web 控制台").classes(
             "text-2xl font-semibold tracking-wide mb-2"
         )
         refreshers: list[Callable[[], None]] = []
@@ -608,7 +608,7 @@ def _build_dashboard(container) -> None:
 
 def _auth_gate(container, auth_code: str, on_success: Callable[[], None]) -> None:
     with container:
-        ui.label("TG Signer Web 控制台").classes(
+        ui.label("TG-Pilot Web 控制台").classes(
             "text-2xl font-semibold tracking-wide mb-2"
         )
         ui.label("已启用访问控制,请输入 Auth Code 继续使用 Web 控制台。").classes(
@@ -653,7 +653,7 @@ def _auth_gate(container, auth_code: str, on_success: Callable[[], None]) -> Non
 
 
 def build_ui(auth_code: str = None) -> None:
-    ui.page_title("TG Signer Web 控制台")
+    ui.page_title("TG-Pilot Web 控制台")
     root = ui.column().classes("w-full gap-3")
 
     def render_dashboard() -> None:
@@ -676,7 +676,7 @@ def build_ui(auth_code: str = None) -> None:
 def main(host: str = None, port: int = None, storage_secret: str = None) -> None:
     ui.run(
         build_ui,
-        title="TG Signer WebUI",
+        title="TG-Pilot WebUI",
         favicon="⚙️",
         reload=False,
         host=host,

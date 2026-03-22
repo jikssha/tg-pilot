@@ -298,7 +298,7 @@ def export_all_configs(current_user: User = Depends(get_current_user)):
             content=config_json.encode("utf-8"),
             media_type="application/json; charset=utf-8",
             headers={
-                "Content-Disposition": 'attachment; filename="tg_signer_all_configs.json"'
+                "Content-Disposition": 'attachment; filename="tg_pilot_all_configs.json"'
             },
         )
     except Exception as e:
