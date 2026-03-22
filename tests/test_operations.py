@@ -35,6 +35,12 @@ def test_operations_service_builds_lightweight_overview(db_session, monkeypatch)
                     "enabled": False,
                     "last_run": {"success": False},
                 },
+                {
+                    "name": "ghost-task",
+                    "account_name": "ghost-account",
+                    "enabled": True,
+                    "last_run": {"success": True},
+                },
             ]
         ),
     )

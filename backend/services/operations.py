@@ -80,7 +80,17 @@ class OperationsService:
         for account_name in live_account_names:
             account_statuses[status_by_name.get(account_name, "unknown")] += 1
 
-        sign_tasks = get_sign_task_service().list_tasks(force_refresh=True)
+        live_account_name_set = {
+            str(account_name)
+            for account_name in live_account_names
+            if str(account_name).strip()
+        }
+        all_sign_tasks = get_sign_task_service().list_tasks(force_refresh=True)
+        sign_tasks = [
+            task
+            for task in all_sign_tasks
+            if str(task.get("account_name") or "") in live_account_name_set
+        ]
         sign_tasks_total = len(sign_tasks)
         sign_tasks_enabled = sum(1 for task in sign_tasks if task.get("enabled", True))
         sign_tasks_disabled = max(int(sign_tasks_total) - int(sign_tasks_enabled), 0)
